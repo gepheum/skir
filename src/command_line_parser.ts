@@ -1,18 +1,18 @@
 export type ParsedArgs =
   | {
       kind: "gen";
+      subcommand?: "watch";
       root?: string;
-      watch?: true;
     }
   | {
       kind: "format";
+      subcommand?: "check";
       root?: string;
-      check?: true;
     }
   | {
       kind: "snapshot";
+      subcommand?: "check" | "view";
       root?: string;
-      check?: true;
     }
   | {
       kind: "init";
@@ -80,26 +80,30 @@ export function parseCommandLine(args: string[]): ParsedArgs {
 const COMMAND_BASE = "npx skir";
 
 const HELP_TEXT = `
-Usage: ${COMMAND_BASE} <command> [options]
+Usage: ${COMMAND_BASE} <command> [subcommand] [options]
 
 Commands:
-  gen         Generate code from Skir source files to target languages
-  format      Format all .skir files in the specified directory
-  snapshot    Verify compatibility by comparing current .skir files against the last snapshot
-  init        Initialize a new Skir project with a minimal skir.yml file
-  help        Display this help message
+  gen [watch]           Generate code from Skir source files to target languages
+                        watch: Automatically regenerate when .skir files change
+  format [check]        Format all .skir files in the specified directory
+                        check: Fail if code is not properly formatted
+  snapshot [check|view] Manage .skir file snapshots for compatibility checking
+                        check: Fail if there are breaking changes since last snapshot
+                        view: Display the last snapshot
+  init                  Initialize a new Skir project with a minimal skir.yml file
+  help                  Display this help message
 
 Options:
   --root, -r <path>    Path to the directory containing the skir.yml configuration file
-  --watch, -w          Enable watch mode to automatically regenerate code when .skir files change (gen only)
-  --check, -c          Check mode: fail if code is not properly formatted (format) or if there are breaking changes (snapshot)
 
 Examples:
   ${COMMAND_BASE} gen
+  ${COMMAND_BASE} gen watch
   ${COMMAND_BASE} format --root path/to/root/dir
-  ${COMMAND_BASE} format -r path/to/root/dir
-  ${COMMAND_BASE} gen -r path/to/root/dir --watch
-  ${COMMAND_BASE} snapshot --root path/to/root/dir
+  ${COMMAND_BASE} format check -r path/to/root/dir
+  ${COMMAND_BASE} snapshot
+  ${COMMAND_BASE} snapshot check
+  ${COMMAND_BASE} snapshot view --root path/to/root/dir
 `;
 
 export class CommandLineParseError extends Error {
@@ -111,8 +115,7 @@ export class CommandLineParseError extends Error {
 
 type ParsedOptions = {
   root?: string;
-  watch?: boolean;
-  check?: boolean;
+  subcommand?: string;
   unknown: string[];
 };
 
@@ -136,24 +139,14 @@ function parseOptions(args: string[]): ParsedOptions {
       }
       options.root = args[i + 1];
       i++; // Skip the next argument as it's the value
-    } else if (arg === "--watch" || arg === "-w") {
-      if (options.watch) {
-        throw new CommandLineParseError(
-          `Option ${arg} specified multiple times`,
-        );
-      }
-      options.watch = true;
-    } else if (arg === "--check" || arg === "-c") {
-      if (options.check) {
-        throw new CommandLineParseError(
-          `Option ${arg} specified multiple times`,
-        );
-      }
-      options.check = true;
     } else if (arg.startsWith("-")) {
       options.unknown.push(arg);
     } else {
-      throw new CommandLineParseError(`Unexpected argument: ${arg}`);
+      // Positional argument - treat as subcommand
+      if (options.subcommand !== undefined) {
+        throw new CommandLineParseError(`Unexpected argument: ${arg}`);
+      }
+      options.subcommand = arg;
     }
   }
 
@@ -163,63 +156,64 @@ function parseOptions(args: string[]): ParsedOptions {
 function buildGenCommand(options: ParsedOptions): ParsedArgs {
   validateNoUnknownOptions(options, "gen");
 
-  if (options.check) {
+  if (options.subcommand !== undefined && options.subcommand !== "watch") {
     throw new CommandLineParseError(
-      "Option --check is not valid for the 'gen' command",
+      `Unknown subcommand for 'gen': ${options.subcommand}`,
     );
   }
 
   return {
     kind: "gen",
     root: options.root,
-    watch: options.watch ? true : undefined,
+    subcommand: options.subcommand === "watch" ? "watch" : undefined,
   };
 }
 
 function buildFormatCommand(options: ParsedOptions): ParsedArgs {
   validateNoUnknownOptions(options, "format");
 
-  if (options.watch) {
+  if (options.subcommand !== undefined && options.subcommand !== "check") {
     throw new CommandLineParseError(
-      "Option --watch is not valid for the 'format' command",
+      `Unknown subcommand for 'format': ${options.subcommand}`,
     );
   }
 
   return {
     kind: "format",
     root: options.root,
-    check: options.check ? true : undefined,
+    subcommand: options.subcommand === "check" ? "check" : undefined,
   };
 }
 
 function buildSnapshotCommand(options: ParsedOptions): ParsedArgs {
   validateNoUnknownOptions(options, "snapshot");
 
-  if (options.watch) {
+  if (
+    options.subcommand !== undefined &&
+    options.subcommand !== "check" &&
+    options.subcommand !== "view"
+  ) {
     throw new CommandLineParseError(
-      "Option --watch is not valid for the 'snapshot' command",
+      `Unknown subcommand for 'snapshot': ${options.subcommand}`,
     );
   }
 
   return {
     kind: "snapshot",
     root: options.root,
-    check: options.check ? true : undefined,
+    subcommand:
+      options.subcommand === "check" || options.subcommand === "view"
+        ? options.subcommand
+        : undefined,
   };
 }
 
 function buildInitCommand(options: ParsedOptions): ParsedArgs {
   validateNoUnknownOptions(options, "init");
 
-  if (options.watch) {
+  if (options.subcommand !== undefined) {
     throw new CommandLineParseError(
-      "Option --watch is not valid for the 'init' command",
-    );
-  }
-
-  if (options.check) {
-    throw new CommandLineParseError(
-      "Option --check is not valid for the 'init' command",
+      `Unknown subcommand for 'init': ${options.subcommand}`,
     );
   }
 

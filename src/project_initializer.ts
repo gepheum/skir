@@ -26,7 +26,7 @@ export function initializeProject(rootDir: string): void {
     fs.writeFileSync(helloWorldPath, HELLO_WORLD_SKIR_CONTENT, "utf-8");
   }
 
-  console.log(`Done. Please edit: ${skirYmlPath}`);
+  console.log(`Done. Please edit: ${paths.resolve(skirYmlPath)}`);
 }
 
 const SKIR_YML_CONTENT = `srcDir: skir-src

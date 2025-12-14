@@ -26,47 +26,39 @@ describe("command_line_parser", () => {
         });
       });
 
-      it("should parse gen with --watch option", () => {
-        const result = parseCommandLine(["gen", "--watch"]);
+      it("should parse gen with watch subcommand", () => {
+        const result = parseCommandLine(["gen", "watch"]);
         expect(result).toMatch({
           kind: "gen",
-          watch: true,
+          subcommand: "watch",
         });
       });
 
-      it("should parse gen with -w option", () => {
-        const result = parseCommandLine(["gen", "-w"]);
-        expect(result).toMatch({
-          kind: "gen",
-          watch: true,
-        });
-      });
-
-      it("should parse gen with both --root and --watch", () => {
+      it("should parse gen with watch and --root option", () => {
         const result = parseCommandLine([
           "gen",
+          "watch",
           "--root",
           "path/to/dir",
-          "--watch",
         ]);
         expect(result).toMatch({
           kind: "gen",
           root: "path/to/dir",
-          watch: true,
+          subcommand: "watch",
         });
       });
 
-      it("should parse gen with -r and -w", () => {
-        const result = parseCommandLine(["gen", "-r", "path/to/dir", "-w"]);
+      it("should parse gen with watch and -r option", () => {
+        const result = parseCommandLine(["gen", "watch", "-r", "path/to/dir"]);
         expect(result).toMatch({
           kind: "gen",
           root: "path/to/dir",
-          watch: true,
+          subcommand: "watch",
         });
       });
 
-      it("should return error if --check is used with gen", () => {
-        const result = parseCommandLine(["gen", "--check"]);
+      it("should return error if unknown subcommand is used with gen", () => {
+        const result = parseCommandLine(["gen", "build"]);
         expect(result).toMatch({ kind: "error" });
       });
 
@@ -114,47 +106,44 @@ describe("command_line_parser", () => {
         });
       });
 
-      it("should parse format with --check option", () => {
-        const result = parseCommandLine(["format", "--check"]);
+      it("should parse format with check subcommand", () => {
+        const result = parseCommandLine(["format", "check"]);
         expect(result).toMatch({
           kind: "format",
-          check: true,
+          subcommand: "check",
         });
       });
 
-      it("should parse format with -c option", () => {
-        const result = parseCommandLine(["format", "-c"]);
-        expect(result).toMatch({
-          kind: "format",
-          check: true,
-        });
-      });
-
-      it("should parse format with both --root and --check", () => {
+      it("should parse format with check and --root option", () => {
         const result = parseCommandLine([
           "format",
+          "check",
           "--root",
           "path/to/dir",
-          "--check",
         ]);
         expect(result).toMatch({
           kind: "format",
           root: "path/to/dir",
-          check: true,
+          subcommand: "check",
         });
       });
 
-      it("should parse format with -r and -c", () => {
-        const result = parseCommandLine(["format", "-r", "path/to/dir", "-c"]);
+      it("should parse format with check and -r option", () => {
+        const result = parseCommandLine([
+          "format",
+          "check",
+          "-r",
+          "path/to/dir",
+        ]);
         expect(result).toMatch({
           kind: "format",
           root: "path/to/dir",
-          check: true,
+          subcommand: "check",
         });
       });
 
-      it("should return error if --watch is used with format", () => {
-        const result = parseCommandLine(["format", "--watch"]);
+      it("should return error if unknown subcommand is used with format", () => {
+        const result = parseCommandLine(["format", "fix"]);
         expect(result).toMatch({ kind: "error" });
       });
 
@@ -186,30 +175,53 @@ describe("command_line_parser", () => {
         });
       });
 
-      it("should return error if --watch is used with snapshot", () => {
-        const result = parseCommandLine(["snapshot", "--watch"]);
+      it("should return error if unknown subcommand is used with snapshot", () => {
+        const result = parseCommandLine(["snapshot", "build"]);
         expect(result).toMatch({ kind: "error" });
       });
 
-      it("should parse snapshot with --check option", () => {
-        const result = parseCommandLine(["snapshot", "--check"]);
+      it("should parse snapshot with check subcommand", () => {
+        const result = parseCommandLine(["snapshot", "check"]);
         expect(result).toMatch({
           kind: "snapshot",
-          check: true,
+          subcommand: "check",
         });
       });
 
-      it("should parse snapshot with -c option", () => {
-        const result = parseCommandLine(["snapshot", "-c"]);
+      it("should parse snapshot with view subcommand", () => {
+        const result = parseCommandLine(["snapshot", "view"]);
         expect(result).toMatch({
           kind: "snapshot",
-          check: true,
+          subcommand: "view",
         });
       });
 
-      it("should return error if unknown option is used", () => {
-        const result = parseCommandLine(["snapshot", "--force"]);
-        expect(result).toMatch({ kind: "error" });
+      it("should parse snapshot with check and --root option", () => {
+        const result = parseCommandLine([
+          "snapshot",
+          "check",
+          "--root",
+          "path/to/dir",
+        ]);
+        expect(result).toMatch({
+          kind: "snapshot",
+          root: "path/to/dir",
+          subcommand: "check",
+        });
+      });
+
+      it("should parse snapshot with view and -r option", () => {
+        const result = parseCommandLine([
+          "snapshot",
+          "view",
+          "-r",
+          "path/to/dir",
+        ]);
+        expect(result).toMatch({
+          kind: "snapshot",
+          root: "path/to/dir",
+          subcommand: "view",
+        });
       });
     });
 
@@ -235,18 +247,8 @@ describe("command_line_parser", () => {
         });
       });
 
-      it("should return error if --watch is used with init", () => {
-        const result = parseCommandLine(["init", "--watch"]);
-        expect(result).toMatch({ kind: "error" });
-      });
-
-      it("should return error if --check is used with init", () => {
-        const result = parseCommandLine(["init", "--check"]);
-        expect(result).toMatch({ kind: "error" });
-      });
-
-      it("should return error if unknown option is used", () => {
-        const result = parseCommandLine(["init", "--template"]);
+      it("should return error if unknown subcommand is used with init", () => {
+        const result = parseCommandLine(["init", "template"]);
         expect(result).toMatch({ kind: "error" });
       });
     });
@@ -280,7 +282,7 @@ describe("command_line_parser", () => {
       });
 
       it("should return error for unexpected positional argument", () => {
-        const result = parseCommandLine(["gen", "extra-arg"]);
+        const result = parseCommandLine(["gen", "watch", "extra-arg"]);
         expect(result).toMatch({ kind: "error" });
       });
 
@@ -290,54 +292,44 @@ describe("command_line_parser", () => {
       });
 
       it("should return error if --watch specified multiple times", () => {
-        const result = parseCommandLine(["gen", "--watch", "-w"]);
+        const result = parseCommandLine(["gen", "watch", "watch"]);
         expect(result).toMatch({ kind: "error" });
       });
 
       it("should return error if --check specified multiple times", () => {
-        const result = parseCommandLine(["format", "--check", "-c"]);
+        const result = parseCommandLine(["format", "check", "check"]);
         expect(result).toMatch({ kind: "error" });
       });
     });
 
     describe("option order", () => {
       it("should parse options in any order for gen", () => {
-        const result1 = parseCommandLine(["gen", "--watch", "--root", "dir"]);
-        const result2 = parseCommandLine(["gen", "--root", "dir", "--watch"]);
+        const result1 = parseCommandLine(["gen", "watch", "--root", "dir"]);
+        const result2 = parseCommandLine(["gen", "--root", "dir", "watch"]);
         expect(result1).toMatch({
           kind: "gen",
           root: "dir",
-          watch: true,
+          subcommand: "watch",
         });
         expect(result2).toMatch({
           kind: "gen",
           root: "dir",
-          watch: true,
+          subcommand: "watch",
         });
       });
 
       it("should parse options in any order for format", () => {
-        const result1 = parseCommandLine([
-          "format",
-          "--check",
-          "--root",
-          "dir",
-        ]);
-        const result2 = parseCommandLine([
-          "format",
-          "--root",
-          "dir",
-          "--check",
-        ]);
+        const result1 = parseCommandLine(["format", "check", "--root", "dir"]);
+        const result2 = parseCommandLine(["format", "--root", "dir", "check"]);
         expect(result1).toMatch({
           kind: "format",
           root: "dir",
-          check: true,
+          subcommand: "check",
         });
         expect(result2).toMatch({
           kind: "format",
           root: "dir",
-          check: true,
+          subcommand: "check",
         });
       });
     });

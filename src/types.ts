@@ -248,7 +248,12 @@ export type ResolvedType<Mutable extends boolean = boolean> =
 
 export type MutableResolvedType = ResolvedType<true>;
 
-/** Field of a struct or enum. */
+/**
+ * A field in a struct or a variant in an enum.
+ * Although fields and variants are conceptually different, they share the same
+ * structure, so they are represented using the same interface and we use the
+ * name 'field' for simplicity.
+ */
 export interface MutableField<Mutable extends boolean = true> {
   readonly kind: "field";
   readonly name: Token;
@@ -259,9 +264,9 @@ export interface MutableField<Mutable extends boolean = true> {
   /** May only be undefined if the field is a constant in an enum. */
   type: ResolvedType<Mutable> | undefined;
   /**
-   * Evaluates to true if the value type of the field depends on the record
-   * where the field is defined. If `Struct.DEFAULT.field` is or contains
-   * `Struct.DEFAULT`, then the dependency is "hard", otherwise it is "soft".
+   * Evaluates to true if the value type of the field/variant depends on the
+   * record where it is defined. If 'Struct.DEFAULT.field' is or contains
+   * 'Struct.DEFAULT', then the dependency is "hard", otherwise it is "soft".
    *
    * Examples:
    *   struct A { s: string; }  // false
@@ -276,13 +281,18 @@ export interface MutableField<Mutable extends boolean = true> {
    */
   isRecursive: false | "soft" | "hard";
   /**
-   * Set if the type of the field is a struct declared inline:
+   * Set if the type of the field/variant is a record declared inline:
    *   bar: struct Bar { ... };
    */
   inlineRecord: Record<Mutable> | undefined;
 }
 
-/** Field of a struct or enum. */
+/**
+ * A field in a struct or a variant in an enum.
+ * Although fields and variants are conceptually different, they share the same
+ * structure, so they are represented using the same interface and we use the
+ * name 'field' for simplicity.
+ */
 export type Field<Mutable extends boolean = boolean> = //
   Mutable extends true ? MutableField : Readonly<MutableField<false>>;
 
@@ -302,16 +312,6 @@ export type RecordLevelDeclaration<Mutable extends boolean = boolean> =
 
 export type MutableRecordLevelDeclaration = RecordLevelDeclaration<true>;
 
-export type Numbering =
-  // The record does not have fields.
-  | ""
-  // Field numbers are not explicit in the schema.
-  | "implicit"
-  // Field numbers are explicit in the schema.
-  | "explicit"
-  // The record has both fields with implicit and explicit numbering.
-  | "broken";
-
 /** Definition of a struct or enum type. */
 export interface Record<Mutable extends boolean = boolean> {
   readonly kind: "record";
@@ -320,12 +320,15 @@ export interface Record<Mutable extends boolean = boolean> {
   readonly name: Token;
   readonly recordType: "struct" | "enum";
   readonly doc: Doc<Mutable>;
-  /** Maps a field or nested record name to the corresponding declaration. */
+  /**
+   * Maps a field name, variant name or nested record name to the corresponding
+   * declaration.
+   */
   readonly nameToDeclaration: { [n: string]: RecordLevelDeclaration<Mutable> };
   readonly declarations: ReadonlyArray<RecordLevelDeclaration<Mutable>>;
+  /** Fields of the struct or variants of the enum. */
   readonly fields: ReadonlyArray<Field<Mutable>>;
   readonly nestedRecords: ReadonlyArray<Record<Mutable>>;
-  readonly numbering: Numbering;
   readonly removedNumbers: readonly number[];
   /**
    * A number which uniquely identifies this record, if specified.
@@ -484,7 +487,7 @@ export type DocPiece<Mutable extends boolean = boolean> =
     }
   | DocReference<Mutable>;
 
-/** Reference to a field within a record. */
+/** Reference to a field or variant within a record. */
 export interface RecordField<Mutable extends boolean = boolean> {
   readonly kind: "field";
   readonly record: Record;

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { checkBackwardCompatibility } from "./compatibility_checker.js";
 import {
   formatError,
+  makeGreen,
   makeRed,
   renderBreakingChanges,
   renderErrors,
@@ -52,7 +53,7 @@ export async function takeSnapshot(args: {
     console.error(
       makeRed(
         `Modules have changed since the last snapshot. ` +
-          `Run the command without --check to take a new snapshot.`,
+          `Run the command without 'check' to take a new snapshot.`,
       ),
     );
     process.exit(1);
@@ -109,6 +110,43 @@ async function readLastSnapshot(snapshotPath: string): Promise<
     };
   }
   return moduleSet;
+}
+
+export async function viewSnapshot(args: { rootDir: string }): Promise<void> {
+  const snapshotPath = join(args.rootDir, "skir-snapshot.json");
+  let snapshot: Snapshot;
+  try {
+    const textContent = await readFile(snapshotPath, "utf-8");
+    snapshot = JSON.parse(textContent);
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      console.error(makeRed(`Corrupted snapshot file: ${snapshotPath}`));
+      console.error(`Error: ${error.toString()}`);
+      process.exit(1);
+    }
+    const isNotFoundError =
+      error instanceof Error && "code" in error && error.code === "ENOENT";
+    if (isNotFoundError) {
+      console.log("No snapshot found.");
+      return;
+    } else {
+      // Rethrow I/O error
+      throw error;
+    }
+  }
+
+  console.log(`Last snapshot: ${snapshot.lastChange}\n`);
+
+  const modulePaths = Object.keys(snapshot.modules).sort();
+  for (const path of modulePaths) {
+    console.log(makeGreen("-".repeat(80)));
+    console.log(makeGreen(path));
+    console.log(makeGreen("-".repeat(80)));
+    console.log();
+    const sourceCode = snapshot.modules[path]!;
+    console.log(sourceCode);
+    console.log();
+  }
 }
 
 function makeSnapshot(moduleSet: ModuleSet, now: Date): Snapshot {

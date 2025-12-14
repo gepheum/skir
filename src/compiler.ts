@@ -18,7 +18,7 @@ import { REAL_FILE_SYSTEM } from "./io.js";
 import { collectModules } from "./module_collector.js";
 import { ModuleSet } from "./module_set.js";
 import { initializeProject } from "./project_initializer.js";
-import { takeSnapshot } from "./snapshotter.js";
+import { takeSnapshot, viewSnapshot } from "./snapshotter.js";
 import { tokenizeModule } from "./tokenizer.js";
 import type { CodeGenerator } from "./types.js";
 
@@ -387,7 +387,7 @@ async function main(): Promise<void> {
   switch (args.kind) {
     case "format": {
       // Check or fix the formatting to the .skir files in the source directory.
-      await format(srcDir, args.check ? "check" : "fix");
+      await format(srcDir, args.subcommand === "check" ? "check" : "fix");
       break;
     }
     case "gen": {
@@ -411,7 +411,7 @@ async function main(): Promise<void> {
           process.exit(1);
         }
       }
-      const watch = !!args.watch;
+      const watch = args.subcommand === "watch";
       const watchModeMainLoop = new WatchModeMainLoop(
         srcDir,
         generatorBundles,
@@ -426,11 +426,17 @@ async function main(): Promise<void> {
       break;
     }
     case "snapshot": {
-      takeSnapshot({
-        rootDir: root!,
-        srcDir: srcDir,
-        check: !!args.check,
-      });
+      if (args.subcommand === "view") {
+        viewSnapshot({
+          rootDir: root!,
+        });
+      } else {
+        takeSnapshot({
+          rootDir: root!,
+          srcDir: srcDir,
+          check: args.subcommand === "check",
+        });
+      }
       break;
     }
     default: {

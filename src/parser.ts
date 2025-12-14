@@ -19,7 +19,6 @@ import type {
   MutableRecordLevelDeclaration,
   MutableRecordLocation,
   MutableValue,
-  Numbering,
   Primitive,
   Record,
   Removed,
@@ -341,7 +340,6 @@ class RecordBuilder {
       declarations: Object.values(this.nameToDeclaration),
       fields: fields,
       nestedRecords: nestedRecords,
-      numbering: this.numbering,
       removedNumbers: this.removedNumbers.sort(),
       recordNumber: this.stableId,
       numSlots: numSlots,
@@ -355,6 +353,16 @@ class RecordBuilder {
   private numbering: Numbering = "";
   private removedNumbers: number[] = [];
 }
+
+type Numbering =
+  // The record does not have fields .
+  | ""
+  // Field numbers are not explicit in the schema.
+  | "implicit"
+  // Field numbers are explicit in the schema.
+  | "explicit"
+  // The record has both fields with implicit and explicit numbering.
+  | "broken";
 
 interface InlineRecordContext {
   context: "field" | "method-request" | "method-response";
