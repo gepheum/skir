@@ -1,5 +1,11 @@
-import { unquoteAndUnescape } from "./literals.js";
-import type { CodeLine, ErrorSink, Result, SkirError, Token } from "./types.js";
+import {
+  unquoteAndUnescape,
+  type CodeLine,
+  type ErrorSink,
+  type Result,
+  type SkirError,
+  type Token,
+} from "skir-internal";
 
 export interface ModuleTokens {
   /// Includes regular comments and doc comments.

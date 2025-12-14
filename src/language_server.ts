@@ -1,9 +1,3 @@
-import * as yaml from "yaml";
-import { fromZodError } from "zod-validation-error";
-import { SkirConfig } from "./config.js";
-import { ModuleParser, ModuleSet } from "./module_set.js";
-import { parseModule } from "./parser.js";
-import { tokenizeModule } from "./tokenizer.js";
 import type {
   Module,
   MutableModule,
@@ -11,7 +5,13 @@ import type {
   RecordLocation,
   Result,
   SkirError,
-} from "./types.js";
+} from "skir-internal";
+import * as yaml from "yaml";
+import { fromZodError } from "zod-validation-error";
+import { SkirConfig } from "./config.js";
+import { ModuleParser, ModuleSet } from "./module_set.js";
+import { parseModule } from "./parser.js";
+import { tokenizeModule } from "./tokenizer.js";
 
 export class LanguageServerModuleSet {
   constructor(private readonly rootPath: string) {}

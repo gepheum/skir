@@ -1,7 +1,7 @@
 import { expect } from "buckwheat";
 import { describe, it } from "mocha";
-import { capitalize, convertCase, validate } from "./casing.js";
-import type { SkirError, Token } from "./types.js";
+import type { SkirError, Token } from "skir-internal";
+import { validate } from "./casing.js";
 
 function makeToken(text: string): Token {
   return {
@@ -128,20 +128,5 @@ describe("casing", () => {
         },
       ]);
     });
-  });
-
-  it("convert", () => {
-    expect(convertCase("FOO_BAR", "UPPER_UNDERSCORE")).toBe("FOO_BAR");
-    expect(convertCase("FOO_BAR", "UpperCamel")).toBe("FooBar");
-    expect(convertCase("FOO_BAR", "lowerCamel")).toBe("fooBar");
-    expect(convertCase("FOO_BAR", "lower_underscore")).toBe("foo_bar");
-    expect(convertCase("FooBar", "UPPER_UNDERSCORE")).toBe("FOO_BAR");
-    expect(convertCase("fooBar", "UPPER_UNDERSCORE")).toBe("FOO_BAR");
-    expect(convertCase("foo_bar", "UPPER_UNDERSCORE")).toBe("FOO_BAR");
-    expect(convertCase("fo6_b7r", "UpperCamel")).toBe("Fo6B7r");
-  });
-
-  it("capitalize", () => {
-    expect(capitalize("fooBar")).toBe("FooBar");
   });
 });

@@ -1,4 +1,3 @@
-import { ModuleSet } from "./module_set.js";
 import type {
   Field,
   Method,
@@ -7,7 +6,8 @@ import type {
   RecordLocation,
   ResolvedType,
   Token,
-} from "./types.js";
+} from "skir-internal";
+import { ModuleSet } from "./module_set.js";
 
 export interface BeforeAfter<T> {
   before: T;

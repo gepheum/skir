@@ -12,7 +12,7 @@ inputs:
 
 runs:
   using: 'composite'
-    
+
   steps:
     - name: Checkout code
       uses: actions/checkout@v3

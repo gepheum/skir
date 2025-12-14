@@ -1,8 +1,8 @@
 import { expect } from "buckwheat";
 import { describe, it } from "mocha";
+import { Module, Result } from "skir-internal";
 import { parseModule } from "./parser.js";
 import { tokenizeModule } from "./tokenizer.js";
-import { Module, Result } from "./types.js";
 
 function parse(content: string): Result<Module> {
   const pathToModule = "path/to/module";

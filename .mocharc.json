@@ -1,9 +1,5 @@
 {
   "extension": ["ts"],
   "spec": "src/**/*.test.ts",
-  "require": "ts-node/register",
-  "node-option": [
-    "experimental-specifier-resolution=node",
-    "loader=ts-node/esm/transpile-only"
-  ]
+  "node-option": ["import=tsx"]
 }

@@ -2,7 +2,7 @@
  * Utilities to help implement the jump-to-definition functionality for skir
  * files in IDEs.
  */
-import type { Declaration, Module, ResolvedType, Token } from "./types.js";
+import type { Declaration, Module, ResolvedType, Token } from "skir-internal";
 
 export interface DefinitionMatch {
   modulePath: string;

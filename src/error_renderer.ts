@@ -1,3 +1,9 @@
+import type {
+  RecordLocation,
+  ResolvedType,
+  SkirError,
+  Token,
+} from "skir-internal";
 import { caseMatches } from "./casing.js";
 import {
   BeforeAfter,
@@ -6,7 +12,6 @@ import {
   getTokenForBreakingChange,
 } from "./compatibility_checker.js";
 import { ModuleSet } from "./module_set.js";
-import { RecordLocation, ResolvedType, SkirError, Token } from "./types.js";
 
 export function renderErrors(errors: readonly SkirError[]): void {
   const MAX_ERRORS = 10;

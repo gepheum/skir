@@ -1,7 +1,7 @@
 import { expect } from "buckwheat";
 import { describe, it } from "mocha";
+import type { CodeLine, Token } from "skir-internal";
 import { parseDocComments } from "./doc_comment_parser.js";
-import type { CodeLine, Token } from "./types.js";
 
 function makeToken(text: string, position: number = 0): Token {
   const line: CodeLine = {

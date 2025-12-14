@@ -1,6 +1,3 @@
-import * as casing from "./casing.js";
-import { parseDocComments } from "./doc_comment_parser.js";
-import { ModuleTokens } from "./tokenizer.js";
 import type {
   Declaration,
   Doc,
@@ -28,7 +25,11 @@ import type {
   UnresolvedArrayType,
   UnresolvedRecordRef,
   UnresolvedType,
-} from "./types.js";
+} from "skir-internal";
+import { convertCase, simpleHash } from "skir-internal";
+import * as casing from "./casing.js";
+import { parseDocComments } from "./doc_comment_parser.js";
+import { ModuleTokens } from "./tokenizer.js";
 
 /** Runs syntactic analysis on a module. */
 export function parseModule(moduleTokens: ModuleTokens): Result<MutableModule> {
@@ -380,7 +381,7 @@ function parseRecord(
   let nameToken: Token;
   if (inlineContext) {
     const { originalName } = inlineContext;
-    let transformedName = casing.convertCase(originalName.text, "UpperCamel");
+    let transformedName = convertCase(originalName.text, "UpperCamel");
     if (inlineContext.context === "method-request") {
       transformedName += "Request";
     } else if (inlineContext.context === "method-response") {
@@ -1206,19 +1207,6 @@ class TokenIterator {
   }
 
   private tokenIndex = 0;
-}
-
-/** Returns a uint32 hash of the given string. */
-export function simpleHash(input: string): number {
-  // From https://stackoverflow.com/questions/6122571/simple-non-secure-hash-function-for-javascript
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) {
-    const char = input.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  // Signed int32 to unsigned int32.
-  return hash >>> 0;
 }
 
 function collectModuleRecords(

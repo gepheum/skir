@@ -1,5 +1,5 @@
+import type { Token } from "skir-internal";
 import { ModuleTokens } from "./tokenizer.js";
-import type { Token } from "./types.js";
 
 export interface FormattedModule {
   readonly newSourceCode: string;

@@ -1,12 +1,12 @@
 import { assert } from "node:console";
-import {
+import type {
   Doc,
   DocPiece,
   DocReference,
   Result,
   SkirError,
   Token,
-} from "./types.js";
+} from "skir-internal";
 
 export function parseDocComments(docComments: readonly Token[]): Result<Doc> {
   const parser = new DocCommentsParser(docComments);

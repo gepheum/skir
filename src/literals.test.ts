@@ -4,17 +4,10 @@ import {
   isStringLiteral,
   literalValueToDenseJson,
   literalValueToIdentity,
-  unquoteAndUnescape,
   valueHasPrimitiveType,
 } from "./literals.js";
 
 describe("literals", () => {
-  it("#unquoteAndUnescape() works", () => {
-    expect(unquoteAndUnescape('"foo\\\r\n\\\n\\\r\\tbar\\\\t"')).toBe(
-      ["foo", "", "", "\tbar\\t"].join("\n"),
-    );
-  });
-
   it("#isStringLiteral() works", () => {
     expect(isStringLiteral('"foo"')).toBe(true);
     expect(isStringLiteral('""')).toBe(true);

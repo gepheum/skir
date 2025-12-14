@@ -2,6 +2,7 @@
 import * as fs from "fs/promises";
 import { glob } from "glob";
 import * as paths from "path";
+import type { CodeGenerator } from "skir-internal";
 import Watcher from "watcher";
 import * as yaml from "yaml";
 import { fromZodError } from "zod-validation-error";
@@ -20,7 +21,6 @@ import { ModuleSet } from "./module_set.js";
 import { initializeProject } from "./project_initializer.js";
 import { takeSnapshot, viewSnapshot } from "./snapshotter.js";
 import { tokenizeModule } from "./tokenizer.js";
-import type { CodeGenerator } from "./types.js";
 
 interface GeneratorBundle<Config = unknown> {
   generator: CodeGenerator<Config>;
