@@ -137,6 +137,9 @@ class WatchModeMainLoop {
         renderErrors(errors);
         return false;
       } else {
+        if (moduleSet.recordMap.size <= 0) {
+          console.error(makeRed("No skir modules found in source directory"));
+        }
         await this.doGenerate(moduleSet);
         if (this.watchModeOn) {
           const date = new Date().toLocaleTimeString("en-US");
