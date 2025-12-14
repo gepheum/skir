@@ -1058,6 +1058,7 @@ function parseDoc(it: TokenIterator): Doc {
 }
 
 const EMPTY_DOC: Doc = {
+  text: "",
   pieces: [],
 };
 

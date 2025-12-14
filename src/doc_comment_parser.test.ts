@@ -43,6 +43,7 @@ describe("doc_comment_parser", () => {
     expect(result).toMatch({
       errors: [],
       result: {
+        text: "Hello\n Two spaces\nNo space",
         pieces: [{ kind: "text", text: "Hello\n Two spaces\nNo space" }],
       },
     });
@@ -71,6 +72,7 @@ describe("doc_comment_parser", () => {
     expect(result).toMatch({
       errors: [],
       result: {
+        text: "See [.foo.Bar] for details",
         pieces: [
           { kind: "text", text: "See " },
           {
