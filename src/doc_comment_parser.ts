@@ -33,9 +33,17 @@ class DocCommentsParser {
       this.pieces.push({ kind: "text", text: this.currentText });
     }
 
-    const text = this.docComments
-      .map((c) => c.text.slice(c.text.startsWith("/// ") ? 4 : 3))
-      .join("\n");
+    const { pieces } = this;
+    const text = pieces
+      .map((p) => {
+        switch (p.kind) {
+          case "text":
+            return p.text;
+          case "reference":
+            return p.referenceRange.text;
+        }
+      })
+      .join("");
 
     return {
       result: {

@@ -30,10 +30,18 @@ export function initializeProject(rootDir: string): void {
 }
 
 const SKIR_YML_CONTENT = `srcDir: skir-src
+
+generators:
+  - mod: skir-python-gen
+    skiroutDir: ./skirout
+    config: {}
 `;
 
-const HELLO_WORLD_SKIR_CONTENT = `struct Point {
+const HELLO_WORLD_SKIR_CONTENT = `/// A point in 2D space.
+struct Point {
+  /// x-coordinate
   x: int32;
+  /// y-coordinate
   y: int32;
 }
 `;
