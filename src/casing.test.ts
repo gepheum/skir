@@ -84,6 +84,7 @@ describe("casing", () => {
       expect(doValidate("FOO_BAR", "UPPER_UNDERSCORE")).toMatch([]);
       expect(doValidate("F00", "UPPER_UNDERSCORE")).toMatch([]);
       expect(doValidate("F00_BAR", "UPPER_UNDERSCORE")).toMatch([]);
+      expect(doValidate("F", "UPPER_UNDERSCORE")).toMatch([]);
     });
 
     it("is not UPPER_UNDERSCORE", () => {
@@ -125,6 +126,41 @@ describe("casing", () => {
             text: "FOO_7",
           },
           expected: "UPPER_UNDERSCORE",
+        },
+      ]);
+    });
+
+    it("is UpperCamel", () => {
+      expect(doValidate("Foo", "UpperCamel")).toMatch([]);
+      expect(doValidate("FooBar", "UpperCamel")).toMatch([]);
+      expect(doValidate("F", "UpperCamel")).toMatch([]);
+      expect(doValidate("F00", "UpperCamel")).toMatch([]);
+      expect(doValidate("F00Bar", "UpperCamel")).toMatch([]);
+    });
+
+    it("is not UpperCamel", () => {
+      expect(doValidate("fOO", "UpperCamel")).toMatch([
+        {
+          token: {
+            text: "fOO",
+          },
+          expected: "UpperCamel",
+        },
+      ]);
+      expect(doValidate("XML", "UpperCamel")).toMatch([
+        {
+          token: {
+            text: "XML",
+          },
+          expected: "UpperCamel",
+        },
+      ]);
+      expect(doValidate("XM0", "UpperCamel")).toMatch([
+        {
+          token: {
+            text: "XM0",
+          },
+          expected: "UpperCamel",
         },
       ]);
     });

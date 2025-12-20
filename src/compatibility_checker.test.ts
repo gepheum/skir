@@ -421,7 +421,7 @@ describe("compatibility checker", () => {
           }
         `,
         after: `
-          enum EE(100) {
+          enum E2(100) {
             A;
           }
         `,
@@ -439,7 +439,7 @@ describe("compatibility checker", () => {
           after: {
             kind: "record",
             recordName: {
-              text: "EE",
+              text: "E2",
             },
           },
         },

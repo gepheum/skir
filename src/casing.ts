@@ -22,7 +22,12 @@ export function caseMatches(
     case "lower_underscore":
       return /^[a-z][0-9a-z]*(_[a-z][0-9a-z]*)*$/.test(name);
     case "UpperCamel":
-      return /^[A-Z][0-9A-Za-z]*$/.test(name);
+      return (
+        /^[A-Z][0-9A-Za-z]*$/.test(name) &&
+        // If there is more than one letter, ensure there is at least one
+        // lowercase letter
+        (/^[A-Z][0-9]*$/.test(name) || /[a-z]/.test(name))
+      );
     case "UPPER_UNDERSCORE":
       return /^[A-Z][0-9A-Z]*(_[A-Z][0-9A-Z]*)*$/.test(name);
   }
