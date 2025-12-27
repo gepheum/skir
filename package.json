@@ -1,6 +1,6 @@
 {
   "name": "skir",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "",
   "homepage": "https://github.com/gepheum/skir#readme",
   "bugs": {
@@ -42,13 +42,16 @@
   },
   "dependencies": {
     "glob": "^11.0.1",
-    "skir-internal": "^0.0.6",
+    "skir-internal": "^0.0.7",
+    "skir-cc-gen": "^0.0.2",
+    "skir-dart-gen": "^0.0.3",
+    "skir-java-gen": "^0.0.3",
+    "skir-kotlin-gen": "^0.0.2",
     "skir-python-gen": "^0.0.5",
     "skir-typescript-gen": "^0.0.2",
     "watcher": "^2.3.1",
     "yaml": "^2.7.1",
-    "zod": "^4.1.13",
-    "zod-validation-error": "^5.0.0"
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.1",

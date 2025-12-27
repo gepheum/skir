@@ -11,6 +11,7 @@ import {
   Expression,
   getTokenForBreakingChange,
 } from "./compatibility_checker.js";
+import { SkirConfigError } from "./config_parser.js";
 import { ModuleSet } from "./module_set.js";
 
 export function renderErrors(errors: readonly SkirError[]): void {
@@ -54,6 +55,39 @@ export function formatError(error: SkirError): string {
   result += makeRed("~".repeat(Math.max(token.originalText.length, 1)));
   result += "\n";
   return result;
+}
+
+export function renderSkirConfigErrors(
+  errors: readonly SkirConfigError[],
+  context: {
+    skirConfigPath: string;
+  },
+): void {
+  for (const error of errors) {
+    console.error();
+    console.error(formatSkirConfigError(error, context));
+  }
+  console.error();
+}
+
+function formatSkirConfigError(
+  error: SkirConfigError,
+  context: {
+    skirConfigPath: string;
+  },
+): string {
+  const { message, range } = error;
+  const { skirConfigPath } = context;
+  const location = range
+    ? [
+        makeCyan(skirConfigPath),
+        // Already 1-based
+        makeYellow(range.start.lineNumber.toString()),
+        // Already 1-based
+        makeYellow(range.start.colNumber.toString()),
+      ].join(":")
+    : makeCyan(skirConfigPath);
+  return [location, " - ", makeRed("error"), ": ", message].join("");
 }
 
 export function renderBreakingChanges(

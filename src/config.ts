@@ -1,20 +1,15 @@
 import { z } from "zod";
 
-export const GeneratorConfig = z
-  .object({
-    mod: z.string(),
-    config: z.any(),
-    skiroutDir: z
-      .union([
-        z
-          .string()
-          .regex(/^.*\/skirout$/)
-          .optional(),
-        z.array(z.string().regex(/^.*\/skirout$/)),
-      ])
-      .optional(),
-  })
-  .strict();
+export const GeneratorConfig = z.strictObject({
+  mod: z.string(),
+  config: z.any(),
+  outDir: z
+    .union([
+      z.string().endsWith("/skirout"),
+      z.array(z.string().endsWith("/skirout")),
+    ])
+    .optional(),
+});
 
 export type GeneratorConfig = z.infer<typeof GeneratorConfig>;
 

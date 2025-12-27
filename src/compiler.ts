@@ -4,15 +4,15 @@ import { glob } from "glob";
 import * as paths from "path";
 import type { CodeGenerator } from "skir-internal";
 import Watcher from "watcher";
-import * as yaml from "yaml";
-import { fromZodError } from "zod-validation-error";
 import { parseCommandLine } from "./command_line_parser.js";
-import { GeneratorConfig, SkirConfig } from "./config.js";
+import { GeneratorConfig } from "./config.js";
+import { importCodeGenerator, parseSkirConfig } from "./config_parser.js";
 import {
   makeGray,
   makeGreen,
   makeRed,
   renderErrors,
+  renderSkirConfigErrors,
 } from "./error_renderer.js";
 import { formatModule } from "./formatter.js";
 import { REAL_FILE_SYSTEM } from "./io.js";
@@ -33,32 +33,19 @@ async function makeGeneratorBundle(
   config: GeneratorConfig,
   root: string,
 ): Promise<GeneratorBundle> {
-  const mod = await import(config.mod);
-  const generator = mod.GENERATOR;
-  if (typeof generator !== "object") {
-    throw new Error(`Cannot import GENERATOR from module ${config.mod}`);
-  }
-  // Validate the generator config.
-  const parsedConfig = generator.configType.safeParse(config.config);
-  if (!parsedConfig.success) {
-    const { id } = generator;
-    console.error(makeRed(`Invalid config for ${id} generator`));
-    const validationError = fromZodError(parsedConfig.error);
-    console.error(validationError.toString());
-    process.exit(1);
-  }
+  const generator = await importCodeGenerator(config.mod);
   let skiroutDirs: string[];
-  if (config.skiroutDir === undefined) {
+  if (config.outDir === undefined) {
     skiroutDirs = ["skirout"];
-  } else if (typeof config.skiroutDir === "string") {
-    skiroutDirs = [config.skiroutDir];
+  } else if (typeof config.outDir === "string") {
+    skiroutDirs = [config.outDir];
   } else {
-    skiroutDirs = config.skiroutDir;
+    skiroutDirs = config.outDir;
   }
   skiroutDirs = skiroutDirs.map((d) => paths.join(root, d));
   return {
-    generator,
-    config: parsedConfig.data,
+    generator: generator,
+    config: config.config,
     skiroutDirs: skiroutDirs,
   };
 }
@@ -362,28 +349,24 @@ async function main(): Promise<void> {
     }
   }
 
-  // Use an absolute path to make error messages more helpful.
-  const skirConfigPath = paths.resolve(paths.join(root!, "skir.yml"));
-  const skirConfigContents = REAL_FILE_SYSTEM.readTextFile(skirConfigPath);
-  if (skirConfigContents === undefined) {
+  let skirConfigPath = paths.join(root!, "skir.yml");
+  if (!paths.isAbsolute(skirConfigPath) && !/^\.{1,2}[\/\\]$/.test(skirConfigPath)) {
+    // To make it clear that it's a path, prepend "./"
+    skirConfigPath = `.${paths.sep}${skirConfigPath}`;
+  }
+  const skirConfigCode = REAL_FILE_SYSTEM.readTextFile(skirConfigPath);
+  if (skirConfigCode === undefined) {
     console.error(makeRed(`Cannot find ${skirConfigPath}`));
     process.exit(1);
   }
 
-  let skirConfig: SkirConfig;
-  {
-    // `yaml.parse` fail with a helpful error message, no need to add context.
-    const parseResult = SkirConfig.safeParse(yaml.parse(skirConfigContents));
-    if (parseResult.success) {
-      skirConfig = parseResult.data;
-    } else {
-      console.error(makeRed("Invalid skir config"));
-      console.error(`  Path: ${skirConfigPath}`);
-      const validationError = fromZodError(parseResult.error);
-      console.error(validationError.toString());
-      process.exit(1);
-    }
+  const skirConfigResult = await parseSkirConfig(skirConfigCode, "import-mods");
+  if (skirConfigResult.errors.length > 0) {
+    console.error(makeRed("Invalid skir config"));
+    renderSkirConfigErrors(skirConfigResult.errors, { skirConfigPath });
+    process.exit(1);
   }
+  const skirConfig = skirConfigResult.skirConfig!;
 
   const srcDir = paths.join(root!, skirConfig.srcDir || ".");
 
