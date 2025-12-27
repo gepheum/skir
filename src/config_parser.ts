@@ -10,7 +10,6 @@ import { SkirConfig } from "./config.js";
 
 export interface SkirConfigResult {
   skirConfig: SkirConfig | undefined;
-
   errors: readonly SkirConfigError[];
 }
 

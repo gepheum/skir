@@ -350,7 +350,10 @@ async function main(): Promise<void> {
   }
 
   let skirConfigPath = paths.join(root!, "skir.yml");
-  if (!paths.isAbsolute(skirConfigPath) && !/^\.{1,2}[\/\\]$/.test(skirConfigPath)) {
+  if (
+    !paths.isAbsolute(skirConfigPath) &&
+    !/^\.{1,2}[/\\]$/.test(skirConfigPath)
+  ) {
     // To make it clear that it's a path, prepend "./"
     skirConfigPath = `.${paths.sep}${skirConfigPath}`;
   }
