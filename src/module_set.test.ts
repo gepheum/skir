@@ -1,5 +1,5 @@
 import { expect } from "buckwheat";
-import { describe, it } from "mocha";
+import { describe, it } from "node:test";
 import type { FileReader } from "./io.js";
 import { ModuleSet } from "./module_set.js";
 
@@ -1616,29 +1616,39 @@ describe("module set", () => {
       const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
       const actual = moduleSet.parseAndResolve("module");
 
-      const fooRecord = actual.result?.records.find(
-        (r) => r.record?.name.text === "Foo",
-      );
-      expect(fooRecord).toMatch({
-        record: {
-          name: { text: "Foo" },
-          doc: {
-            pieces: [
-              { kind: "text", text: "Hello " },
-              {
-                kind: "reference",
-                nameChain: [{ text: "Bar" }, { text: "OK" }],
-                referee: {
-                  kind: "field",
-                  field: { name: { text: "OK" } },
-                  record: { name: { text: "Bar" } },
-                },
+      expect(actual).toMatch({
+        result: {
+          nameToDeclaration: {
+            Foo: {
+              name: { text: "Foo" },
+              doc: {
+                pieces: [
+                  { kind: "text", text: "Hello " },
+                  {
+                    kind: "reference",
+                    nameParts: [
+                      {
+                        token: { text: "Bar" },
+                        declaration: { kind: "record", name: { text: "Bar" } },
+                      },
+                      {
+                        token: { text: "OK" },
+                        declaration: { kind: "field", name: { text: "OK" } },
+                      },
+                    ],
+                    referee: {
+                      kind: "field",
+                      field: { name: { text: "OK" } },
+                      record: { name: { text: "Bar" } },
+                    },
+                  },
+                ],
               },
-            ],
+            },
           },
         },
+        errors: [],
       });
-      expect(actual.errors).toMatch([]);
     });
 
     it("resolves reference to sibling field", () => {
@@ -1670,7 +1680,15 @@ describe("module set", () => {
                         { kind: "text", text: "Must be different from " },
                         {
                           kind: "reference",
-                          nameChain: [{ text: "x" }],
+                          nameParts: [
+                            {
+                              token: { text: "x" },
+                              declaration: {
+                                kind: "field",
+                                name: { text: "x" },
+                              },
+                            },
+                          ],
                           referee: {
                             kind: "field",
                             field: { name: { text: "x" } },
@@ -1705,26 +1723,32 @@ describe("module set", () => {
       const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
       const actual = moduleSet.parseAndResolve("module");
 
-      const fooRecord = actual.result?.records.find(
-        (r) => r.record?.name.text === "Foo",
-      );
-      expect(fooRecord).toMatch({
-        record: {
-          name: { text: "Foo" },
-          doc: {
-            pieces: [
-              { kind: "text", text: "See " },
-              {
-                kind: "reference",
-                nameChain: [{ text: "Bar" }],
-                referee: { kind: "record", name: { text: "Bar" } },
+      expect(actual).toMatch({
+        result: {
+          nameToDeclaration: {
+            Foo: {
+              name: { text: "Foo" },
+              doc: {
+                pieces: [
+                  { kind: "text", text: "See " },
+                  {
+                    kind: "reference",
+                    nameParts: [
+                      {
+                        token: { text: "Bar" },
+                        declaration: { kind: "record", name: { text: "Bar" } },
+                      },
+                    ],
+                    referee: { kind: "record", name: { text: "Bar" } },
+                  },
+                  { kind: "text", text: " for details" },
+                ],
               },
-              { kind: "text", text: " for details" },
-            ],
+            },
           },
         },
+        errors: [],
       });
-      expect(actual.errors).toMatch([]);
     });
 
     it("resolves reference to nested record", () => {
@@ -1745,25 +1769,41 @@ describe("module set", () => {
       const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
       const actual = moduleSet.parseAndResolve("module");
 
-      const fooRecord = actual.result?.records.find(
-        (r) => r.record?.name.text === "Foo",
-      );
-      expect(fooRecord).toMatch({
-        record: {
-          name: { text: "Foo" },
-          doc: {
-            pieces: [
-              { kind: "text", text: "Uses " },
-              {
-                kind: "reference",
-                nameChain: [{ text: "Outer" }, { text: "Inner" }],
-                referee: { kind: "record", name: { text: "Inner" } },
+      expect(actual).toMatch({
+        result: {
+          nameToDeclaration: {
+            Foo: {
+              name: { text: "Foo" },
+              doc: {
+                pieces: [
+                  { kind: "text", text: "Uses " },
+                  {
+                    kind: "reference",
+                    nameParts: [
+                      {
+                        token: { text: "Outer" },
+                        declaration: {
+                          kind: "record",
+                          name: { text: "Outer" },
+                        },
+                      },
+                      {
+                        token: { text: "Inner" },
+                        declaration: {
+                          kind: "record",
+                          name: { text: "Inner" },
+                        },
+                      },
+                    ],
+                    referee: { kind: "record", name: { text: "Inner" } },
+                  },
+                ],
               },
-            ],
+            },
           },
         },
+        errors: [],
       });
-      expect(actual.errors).toMatch([]);
     });
 
     it("resolves absolute reference", () => {
@@ -1783,37 +1823,46 @@ describe("module set", () => {
       const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
       const actual = moduleSet.parseAndResolve("module");
 
-      const outerRecord = actual.result?.records.find(
-        (r) => r.record?.name.text === "Outer",
-      );
-      expect(outerRecord).toMatch({
-        record: {
-          name: { text: "Outer" },
-          nestedRecords: [
-            {
-              name: { text: "Inner" },
-              doc: {
-                pieces: [
-                  { kind: "text", text: "Reference to " },
-                  {
-                    kind: "reference",
-                    absolute: true,
-                    nameChain: [{ text: "Bar" }],
-                    referee: {
-                      kind: "record",
-                      name: { text: "Bar", colNumber: 17 },
-                    },
+      expect(actual).toMatch({
+        result: {
+          nameToDeclaration: {
+            Outer: {
+              name: { text: "Outer" },
+              nestedRecords: [
+                {
+                  name: { text: "Inner" },
+                  doc: {
+                    pieces: [
+                      { kind: "text", text: "Reference to " },
+                      {
+                        kind: "reference",
+                        absolute: true,
+                        nameParts: [
+                          {
+                            token: { text: "Bar" },
+                            declaration: {
+                              kind: "record",
+                              name: { text: "Bar", colNumber: 17 },
+                            },
+                          },
+                        ],
+                        referee: {
+                          kind: "record",
+                          name: { text: "Bar", colNumber: 17 },
+                        },
+                      },
+                    ],
                   },
-                ],
-              },
+                },
+                {
+                  name: { text: "Bar", colNumber: 19 },
+                },
+              ],
             },
-            {
-              name: { text: "Bar", colNumber: 19 },
-            },
-          ],
+          },
         },
+        errors: [],
       });
-      expect(actual.errors).toMatch([]);
     });
 
     it("resolves reference to method", () => {
@@ -1841,7 +1890,15 @@ describe("module set", () => {
                     { kind: "text", text: "Calls " },
                     {
                       kind: "reference",
-                      nameChain: [{ text: "GetData" }],
+                      nameParts: [
+                        {
+                          token: { text: "GetData" },
+                          declaration: {
+                            kind: "method",
+                            name: { text: "GetData" },
+                          },
+                        },
+                      ],
                       referee: { kind: "method", name: { text: "GetData" } },
                     },
                   ],
@@ -1881,7 +1938,15 @@ describe("module set", () => {
                     { kind: "text", text: "Default is " },
                     {
                       kind: "reference",
-                      nameChain: [{ text: "DEFAULT_VALUE" }],
+                      nameParts: [
+                        {
+                          token: { text: "DEFAULT_VALUE" },
+                          declaration: {
+                            kind: "constant",
+                            name: { text: "DEFAULT_VALUE" },
+                          },
+                        },
+                      ],
                       referee: {
                         kind: "constant",
                         name: { text: "DEFAULT_VALUE" },
@@ -1913,35 +1978,44 @@ describe("module set", () => {
       const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
       const actual = moduleSet.parseAndResolve("module");
 
-      const fooRecord = actual.result?.records.find(
-        (r) => r.record?.name.text === "Foo",
-      );
-      expect(fooRecord).toMatch({
-        record: {
-          name: { text: "Foo" },
-          fields: [
-            {
-              name: { text: "bar" },
-              doc: {
-                pieces: [
-                  { kind: "text", text: "Uses " },
-                  {
-                    kind: "reference",
-                    nameChain: [{ text: "OK" }],
-                    referee: {
-                      kind: "field",
-                      field: { name: { text: "OK" } },
-                      record: { name: { text: "Bar" } },
-                    },
+      expect(actual).toMatch({
+        result: {
+          nameToDeclaration: {
+            Foo: {
+              name: { text: "Foo" },
+              fields: [
+                {
+                  name: { text: "bar" },
+                  doc: {
+                    pieces: [
+                      { kind: "text", text: "Uses " },
+                      {
+                        kind: "reference",
+                        nameParts: [
+                          {
+                            token: { text: "OK" },
+                            declaration: {
+                              kind: "field",
+                              name: { text: "OK" },
+                            },
+                          },
+                        ],
+                        referee: {
+                          kind: "field",
+                          field: { name: { text: "OK" } },
+                          record: { name: { text: "Bar" } },
+                        },
+                      },
+                      { kind: "text", text: " from the Bar enum" },
+                    ],
                   },
-                  { kind: "text", text: " from the Bar enum" },
-                ],
-              },
+                },
+              ],
             },
-          ],
+          },
         },
+        errors: [],
       });
-      expect(actual.errors).toMatch([]);
     });
 
     it("resolves reference from method request type scope", () => {
@@ -1972,7 +2046,12 @@ describe("module set", () => {
                   { kind: "text", text: "Input " },
                   {
                     kind: "reference",
-                    nameChain: [{ text: "x" }],
+                    nameParts: [
+                      {
+                        token: { text: "x" },
+                        declaration: { kind: "field", name: { text: "x" } },
+                      },
+                    ],
                     referee: {
                       kind: "field",
                       field: { name: { text: "x" } },
@@ -2013,7 +2092,12 @@ describe("module set", () => {
                   { kind: "text", text: "Default status is " },
                   {
                     kind: "reference",
-                    nameChain: [{ text: "OK" }],
+                    nameParts: [
+                      {
+                        token: { text: "OK" },
+                        declaration: { kind: "field", name: { text: "OK" } },
+                      },
+                    ],
                     referee: {
                       kind: "field",
                       field: { name: { text: "OK" } },
@@ -2044,31 +2128,42 @@ describe("module set", () => {
       const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
       const actual = moduleSet.parseAndResolve("module");
 
-      const bazRecord = actual.result?.records.find(
-        (r) => r.record?.name.text === "Baz",
-      );
-      expect(bazRecord).toMatch({
-        record: {
-          name: { text: "Baz" },
-          doc: {
-            pieces: [
-              { kind: "text", text: "Compare " },
-              {
-                kind: "reference",
-                nameChain: [{ text: "Foo" }],
-                referee: { kind: "record", name: { text: "Foo" } },
+      expect(actual).toMatch({
+        result: {
+          nameToDeclaration: {
+            Baz: {
+              name: { text: "Baz" },
+              doc: {
+                pieces: [
+                  { kind: "text", text: "Compare " },
+                  {
+                    kind: "reference",
+                    nameParts: [
+                      {
+                        token: { text: "Foo" },
+                        declaration: { kind: "record", name: { text: "Foo" } },
+                      },
+                    ],
+                    referee: { kind: "record", name: { text: "Foo" } },
+                  },
+                  { kind: "text", text: " and " },
+                  {
+                    kind: "reference",
+                    nameParts: [
+                      {
+                        token: { text: "Bar" },
+                        declaration: { kind: "record", name: { text: "Bar" } },
+                      },
+                    ],
+                    referee: { kind: "record", name: { text: "Bar" } },
+                  },
+                ],
               },
-              { kind: "text", text: " and " },
-              {
-                kind: "reference",
-                nameChain: [{ text: "Bar" }],
-                referee: { kind: "record", name: { text: "Bar" } },
-              },
-            ],
+            },
           },
         },
+        errors: [],
       });
-      expect(actual.errors).toMatch([]);
     });
 
     it("resolves reference through import alias", () => {
@@ -2091,25 +2186,38 @@ describe("module set", () => {
       const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
       const actual = moduleSet.parseAndResolve("module");
 
-      const barRecord = actual.result?.records.find(
-        (r) => r.record?.name.text === "Bar",
-      );
-      expect(barRecord).toMatch({
-        record: {
-          name: { text: "Bar" },
-          doc: {
-            pieces: [
-              { kind: "text", text: "Uses " },
-              {
-                kind: "reference",
-                nameChain: [{ text: "other" }, { text: "Foo" }],
-                referee: { kind: "record", name: { text: "Foo" } },
+      expect(actual).toMatch({
+        result: {
+          nameToDeclaration: {
+            Bar: {
+              name: { text: "Bar" },
+              doc: {
+                pieces: [
+                  { kind: "text", text: "Uses " },
+                  {
+                    kind: "reference",
+                    nameParts: [
+                      {
+                        token: { text: "other" },
+                        declaration: {
+                          kind: "import-alias",
+                          name: { text: "other" },
+                        },
+                      },
+                      {
+                        token: { text: "Foo" },
+                        declaration: { kind: "record", name: { text: "Foo" } },
+                      },
+                    ],
+                    referee: { kind: "record", name: { text: "Foo" } },
+                  },
+                ],
               },
-            ],
+            },
           },
         },
+        errors: [{ message: "Unused import alias" }],
       });
-      expect(actual.errors).toMatch([{ message: "Unused import alias" }]);
     });
 
     it("resolves reference through import", () => {
@@ -2132,25 +2240,38 @@ describe("module set", () => {
       const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
       const actual = moduleSet.parseAndResolve("module");
 
-      const barRecord = actual.result?.records.find(
-        (r) => r.record?.name.text === "Bar",
-      );
-      expect(barRecord).toMatch({
-        record: {
-          name: { text: "Bar" },
-          doc: {
-            pieces: [
-              { kind: "text", text: "Uses " },
-              {
-                kind: "reference",
-                nameChain: [{ text: "other" }, { text: "Foo" }],
-                referee: { kind: "record", name: { text: "Foo" } },
+      expect(actual).toMatch({
+        result: {
+          nameToDeclaration: {
+            Bar: {
+              name: { text: "Bar" },
+              doc: {
+                pieces: [
+                  { kind: "text", text: "Uses " },
+                  {
+                    kind: "reference",
+                    nameParts: [
+                      {
+                        token: { text: "other" },
+                        declaration: {
+                          kind: "import-alias",
+                          name: { text: "other" },
+                        },
+                      },
+                      {
+                        token: { text: "Foo" },
+                        declaration: { kind: "record", name: { text: "Foo" } },
+                      },
+                    ],
+                    referee: { kind: "record", name: { text: "Foo" } },
+                  },
+                ],
               },
-            ],
+            },
           },
         },
+        errors: [{ message: "Unused import alias" }],
       });
-      expect(actual.errors).toMatch([{ message: "Unused import alias" }]);
     });
 
     it("reports error for unresolved reference", () => {
@@ -2220,44 +2341,50 @@ describe("module set", () => {
       const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
       const actual = moduleSet.parseAndResolve("module");
 
-      // Find the Outer record
-      const outerRecord = actual.result?.records.find(
-        (r) => r.record.name.text === "Outer",
-      );
-      expect(outerRecord).toMatch({
-        record: {
-          name: { text: "Outer" },
-          nestedRecords: [
-            {
-              name: { text: "Inner" },
-              fields: [
+      expect(actual).toMatch({
+        result: {
+          nameToDeclaration: {
+            Outer: {
+              name: { text: "Outer" },
+              nestedRecords: [
                 {
-                  name: { text: "x" },
-                  doc: {
-                    pieces: [
-                      { kind: "text", text: "Reference to " },
-                      {
-                        kind: "reference",
-                        nameChain: [{ text: "Foo" }],
-                        // Should resolve to Outer.Foo, not the top-level Foo
-                        referee: {
-                          kind: "record",
-                          name: { text: "Foo" },
-                        },
+                  name: { text: "Inner" },
+                  fields: [
+                    {
+                      name: { text: "x" },
+                      doc: {
+                        pieces: [
+                          { kind: "text", text: "Reference to " },
+                          {
+                            kind: "reference",
+                            nameParts: [
+                              {
+                                token: { text: "Foo" },
+                                declaration: {
+                                  kind: "record",
+                                  name: { text: "Foo" },
+                                },
+                              },
+                            ],
+                            // Should resolve to Outer.Foo, not the top-level Foo
+                            referee: {
+                              kind: "record",
+                              name: { text: "Foo" },
+                            },
+                          },
+                          { kind: "text", text: " (nested)" },
+                        ],
                       },
-                      { kind: "text", text: " (nested)" },
-                    ],
-                  },
+                    },
+                  ],
+                },
+                {
+                  name: { text: "Foo" },
                 },
               ],
             },
-            {
-              name: { text: "Foo" },
-            },
-          ],
+          },
         },
-      });
-      expect(actual).toMatch({
         errors: [],
       });
     });

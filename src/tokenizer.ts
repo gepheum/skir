@@ -1,17 +1,23 @@
 import {
   unquoteAndUnescape,
   type CodeLine,
+  type Doc,
   type ErrorSink,
   type Result,
   type SkirError,
   type Token,
 } from "skir-internal";
+import { parseDocComment } from "./doc_comment_parser.js";
 
 export interface ModuleTokens {
-  /// Includes regular comments and doc comments.
+  /** Includes regular comments and doc comments. */
   readonly tokens: readonly Token[];
-  /// Includes both kinds of comments.
+  /** Includes both kinds of comments. */
   readonly tokensWithComments: readonly Token[];
+  /** Maps the start position of a doc comment (///) to the parsed documentation. */
+  readonly posToDoc: Readonly<{
+    [pos: number]: Doc;
+  }>;
   readonly sourceCode: string;
   readonly modulePath: string;
 }
@@ -133,10 +139,22 @@ export function tokenizeModule(
     }
   }
 
+  // Parse the doc comments.
+  const posToDoc: { [pos: number]: Doc } = {};
+  for (const token of tokens) {
+    if (!token.text.startsWith("///")) {
+      continue;
+    }
+    const docResult = parseDocComment(token);
+    posToDoc[token.position] = docResult.result;
+    docResult.errors.forEach((e) => errors.push(e));
+  }
+
   return {
     result: {
       tokens: tokens.filter((t) => !isRegularComment(t.originalText)),
       tokensWithComments: tokens,
+      posToDoc: posToDoc,
       sourceCode: sourceCode,
       modulePath: modulePath,
     },

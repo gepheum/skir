@@ -3,30 +3,41 @@ import type {
   Doc,
   DocPiece,
   DocReference,
+  DocReferenceName,
+  MutableDoc,
+  MutableDocPiece,
+  MutableDocReferenceName,
   Result,
   SkirError,
   Token,
 } from "skir-internal";
 
-export function parseDocComments(docComments: readonly Token[]): Result<Doc> {
-  const parser = new DocCommentsParser(docComments);
+export function parseDocComment(docComment: Token): Result<Doc> {
+  const parser = new DocCommentParser(docComment);
   return parser.parse();
 }
 
-class DocCommentsParser {
+class DocCommentParser {
   private readonly pieces: DocPiece[] = [];
   private readonly errors: SkirError[] = [];
   private currentText = "";
-  private docCommentIndex = -1;
   private charIndex = -1;
-  private contentOffset = -1;
+  private readonly content: string;
 
-  constructor(private readonly docComments: readonly Token[]) {}
+  constructor(private readonly docComment: Token) {
+    const { text } = docComment;
+    if (text.startsWith("/// ")) {
+      this.content = text.slice(4);
+    } else if (text.startsWith("///")) {
+      this.content = text.slice(3);
+    } else {
+      throw new Error("Expected doc comment to start with ///");
+    }
+    this.charIndex = 0;
+  }
 
   parse(): Result<Doc> {
-    while (this.nextDocComment()) {
-      this.parseCurrentDocComment();
-    }
+    this.parseDocComment();
 
     // Add any remaining text
     if (this.currentText.length > 0) {
@@ -54,7 +65,7 @@ class DocCommentsParser {
     };
   }
 
-  private parseCurrentDocComment(): void {
+  private parseDocComment(): void {
     // Matches unescaped [ or ], OR escaped [[ or ]]
     const specialCharRegex = /\[\[|\]\]|\[|\]/g;
 
@@ -101,18 +112,15 @@ class DocCommentsParser {
         this.charIndex++;
       }
     }
-
-    // Add newline between comment lines (except after the last line)
-    if (this.docCommentIndex < this.docComments.length - 1) {
-      this.currentText += "\n";
-    }
   }
 
   private parseReference(): DocReference {
     const { content, docComment } = this;
 
     const leftBracketCharIndex = this.charIndex;
-    const startPosition = docComment.position + leftBracketCharIndex;
+    const contentOffset = docComment.text.length - content.length;
+    const startPosition =
+      docComment.position + contentOffset + leftBracketCharIndex;
 
     const rightBracketCharIndex = content.indexOf("]", leftBracketCharIndex);
 
@@ -147,7 +155,8 @@ class DocCommentsParser {
     const tokens: Token[] = [];
     while (this.charIndex < endCharIndex) {
       const char = content[this.charIndex]!;
-      const position = docComment.position + this.charIndex;
+      const contentOffset = docComment.text.length - content.length;
+      const position = docComment.position + contentOffset + this.charIndex;
 
       const makeToken = (text: string): Token => ({
         text: text,
@@ -174,7 +183,9 @@ class DocCommentsParser {
         this.charIndex++;
       } else {
         // Invalid character in reference (including whitespace)
-        const column = this.docComment.colNumber + this.charIndex;
+        const contentOffset = docComment.text.length - content.length;
+        const column =
+          this.docComment.colNumber + contentOffset + this.charIndex;
         hasError = true;
         this.errors.push({
           token: referenceRange,
@@ -185,11 +196,11 @@ class DocCommentsParser {
       }
     }
 
-    const nameChain = hasError ? [] : this.parseNameChain(tokens);
+    const nameParts = hasError ? [] : this.parseNameParts(tokens);
 
     return {
       kind: "reference",
-      nameChain: nameChain,
+      nameParts: nameParts,
       absolute: tokens[0]?.text === ".",
       referee: undefined,
       docComment: this.docComment,
@@ -197,8 +208,10 @@ class DocCommentsParser {
     };
   }
 
-  private parseNameChain(tokens: readonly Token[]): Token[] {
-    const nameChain: Token[] = [];
+  private parseNameParts(
+    tokens: readonly Token[],
+  ): readonly DocReferenceName[] {
+    const nameParts: MutableDocReferenceName[] = [];
     let expect: "identifier" | "identifier or '.'" | "'.' or ']'" =
       "identifier or '.'";
     for (const token of tokens) {
@@ -206,7 +219,10 @@ class DocCommentsParser {
       if (/^[a-zA-Z]/.test(token.text)) {
         expected = expect === "identifier or '.'" || expect === "identifier";
         expect = "'.' or ']'";
-        nameChain.push(token);
+        nameParts.push({
+          token: token,
+          declaration: undefined,
+        });
       } else if (token.text === ".") {
         expected = expect === "identifier or '.'" || expect === "'.' or ']'";
         expect = "identifier";
@@ -222,38 +238,38 @@ class DocCommentsParser {
         return [];
       }
       if (token.text === "]") {
-        return nameChain;
+        return nameParts;
       }
     }
     // An error has already been pushed to signify the unterminated reference.
     return [];
   }
-
-  /// The current doc comment being parsed.
-  private get docComment(): Token {
-    return this.docComments[this.docCommentIndex]!;
-  }
-
-  /// The text of the current doc comment being parsed.
-  private get content(): string {
-    return this.docComment.text;
-  }
-
-  private nextDocComment(): boolean {
-    if (this.docCommentIndex < this.docComments.length - 1) {
-      this.docCommentIndex++;
-      const { content } = this;
-      if (content.startsWith("/// ")) {
-        this.contentOffset = 4;
-      } else if (content.startsWith("///")) {
-        this.contentOffset = 3;
-      } else {
-        throw new Error("Expected doc comment to start with ///");
-      }
-      this.charIndex = this.contentOffset;
-      return true;
-    } else {
-      return false;
-    }
-  }
 }
+
+export function mergeDocs(docs: readonly Doc[]): MutableDoc {
+  if (docs.length <= 0) {
+    return EMPTY_DOC;
+  }
+  // Insert '\n' between each doc comment (== line)
+  const text = docs.map((d) => d.text).join("\n");
+  const pieces: MutableDocPiece[] = [];
+  for (let i = 0; i < docs.length; ++i) {
+    const doc = docs[i]!;
+    if (i !== 0) {
+      pieces.push({
+        kind: "text",
+        text: "\n",
+      });
+    }
+    doc.pieces.forEach((p) => pieces.push(p));
+  }
+  return {
+    text: text,
+    pieces: pieces,
+  };
+}
+
+const EMPTY_DOC: Doc = {
+  text: "",
+  pieces: [],
+};

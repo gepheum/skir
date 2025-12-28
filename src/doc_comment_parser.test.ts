@@ -1,7 +1,7 @@
 import { expect } from "buckwheat";
 import { describe, it } from "mocha";
 import type { CodeLine, Token } from "skir-internal";
-import { parseDocComments } from "./doc_comment_parser.js";
+import { parseDocComment } from "./doc_comment_parser.js";
 
 function makeToken(text: string, position: number = 0): Token {
   const line: CodeLine = {
@@ -21,8 +21,8 @@ function makeToken(text: string, position: number = 0): Token {
 
 describe("doc_comment_parser", () => {
   it("parses simple text", () => {
-    const tokens = [makeToken("/// Hello, world!")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// Hello, world!");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [],
@@ -33,41 +33,40 @@ describe("doc_comment_parser", () => {
   });
 
   it("skips exactly one space after ///", () => {
-    const tokens = [
-      makeToken("/// Hello"),
-      makeToken("///  Two spaces"),
-      makeToken("///No space"),
-    ];
-    const result = parseDocComments(tokens);
-
-    expect(result).toMatch({
+    const token1 = makeToken("/// Hello");
+    const result1 = parseDocComment(token1);
+    expect(result1).toMatch({
       errors: [],
       result: {
-        text: "Hello\n Two spaces\nNo space",
-        pieces: [{ kind: "text", text: "Hello\n Two spaces\nNo space" }],
+        text: "Hello",
+        pieces: [{ kind: "text", text: "Hello" }],
       },
     });
-  });
 
-  it("parses multiple lines as single text fragment", () => {
-    const tokens = [
-      makeToken("/// Hello,"),
-      makeToken("/// world!"),
-      makeToken("/// How are you?"),
-    ];
-    const result = parseDocComments(tokens);
-
-    expect(result).toMatch({
+    const token2 = makeToken("///  Two spaces");
+    const result2 = parseDocComment(token2);
+    expect(result2).toMatch({
       errors: [],
       result: {
-        pieces: [{ kind: "text", text: "Hello,\nworld!\nHow are you?" }],
+        text: " Two spaces",
+        pieces: [{ kind: "text", text: " Two spaces" }],
+      },
+    });
+
+    const token3 = makeToken("///No space");
+    const result3 = parseDocComment(token3);
+    expect(result3).toMatch({
+      errors: [],
+      result: {
+        text: "No space",
+        pieces: [{ kind: "text", text: "No space" }],
       },
     });
   });
 
   it("parses simple reference", () => {
-    const tokens = [makeToken("/// See [.foo.Bar] for details")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// See [.foo.Bar] for details");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [],
@@ -77,7 +76,7 @@ describe("doc_comment_parser", () => {
           { kind: "text", text: "See " },
           {
             kind: "reference",
-            nameChain: [{ text: "foo" }, { text: "Bar" }],
+            nameParts: [{ token: { text: "foo" } }, { token: { text: "Bar" } }],
             absolute: true,
           },
           { kind: "text", text: " for details" },
@@ -87,8 +86,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("parses reference without leading dot", () => {
-    const tokens = [makeToken("/// See [Foo] for details")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// See [Foo] for details");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [],
@@ -97,7 +96,7 @@ describe("doc_comment_parser", () => {
           {},
           {
             kind: "reference",
-            nameChain: [{ text: "Foo" }],
+            nameParts: [{ token: { text: "Foo" } }],
             absolute: false,
           },
           {},
@@ -107,8 +106,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("rejects reference with whitespace", () => {
-    const tokens = [makeToken("/// See [ .foo ] for details")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// See [ .foo ] for details");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [
@@ -123,8 +122,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("parses escaped brackets", () => {
-    const tokens = [makeToken("/// Hello [[world]]!")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// Hello [[world]]!");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [],
@@ -135,8 +134,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("handles unmatched closing bracket", () => {
-    const tokens = [makeToken("/// Hello ] world")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// Hello ] world");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [],
@@ -147,28 +146,24 @@ describe("doc_comment_parser", () => {
   });
 
   it("parses multiple references and text fragments", () => {
-    const tokens = [
-      makeToken("/// Hello,"),
-      makeToken("/// world [.foo.Bar], how are"),
-      makeToken("/// you?"),
-    ];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// world [.foo.Bar], how are you?");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [],
       result: {
         pieces: [
-          { kind: "text", text: "Hello,\nworld " },
+          { kind: "text", text: "world " },
           { kind: "reference" },
-          { kind: "text", text: ", how are\nyou?" },
+          { kind: "text", text: ", how are you?" },
         ],
       },
     });
   });
 
   it("reports error for empty reference", () => {
-    const tokens = [makeToken("/// See [] for details")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// See [] for details");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       result: {},
@@ -184,14 +179,14 @@ describe("doc_comment_parser", () => {
   });
 
   it("reports error for unterminated reference", () => {
-    const tokens = [makeToken("/// See [.foo.Bar")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// See [.foo.Bar");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       result: {
         pieces: [
           { kind: "text", text: "See " },
-          { kind: "reference", nameChain: [], absolute: true },
+          { kind: "reference", nameParts: [], absolute: true },
         ],
       },
       errors: [{ message: "Unterminated reference" }],
@@ -199,8 +194,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("reports error for invalid character in reference", () => {
-    const tokens = [makeToken("/// See [foo@bar] for details")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// See [foo@bar] for details");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [
@@ -215,8 +210,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("rejects digit at start of word in reference", () => {
-    const tokens = [makeToken("/// See [.foo.9Bar] for details")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// See [.foo.9Bar] for details");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [
@@ -231,8 +226,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("allows underscore and digits in word after first letter", () => {
-    const tokens = [makeToken("/// See [Foo_Bar_123] for details")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// See [Foo_Bar_123] for details");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [],
@@ -241,7 +236,7 @@ describe("doc_comment_parser", () => {
           {},
           {
             kind: "reference",
-            nameChain: [{ text: "Foo_Bar_123" }],
+            nameParts: [{ token: { text: "Foo_Bar_123" } }],
             absolute: false,
           },
           {},
@@ -251,10 +246,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("handles mixed escaped brackets and references", () => {
-    const tokens = [
-      makeToken("/// [[Not a reference]] but [RealReference] is"),
-    ];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// [[Not a reference]] but [RealReference] is");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [],
@@ -268,59 +261,43 @@ describe("doc_comment_parser", () => {
     });
   });
 
-  it("handles empty doc comments", () => {
-    const tokens: Token[] = [];
-    const result = parseDocComments(tokens);
-
-    expect(result).toMatch({
-      errors: [],
-      result: {
-        pieces: [],
-      },
-    });
-  });
-
   it("handles only whitespace after ///", () => {
-    const tokens = [makeToken("///"), makeToken("///   ")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("///   ");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [],
       result: {
-        pieces: [{ kind: "text", text: "\n  " }],
+        pieces: [{ kind: "text", text: "  " }],
       },
     });
   });
 
   it("continues parsing after error", () => {
-    const tokens = [
-      makeToken("/// Invalid [@ but"),
-      makeToken("/// valid [Link] here"),
-    ];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// Invalid [@] here and [..] here.");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [
         {
           token: {
-            text: "[@ but",
-            position: 12,
+            text: "[@]",
           },
-          message: "Unterminated reference",
+          message: "Invalid character in reference at column 14",
         },
         {
           token: {
-            text: "[@ but",
+            text: ".",
           },
-          message: "Invalid character in reference at column 14",
+          expected: "identifier",
         },
       ],
     });
   });
 
   it("handles reference at start of comment", () => {
-    const tokens = [makeToken("///[Reference] at start")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("///[Reference] at start");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [],
@@ -331,8 +308,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("handles reference at end of comment", () => {
-    const tokens = [makeToken("/// End with [Reference]")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// End with [Reference]");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [],
@@ -342,32 +319,9 @@ describe("doc_comment_parser", () => {
     });
   });
 
-  it("handles reference at end of line followed by text on next line", () => {
-    const tokens = [
-      makeToken("/// End with [Reference]"),
-      makeToken("/// and continue text"),
-    ];
-    const result = parseDocComments(tokens);
-
-    expect(result).toMatch({
-      errors: [],
-      result: {
-        pieces: [
-          { kind: "text", text: "End with " },
-          {
-            kind: "reference",
-            nameChain: [{ text: "Reference" }],
-            absolute: false,
-          },
-          { kind: "text", text: "\nand continue text" },
-        ],
-      },
-    });
-  });
-
   it("handles consecutive references", () => {
-    const tokens = [makeToken("/// [Ref1][Ref2][Ref3]")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// [Ref1][Ref2][Ref3]");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [],
@@ -382,8 +336,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("preserves correct token positions with space after ///", () => {
-    const tokens = [makeToken("/// [Foo]", 100)];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// [Foo]", 100);
+    const result = parseDocComment(token);
 
     // Position should be 100 (start) + 3 (///) + 1 (space) + 1 (opening bracket) = 105
     expect(result).toMatch({
@@ -392,7 +346,7 @@ describe("doc_comment_parser", () => {
         pieces: [
           {
             kind: "reference",
-            nameChain: [{ text: "Foo", position: 105 }],
+            nameParts: [{ token: { text: "Foo", position: 105 } }],
             absolute: false,
           },
         ],
@@ -401,8 +355,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("preserves correct token positions without space after ///", () => {
-    const tokens = [makeToken("///[Foo]", 100)];
-    const result = parseDocComments(tokens);
+    const token = makeToken("///[Foo]", 100);
+    const result = parseDocComment(token);
 
     // Position should be 100 (start) + 3 (///) + 1 (opening bracket) = 104
     expect(result).toMatch({
@@ -411,7 +365,7 @@ describe("doc_comment_parser", () => {
         pieces: [
           {
             kind: "reference",
-            nameChain: [{ text: "Foo", position: 104 }],
+            nameParts: [{ token: { text: "Foo", position: 104 } }],
             absolute: false,
           },
         ],
@@ -420,8 +374,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("preserves correct error positions with space after ///", () => {
-    const tokens = [makeToken("/// [@invalid]", 100)];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// [@invalid]", 100);
+    const result = parseDocComment(token);
 
     // Error should be at position 100 + 3 (///) + 1 (space) = 104
     expect(result).toMatch({
@@ -437,8 +391,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("preserves correct error positions without space after ///", () => {
-    const tokens = [makeToken("///[@invalid]", 100)];
-    const result = parseDocComments(tokens);
+    const token = makeToken("///[@invalid]", 100);
+    const result = parseDocComment(token);
 
     // Error should be at position 100 + 3 (///) = 103
     expect(result).toMatch({
@@ -453,38 +407,9 @@ describe("doc_comment_parser", () => {
     });
   });
 
-  it("parses multiple references on different lines", () => {
-    const tokens = [
-      makeToken("/// See [Ref1] and"),
-      makeToken("/// also [Ref2] here"),
-    ];
-    const result = parseDocComments(tokens);
-
-    expect(result).toMatch({
-      errors: [],
-      result: {
-        pieces: [
-          { kind: "text", text: "See " },
-          {
-            kind: "reference",
-            nameChain: [{ text: "Ref1" }],
-            absolute: false,
-          },
-          { kind: "text", text: " and\nalso " },
-          {
-            kind: "reference",
-            nameChain: [{ text: "Ref2" }],
-            absolute: false,
-          },
-          { kind: "text", text: " here" },
-        ],
-      },
-    });
-  });
-
   it("reports error for unterminated reference at end of line", () => {
-    const tokens = [makeToken("/// See [.foo.Bar")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// See [.foo.Bar");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       result: {},
@@ -493,8 +418,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("sets docComment field in reference", () => {
-    const tokens = [makeToken("/// See [Foo] here")];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// See [Foo] here");
+    const result = parseDocComment(token);
 
     expect(result).toMatch({
       errors: [],
@@ -503,7 +428,7 @@ describe("doc_comment_parser", () => {
           {},
           {
             kind: "reference",
-            docComment: tokens[0],
+            docComment: token,
           },
           {},
         ],
@@ -512,8 +437,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("sets referenceRange field to include brackets", () => {
-    const tokens = [makeToken("/// See [.foo.Bar] here", 100)];
-    const result = parseDocComments(tokens);
+    const token = makeToken("/// See [.foo.Bar] here", 100);
+    const result = parseDocComment(token);
 
     // Position: 100 (start) + 4 (/// ) + 4 (See ) = 108
     expect(result).toMatch({
@@ -537,8 +462,8 @@ describe("doc_comment_parser", () => {
   });
 
   it("referenceRange works without space after ///", () => {
-    const tokens = [makeToken("///[Foo]", 50)];
-    const result = parseDocComments(tokens);
+    const token = makeToken("///[Foo]", 50);
+    const result = parseDocComment(token);
 
     // Position: 50 (start) + 3 (///) = 53
     expect(result).toMatch({

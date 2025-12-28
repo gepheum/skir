@@ -1,5 +1,5 @@
 import { expect } from "buckwheat";
-import { describe, it } from "mocha";
+import { describe, it } from "node:test";
 import type { SkirError, Token } from "skir-internal";
 import { validate } from "./casing.js";
 

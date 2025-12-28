@@ -1,5 +1,6 @@
 import * as paths from "path";
 import {
+  MutableDocReferenceName,
   unquoteAndUnescape,
   type DenseJson,
   type ErrorSink,
@@ -10,6 +11,7 @@ import {
   type Module,
   type MutableArrayType,
   type MutableConstant,
+  type MutableDoc,
   type MutableDocReference,
   type MutableMethod,
   type MutableModule,
@@ -812,7 +814,7 @@ export class ModuleSet {
     module: Module,
     errors: ErrorSink,
   ): void {
-    const doc =
+    const doc: MutableDoc =
       documentee.kind === "field" ? documentee.field.doc : documentee.doc;
 
     const docReferences = doc.pieces.filter(
@@ -826,23 +828,24 @@ export class ModuleSet {
     // Returns true if resolved, false otherwise.
     const tryResolveReference = (
       ref: MutableDocReference,
-      nameChain: readonly Token[],
+      nameParts: readonly MutableDocReferenceName[],
       scope: Record | Module,
     ): boolean => {
       if (ref.absolute && scope !== module) {
         return false;
       }
-      const firstName = nameChain[0]!;
-      const match = scope.nameToDeclaration[firstName.text];
+      const firstName = nameParts[0]!;
+      const match = scope.nameToDeclaration[firstName.token.text];
       if (!match) {
         return false;
       }
-      if (nameChain.length === 1) {
+      if (nameParts.length === 1) {
         // Single name: must refer to a declaration.
         switch (match.kind) {
           case "constant":
           case "method":
           case "record": {
+            firstName.declaration = match;
             ref.referee = match;
             return true;
           }
@@ -850,6 +853,7 @@ export class ModuleSet {
             if (scope.kind !== "record") {
               throw new TypeError(scope.kind);
             }
+            firstName.declaration = match;
             ref.referee = {
               kind: "field",
               field: match,
@@ -857,16 +861,21 @@ export class ModuleSet {
             };
             return true;
           }
+          case "import-alias": {
+            firstName.declaration = match;
+            return false;
+          }
           case "import":
-          case "import-alias":
           case "removed":
             return false;
         }
       } else {
         // Multi-part name: first part must be a naming scope.
         switch (match.kind) {
-          case "record":
-            return tryResolveReference(ref, nameChain.slice(1), match);
+          case "record": {
+            firstName.declaration = match;
+            return tryResolveReference(ref, nameParts.slice(1), match);
+          }
           case "import":
           case "import-alias": {
             if (scope !== module) {
@@ -881,9 +890,13 @@ export class ModuleSet {
             if (!importedModule?.result) {
               return false;
             }
-            const newNameChain = nameChain.slice(
-              match.kind === "import" ? 0 : 1,
-            );
+            let newNameChain: readonly MutableDocReferenceName[];
+            if (match.kind === "import") {
+              newNameChain = nameParts;
+            } else {
+              firstName.declaration = match;
+              newNameChain = nameParts.slice(1);
+            }
             return tryResolveReference(
               ref,
               newNameChain,
@@ -892,7 +905,10 @@ export class ModuleSet {
           }
           case "constant":
           case "field":
-          case "method":
+          case "method": {
+            firstName.declaration = match;
+            return false;
+          }
           case "removed":
             return false;
         }
@@ -947,13 +963,13 @@ export class ModuleSet {
 
     // Resolve each reference by searching through scopes in priority order.
     for (const reference of docReferences) {
-      const { nameChain } = reference;
-      if (nameChain.length <= 0) {
+      const { nameParts } = reference;
+      if (nameParts.length <= 0) {
         continue;
       }
       let resolved = false;
       for (const scope of scopes) {
-        if (tryResolveReference(reference, nameChain, scope)) {
+        if (tryResolveReference(reference, nameParts, scope)) {
           resolved = true;
           break;
         }

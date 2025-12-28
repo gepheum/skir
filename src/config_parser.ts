@@ -117,7 +117,17 @@ export async function parseSkirConfig(
         }
       }
     } else {
-      generator = MOD_TO_GENERATOR[mod];
+      // TODO: rm the casts
+      const modToGenerator: Record<string, CodeGenerator<unknown>> = {
+        "skir-cc-gen": ccGen.GENERATOR as any as CodeGenerator<unknown>,
+        "skir-dart-gen": dartGen.GENERATOR as any as CodeGenerator<unknown>,
+        "skir-java-gen": javaGen.GENERATOR as any as CodeGenerator<unknown>,
+        "skir-kotlin-gen": kotlinGen.GENERATOR as any as CodeGenerator<unknown>,
+        "skir-python-gen": pythonGen.GENERATOR as any as CodeGenerator<unknown>,
+        "skir-typescript-gen":
+          typescriptGen.GENERATOR as any as CodeGenerator<unknown>,
+      };
+      generator = modToGenerator[mod];
     }
     if (generator) {
       const parsedGeneratorConfig = generator.configType.safeParse(
@@ -157,12 +167,3 @@ export async function importCodeGenerator(
   }
   return generator as CodeGenerator<unknown>;
 }
-
-const MOD_TO_GENERATOR: Record<string, CodeGenerator<unknown>> = {
-  "skir-cc-gen": ccGen.GENERATOR,
-  "skir-dart-gen": dartGen.GENERATOR,
-  "skir-java-gen": javaGen.GENERATOR,
-  "skir-kotlin-gen": kotlinGen.GENERATOR,
-  "skir-python-gen": pythonGen.GENERATOR,
-  "skir-typescript-gen": typescriptGen.GENERATOR,
-};

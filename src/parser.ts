@@ -7,6 +7,7 @@ import type {
   ImportAlias,
   MutableConstant,
   MutableDeclaration,
+  MutableDoc,
   MutableField,
   MutableMethod,
   MutableModule,
@@ -28,14 +29,14 @@ import type {
 } from "skir-internal";
 import { convertCase, simpleHash } from "skir-internal";
 import * as casing from "./casing.js";
-import { parseDocComments } from "./doc_comment_parser.js";
+import { mergeDocs } from "./doc_comment_parser.js";
 import { ModuleTokens } from "./tokenizer.js";
 
 /** Runs syntactic analysis on a module. */
 export function parseModule(moduleTokens: ModuleTokens): Result<MutableModule> {
-  const { tokens, modulePath, sourceCode } = moduleTokens;
+  const { modulePath, sourceCode } = moduleTokens;
   const errors: SkirError[] = [];
-  const it = new TokenIterator(tokens, errors);
+  const it = new TokenIterator(moduleTokens, errors);
   const declarations = parseDeclarations(it, "module");
   it.expectThenNext([""]);
   // Create a mappinng from names to declarations, and check for duplicates.
@@ -160,7 +161,7 @@ function parseDeclaration(
   it: TokenIterator,
   parentNode: "module" | "struct" | "enum",
 ): MutableDeclaration | null {
-  const doc = parseDoc(it);
+  const doc = collectDoc(it);
   let recordType: "struct" | "enum" = "enum";
   const parentIsRoot = parentNode === "module";
   const expected = [
@@ -1046,15 +1047,16 @@ function parseArrayValue(it: TokenIterator): MutableValue[] | null {
   }
 }
 
-function parseDoc(it: TokenIterator): Doc {
+function collectDoc(it: TokenIterator): MutableDoc {
+  const { moduleTokens } = it;
   const docComments: Token[] = [];
   while (it.current.startsWith("///")) {
     docComments.push(it.currentToken);
     it.next();
   }
-  const result = parseDocComments(docComments);
-  result.errors.forEach((e) => it.errors.push(e));
-  return result.result;
+  return mergeDocs(
+    docComments.map((c) => moduleTokens.posToDoc[c.position] ?? EMPTY_DOC),
+  );
 }
 
 const EMPTY_DOC: Doc = {
@@ -1121,10 +1123,14 @@ interface TokenMatch {
 }
 
 class TokenIterator {
+  private readonly tokens: readonly Token[];
+
   constructor(
-    private readonly tokens: readonly Token[],
+    readonly moduleTokens: ModuleTokens,
     readonly errors: ErrorSink,
-  ) {}
+  ) {
+    this.tokens = moduleTokens.tokens;
+  }
 
   // Returns both:
   //   · the index of the first predicate matching the current token, or -1 if
