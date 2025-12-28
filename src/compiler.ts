@@ -219,7 +219,7 @@ class WatchModeMainLoop {
         .map(async (p) => {
           try {
             await fs.rm(p, { force: true, recursive: true });
-          } catch (e) {
+          } catch (_e) {
             // Ignore error.
           }
         }),
@@ -243,7 +243,7 @@ class WatchModeMainLoop {
 async function isDirectory(path: string): Promise<boolean> {
   try {
     return (await fs.lstat(path)).isDirectory();
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 }

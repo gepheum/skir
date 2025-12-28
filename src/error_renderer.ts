@@ -179,9 +179,9 @@ function formatBreakingChange(
       const { enumEpression, number, record, variantName } = breakingChange;
       const errorHeader = makeRed("Illegal variant kind change");
       const enumName = map(record, getQualifiedName);
-      const variantKind = map(variantName, (vn) => {
-        caseMatches(vn.text, "lower_underscore") ? "wrapper" : "constant";
-      });
+      const variantKind = map(variantName, (vn) =>
+        caseMatches(vn.text, "lower_underscore") ? "wrapper" : "constant",
+      );
       return [
         `${locationPrefix}${errorHeader}\n`,
         "  [Last snapshot]\n",

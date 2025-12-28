@@ -54,17 +54,19 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.6.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
-    "@typescript-eslint/parser": "^6.13.0",
+    "@typescript-eslint/eslint-plugin": "^8.50.1",
+    "@typescript-eslint/parser": "^8.50.1",
     "buckwheat": "^1.1.2",
-    "eslint": "^8.54.0",
-    "mocha": "^10.8.2",
+    "eslint": "^9.39.2",
+    "mocha": "^11.7.5",
     "prettier": "^3.2.4",
     "prettier-plugin-organize-imports": "^4.2.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "typescript-eslint": "^8.50.1"
   }
 }
