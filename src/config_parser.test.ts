@@ -8,6 +8,7 @@ describe("config_parser", () => {
       const yamlCode = `
 generators:
   - mod: "@example/generator"
+    outDir: ./skirout
     config:
       foo: bar
 srcDir: src
@@ -18,6 +19,7 @@ srcDir: src
           generators: [
             {
               mod: "@example/generator",
+              outDir: "./skirout",
               config: { foo: "bar" },
             },
           ],
@@ -31,6 +33,7 @@ srcDir: src
       const yamlCode = `
 generators:
   - mod: "@example/gen1"
+    outDir: ./skirout
     config: {}
   - mod: "@example/gen2"
     config:
@@ -41,7 +44,7 @@ generators:
       expect(result).toMatch({
         skirConfig: {
           generators: [
-            { mod: "@example/gen1", config: {} },
+            { mod: "@example/gen1", outDir: "./skirout", config: {} },
             {
               mod: "@example/gen2",
               config: { setting: "value" },
@@ -81,12 +84,15 @@ generators:
       const yamlCode = `
 generators:
   - mod: "@example/generator"
+    outDir: ./skirout
     config: {}
 `;
       const result = await parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: {
-          generators: [{ mod: "@example/generator", config: {} }],
+          generators: [
+            { mod: "@example/generator", outDir: "./skirout", config: {} },
+          ],
         },
         errors: [],
       });
@@ -96,6 +102,7 @@ generators:
       const yamlCode = `
 generators:
   - mod: "@example/generator"
+    outDir: ./skirout
     config:
       invalid: [unclosed array
 `;
@@ -145,9 +152,8 @@ generators:
       expect(result).toMatch({
         skirConfig: undefined,
         errors: [
-          {
-            message: /(required|expected)/i,
-          },
+          {}, // At least two errors (missing mod and missing outDir)
+          {},
         ],
       });
     });
@@ -197,6 +203,7 @@ generators:
       const yamlCode = `
 generators:
   - mod: "@example/generator"
+    outDir: ./skirout
     config: {}
     extraField: value
 `;
@@ -270,6 +277,7 @@ generators: []
 generators:
   # Generator 1
   - mod: "@example/generator"
+    outDir: ./skirout
     config: {}
 # Source directory
 srcDir: src
@@ -280,6 +288,7 @@ srcDir: src
           generators: [
             {
               mod: "@example/generator",
+              outDir: "./skirout",
               config: {},
             },
           ],
@@ -299,7 +308,7 @@ extraField: invalid
       const result = await parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: undefined,
-        errors: [{}, {}], // At least two errors
+        errors: [{}, {}, {}, {}], // At least four errors
       });
     });
 
@@ -307,6 +316,7 @@ extraField: invalid
       const yamlCode = `
 generators:
   - mod: "@example/generator"
+    outDir: ./skirout
     config:
       nested:
         deeply:
@@ -322,6 +332,7 @@ generators:
           generators: [
             {
               mod: "@example/generator",
+              outDir: "./skirout",
               config: {
                 nested: {
                   deeply: {
@@ -364,6 +375,7 @@ generators:
       const yamlCode = `
 generators:
   - mod: "@example/generator"
+    outDir: ./skirout
     config: {}
     mod: "@another/generator"
 `;

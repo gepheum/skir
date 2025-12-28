@@ -35,9 +35,7 @@ async function makeGeneratorBundle(
 ): Promise<GeneratorBundle> {
   const generator = await importCodeGenerator(config.mod);
   let skiroutDirs: string[];
-  if (config.outDir === undefined) {
-    skiroutDirs = ["skirout"];
-  } else if (typeof config.outDir === "string") {
+  if (typeof config.outDir === "string") {
     skiroutDirs = [config.outDir];
   } else {
     skiroutDirs = config.outDir;
