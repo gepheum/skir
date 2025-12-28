@@ -2,11 +2,11 @@ import { z } from "zod";
 
 export const GeneratorConfig = z.strictObject({
   mod: z.string(),
-  config: z.any(),
   outDir: z.union([
     z.string().endsWith("/skirout"),
     z.array(z.string().endsWith("/skirout")),
   ]),
+  config: z.any(),
 });
 
 export type GeneratorConfig = z.infer<typeof GeneratorConfig>;
