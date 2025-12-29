@@ -70,7 +70,7 @@ export function renderSkirConfigErrors(
   }
   console.error();
   if (context.maybeForgotToEditAfterInit) {
-    const {skirConfigPath} = context;
+    const { skirConfigPath } = context;
     console.warn(
       `Did you forget to edit ${skirConfigPath} after running 'npx skir init'?`,
     );

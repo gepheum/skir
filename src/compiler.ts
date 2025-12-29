@@ -360,8 +360,11 @@ async function main(): Promise<void> {
   const skirConfigResult = await parseSkirConfig(skirConfigCode, "import-mods");
   if (skirConfigResult.errors.length > 0) {
     console.error(makeRed("Invalid skir config"));
-    const {maybeForgotToEditAfterInit} = skirConfigResult;
-    renderSkirConfigErrors(skirConfigResult.errors, { skirConfigPath, maybeForgotToEditAfterInit });
+    const { maybeForgotToEditAfterInit } = skirConfigResult;
+    renderSkirConfigErrors(skirConfigResult.errors, {
+      skirConfigPath,
+      maybeForgotToEditAfterInit,
+    });
     process.exit(1);
   }
   const skirConfig = skirConfigResult.skirConfig!;
