@@ -91,8 +91,13 @@ export async function parseSkirConfig(
       }
     }
     pathRemainder.reverse();
+    const pathRemainderStr = pathRemainder
+      .map((p, i) =>
+        typeof p === "number" ? `[${p}]` : i === 0 ? p : `.${String(p)}`,
+      )
+      .join("");
     const messagePrefix = pathRemainder.length
-      ? `Missing property '${pathRemainder.join(".")}': `
+      ? `Missing property '${pathRemainderStr}': `
       : "";
     const range = pathToRange(path);
     errors.push({

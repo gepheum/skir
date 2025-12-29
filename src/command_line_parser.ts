@@ -6,12 +6,12 @@ export type ParsedArgs =
     }
   | {
       kind: "format";
-      subcommand?: "check";
+      subcommand?: "ci";
       root?: string;
     }
   | {
       kind: "snapshot";
-      subcommand?: "check" | "view";
+      subcommand?: "ci" | "view" | "dry-run";
       root?: string;
     }
   | {
@@ -83,7 +83,7 @@ const HELP_TEXT = `
 Usage: ${COMMAND_BASE} <command> [options]
 
 Commands:
-  init               Initialize a new project with a minimal skir.yml file
+  init               Initialize a new Skir project in the current directory
   gen                Generate code from .skir files to target languages
   format             Format all .skir files in the source directory
   snapshot           Take a snapshot of the source directory, look for
@@ -94,8 +94,10 @@ Options:
   --root, -r <path>  Path to the directory containing the skir.yml file
   --watch, -w        Automatically run code generation when .skir files change
                        (gen only)
-  --check            Fail if code is not properly formatted (format) or if there
-                       are breaking changes (snapshot)
+  --ci               Fail if code is not properly formatted (format) or if code
+                       has changed since the last snapshot (snapshot)
+  --dry-run          Look for breaking changes since the last snapshot without
+                       taking a new snapshot (snapshot only)
   --view             Display the last snapshot (snapshot only)
 
 Examples:
@@ -103,9 +105,10 @@ Examples:
   ${COMMAND_BASE} gen
   ${COMMAND_BASE} gen --watch
   ${COMMAND_BASE} format --root path/to/root/dir
-  ${COMMAND_BASE} format --check -r path/to/root/dir
+  ${COMMAND_BASE} format --ci -r path/to/root/dir
   ${COMMAND_BASE} snapshot
-  ${COMMAND_BASE} snapshot --check
+  ${COMMAND_BASE} snapshot --ci
+  ${COMMAND_BASE} snapshot --dry-run
   ${COMMAND_BASE} snapshot --view --root path/to/root/dir
 `;
 
@@ -119,7 +122,8 @@ export class CommandLineParseError extends Error {
 type ParsedOptions = {
   root?: string;
   watch?: boolean;
-  check?: boolean;
+  ci?: boolean;
+  dryRun?: boolean;
   view?: boolean;
   unknown: string[];
 };
@@ -165,13 +169,18 @@ function parseOptions(args: string[]): ParsedOptions {
         );
       }
       options.watch = true;
-    } else if (arg === "--check") {
-      if (options.check) {
+    } else if (arg === "--ci") {
+      if (options.ci) {
+        throw new CommandLineParseError(`Option --ci specified multiple times`);
+      }
+      options.ci = true;
+    } else if (arg === "--dry-run") {
+      if (options.dryRun) {
         throw new CommandLineParseError(
-          `Option --check specified multiple times`,
+          `Option --dry-run specified multiple times`,
         );
       }
-      options.check = true;
+      options.dryRun = true;
     } else if (arg === "--view") {
       if (options.view) {
         throw new CommandLineParseError(
@@ -193,9 +202,14 @@ function parseOptions(args: string[]): ParsedOptions {
 function buildGenCommand(options: ParsedOptions): ParsedArgs {
   validateNoUnknownOptions(options, "gen");
 
-  if (options.check) {
+  if (options.ci) {
     throw new CommandLineParseError(
-      `Option --check is not valid for 'gen' command`,
+      `Option --ci is not valid for 'gen' command`,
+    );
+  }
+  if (options.dryRun) {
+    throw new CommandLineParseError(
+      `Option --dry-run is not valid for 'gen' command`,
     );
   }
   if (options.view) {
@@ -219,6 +233,11 @@ function buildFormatCommand(options: ParsedOptions): ParsedArgs {
       `Option --watch is not valid for 'format' command`,
     );
   }
+  if (options.dryRun) {
+    throw new CommandLineParseError(
+      `Option --dry-run is not valid for 'format' command`,
+    );
+  }
   if (options.view) {
     throw new CommandLineParseError(
       `Option --view is not valid for 'format' command`,
@@ -228,7 +247,7 @@ function buildFormatCommand(options: ParsedOptions): ParsedArgs {
   return {
     kind: "format",
     root: options.root,
-    subcommand: options.check ? "check" : undefined,
+    subcommand: options.ci ? "ci" : undefined,
   };
 }
 
@@ -240,16 +259,29 @@ function buildSnapshotCommand(options: ParsedOptions): ParsedArgs {
       `Option --watch is not valid for 'snapshot' command`,
     );
   }
-  if (options.check && options.view) {
+
+  const activeOptions = [
+    options.ci && "--ci",
+    options.dryRun && "--dry-run",
+    options.view && "--view",
+  ].filter(Boolean);
+
+  if (activeOptions.length > 1) {
     throw new CommandLineParseError(
-      `Options --check and --view cannot be used together`,
+      `Options ${activeOptions.join(" and ")} cannot be used together`,
     );
   }
 
   return {
     kind: "snapshot",
     root: options.root,
-    subcommand: options.check ? "check" : options.view ? "view" : undefined,
+    subcommand: options.ci
+      ? "ci"
+      : options.dryRun
+        ? "dry-run"
+        : options.view
+          ? "view"
+          : undefined,
   };
 }
 
@@ -261,9 +293,14 @@ function buildInitCommand(options: ParsedOptions): ParsedArgs {
       `Option --watch is not valid for 'init' command`,
     );
   }
-  if (options.check) {
+  if (options.ci) {
     throw new CommandLineParseError(
-      `Option --check is not valid for 'init' command`,
+      `Option --ci is not valid for 'init' command`,
+    );
+  }
+  if (options.dryRun) {
+    throw new CommandLineParseError(
+      `Option --dry-run is not valid for 'init' command`,
     );
   }
   if (options.view) {

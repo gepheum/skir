@@ -8,29 +8,34 @@ import {
   renderBreakingChanges,
   renderErrors,
 } from "./error_renderer.js";
+import { rewritePathForRendering } from "./io.js";
 import { collectModules } from "./module_collector.js";
 import { ModuleSet } from "./module_set.js";
 
 export async function takeSnapshot(args: {
   rootDir: string;
   srcDir: string;
-  check: boolean;
-}): Promise<void> {
+  subcommand: "ci" | "dry-run" | undefined;
+}): Promise<boolean> {
   const newModuleSet = await collectModules(args.srcDir);
   if (newModuleSet.errors.length) {
     renderErrors(newModuleSet.errors);
-    process.exit(1);
+    return false;
   }
   const snapshotPath = join(args.rootDir, "skir-snapshot.json");
-  const oldModuleSet = await readLastSnapshot(join(args.rootDir, snapshotPath));
+  const oldModuleSet = await readLastSnapshot(snapshotPath);
   if (!(oldModuleSet instanceof ModuleSet)) {
-    console.error(makeRed(`Corrupted snapshot file: ${snapshotPath}`));
+    console.error(
+      makeRed(
+        `Corrupted snapshot file: ${rewritePathForRendering(snapshotPath)}`,
+      ),
+    );
     console.error(`Error: ${oldModuleSet.error.toString()}`);
     console.log(
       "If the snapshot file cannot be restored to a valid state, delete it and run again. " +
         "Breaking changes from recent commits will not be detected, but a valid snapshot will be created for future comparisons.",
     );
-    process.exit(1);
+    return false;
   }
   const breakingChanges = checkBackwardCompatibility({
     before: oldModuleSet,
@@ -41,51 +46,65 @@ export async function takeSnapshot(args: {
       before: oldModuleSet,
       after: newModuleSet,
     });
-    process.exit(1);
+    return false;
   }
   const now = new Date();
   const newSnapshot = makeSnapshot(newModuleSet, now);
   if (sameModules(newSnapshot, makeSnapshot(oldModuleSet, now))) {
     console.log("No changes detected since last snapshot.");
-    return;
+    return true;
   }
-  if (args.check) {
-    console.error(
-      makeRed(
-        `Modules have changed since the last snapshot. ` +
-          `Run the command without 'check' to take a new snapshot.`,
-      ),
-    );
-    process.exit(1);
+  if (args.subcommand === "ci") {
+    console.error(makeRed("Modules have changed since the last snapshot."));
+    console.log("Run 'npx skir snapshot' to take a new snapshot.");
+    return false;
+  } else if (args.subcommand === "dry-run") {
+    console.log(makeGreen("Changes detected since last snapshot."));
+    console.log("No breaking changes found.");
+    return true;
   }
   await writeFile(snapshotPath, JSON.stringify(newSnapshot, null, 2), "utf-8");
   console.log("Snapshot taken. No breaking changes detected.");
+  return true;
 }
 
-async function readLastSnapshot(snapshotPath: string): Promise<
-  | ModuleSet
-  | {
-      kind: "corrupted";
-      error: any;
-    }
-> {
-  let snapshot: Snapshot;
+interface CorruptedError {
+  kind: "corrupted";
+  error: any;
+}
+
+async function readLastSnapshot(
+  snapshotPath: string,
+): Promise<ModuleSet | CorruptedError> {
+  let textContent: string;
   try {
-    const textContent = await readFile(snapshotPath, "utf-8");
-    snapshot = JSON.parse(textContent);
+    textContent = await readFile(snapshotPath, "utf-8");
   } catch (error) {
-    if (error instanceof SyntaxError) {
-      return {
-        kind: "corrupted",
-        error: error,
-      };
-    }
     const isNotFoundError =
       error instanceof Error && "code" in error && error.code === "ENOENT";
     if (isNotFoundError) {
       return ModuleSet.fromMap(new Map<string, string>());
     } else {
       // Rethrow I/O error
+      throw error;
+    }
+  }
+  return snapshotFileContentToModuleSet(textContent);
+}
+
+export function snapshotFileContentToModuleSet(
+  fileContent: string,
+): ModuleSet | CorruptedError {
+  let snapshot: Snapshot;
+  try {
+    snapshot = JSON.parse(fileContent);
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return {
+        kind: "corrupted",
+        error: error,
+      };
+    } else {
       throw error;
     }
   }

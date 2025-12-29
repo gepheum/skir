@@ -374,7 +374,7 @@ async function main(): Promise<void> {
   switch (args.kind) {
     case "format": {
       // Check or fix the formatting to the .skir files in the source directory.
-      await format(srcDir, args.subcommand === "check" ? "check" : "fix");
+      await format(srcDir, args.subcommand === "ci" ? "check" : "fix");
       break;
     }
     case "gen": {
@@ -412,11 +412,14 @@ async function main(): Promise<void> {
           rootDir: root,
         });
       } else {
-        takeSnapshot({
+        const success = takeSnapshot({
           rootDir: root,
           srcDir: srcDir,
-          check: args.subcommand === "check",
+          subcommand: args.subcommand,
         });
+        if (!success) {
+          process.exit(1);
+        }
       }
       break;
     }

@@ -131,8 +131,13 @@ describe("command_line_parser", () => {
         expect(result).toMatch({ kind: "error" });
       });
 
-      it("should return error if --check is used with gen", () => {
-        const result = parseCommandLine(["gen", "--check"]);
+      it("should return error if --ci is used with gen", () => {
+        const result = parseCommandLine(["gen", "--ci"]);
+        expect(result).toMatch({ kind: "error" });
+      });
+
+      it("should return error if --dry-run is used with gen", () => {
+        const result = parseCommandLine(["gen", "--dry-run"]);
         expect(result).toMatch({ kind: "error" });
       });
 
@@ -164,39 +169,39 @@ describe("command_line_parser", () => {
         });
       });
 
-      it("should parse format with --check option", () => {
-        const result = parseCommandLine(["format", "--check"]);
+      it("should parse format with --ci option", () => {
+        const result = parseCommandLine(["format", "--ci"]);
         expect(result).toMatch({
           kind: "format",
-          subcommand: "check",
+          subcommand: "ci",
         });
       });
 
-      it("should parse format with --check and --root option", () => {
+      it("should parse format with --ci and --root option", () => {
         const result = parseCommandLine([
           "format",
-          "--check",
+          "--ci",
           "--root",
           "path/to/dir",
         ]);
         expect(result).toMatch({
           kind: "format",
           root: "path/to/dir",
-          subcommand: "check",
+          subcommand: "ci",
         });
       });
 
-      it("should parse format with --check and -r option", () => {
+      it("should parse format with --ci and -r option", () => {
         const result = parseCommandLine([
           "format",
-          "--check",
+          "--ci",
           "-r",
           "path/to/dir",
         ]);
         expect(result).toMatch({
           kind: "format",
           root: "path/to/dir",
-          subcommand: "check",
+          subcommand: "ci",
         });
       });
 
@@ -207,6 +212,11 @@ describe("command_line_parser", () => {
 
       it("should return error if unknown option is used", () => {
         const result = parseCommandLine(["format", "--verbose"]);
+        expect(result).toMatch({ kind: "error" });
+      });
+
+      it("should return error if --dry-run is used with format", () => {
+        const result = parseCommandLine(["format", "--dry-run"]);
         expect(result).toMatch({ kind: "error" });
       });
 
@@ -248,11 +258,11 @@ describe("command_line_parser", () => {
         expect(result).toMatch({ kind: "error" });
       });
 
-      it("should parse snapshot with --check option", () => {
-        const result = parseCommandLine(["snapshot", "--check"]);
+      it("should parse snapshot with --ci option", () => {
+        const result = parseCommandLine(["snapshot", "--ci"]);
         expect(result).toMatch({
           kind: "snapshot",
-          subcommand: "check",
+          subcommand: "ci",
         });
       });
 
@@ -264,17 +274,17 @@ describe("command_line_parser", () => {
         });
       });
 
-      it("should parse snapshot with --check and --root option", () => {
+      it("should parse snapshot with --ci and --root option", () => {
         const result = parseCommandLine([
           "snapshot",
-          "--check",
+          "--ci",
           "--root",
           "path/to/dir",
         ]);
         expect(result).toMatch({
           kind: "snapshot",
           root: "path/to/dir",
-          subcommand: "check",
+          subcommand: "ci",
         });
       });
 
@@ -292,8 +302,50 @@ describe("command_line_parser", () => {
         });
       });
 
-      it("should return error if both --check and --view are used with snapshot", () => {
-        const result = parseCommandLine(["snapshot", "--check", "--view"]);
+      it("should return error if both --ci and --view are used with snapshot", () => {
+        const result = parseCommandLine(["snapshot", "--ci", "--view"]);
+        expect(result).toMatch({ kind: "error" });
+      });
+
+      it("should parse snapshot with --dry-run option", () => {
+        const result = parseCommandLine(["snapshot", "--dry-run"]);
+        expect(result).toMatch({
+          kind: "snapshot",
+          subcommand: "dry-run",
+        });
+      });
+
+      it("should parse snapshot with --dry-run and --root option", () => {
+        const result = parseCommandLine([
+          "snapshot",
+          "--dry-run",
+          "--root",
+          "path/to/dir",
+        ]);
+        expect(result).toMatch({
+          kind: "snapshot",
+          root: "path/to/dir",
+          subcommand: "dry-run",
+        });
+      });
+
+      it("should return error if both --ci and --dry-run are used with snapshot", () => {
+        const result = parseCommandLine(["snapshot", "--ci", "--dry-run"]);
+        expect(result).toMatch({ kind: "error" });
+      });
+
+      it("should return error if both --dry-run and --view are used with snapshot", () => {
+        const result = parseCommandLine(["snapshot", "--dry-run", "--view"]);
+        expect(result).toMatch({ kind: "error" });
+      });
+
+      it("should return error if all three options are used with snapshot", () => {
+        const result = parseCommandLine([
+          "snapshot",
+          "--ci",
+          "--dry-run",
+          "--view",
+        ]);
         expect(result).toMatch({ kind: "error" });
       });
 
@@ -335,8 +387,13 @@ describe("command_line_parser", () => {
         expect(result).toMatch({ kind: "error" });
       });
 
-      it("should return error if --check is used with init", () => {
-        const result = parseCommandLine(["init", "--check"]);
+      it("should return error if --dry-run is used with init", () => {
+        const result = parseCommandLine(["init", "--dry-run"]);
+        expect(result).toMatch({ kind: "error" });
+      });
+
+      it("should return error if --ci is used with init", () => {
+        const result = parseCommandLine(["init", "--ci"]);
         expect(result).toMatch({ kind: "error" });
       });
 
@@ -389,8 +446,8 @@ describe("command_line_parser", () => {
         expect(result).toMatch({ kind: "error" });
       });
 
-      it("should return error if --check specified multiple times", () => {
-        const result = parseCommandLine(["format", "--check", "--check"]);
+      it("should return error if --ci specified multiple times", () => {
+        const result = parseCommandLine(["format", "--ci", "--ci"]);
         expect(result).toMatch({ kind: "error" });
       });
     });
@@ -412,27 +469,17 @@ describe("command_line_parser", () => {
       });
 
       it("should parse options in any order for format", () => {
-        const result1 = parseCommandLine([
-          "format",
-          "--check",
-          "--root",
-          "dir",
-        ]);
-        const result2 = parseCommandLine([
-          "format",
-          "--root",
-          "dir",
-          "--check",
-        ]);
+        const result1 = parseCommandLine(["format", "--ci", "--root", "dir"]);
+        const result2 = parseCommandLine(["format", "--root", "dir", "--ci"]);
         expect(result1).toMatch({
           kind: "format",
           root: "dir",
-          subcommand: "check",
+          subcommand: "ci",
         });
         expect(result2).toMatch({
           kind: "format",
           root: "dir",
-          subcommand: "check",
+          subcommand: "ci",
         });
       });
     });
