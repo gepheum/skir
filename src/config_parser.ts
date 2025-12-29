@@ -1,10 +1,10 @@
-import * as ccGen from "skir-cc-gen";
-import * as dartGen from "skir-dart-gen";
+import * as CcGen from "skir-cc-gen";
+import * as DartGen from "skir-dart-gen";
 import { CodeGenerator } from "skir-internal";
-import * as javaGen from "skir-java-gen";
-import * as kotlinGen from "skir-kotlin-gen";
-import * as pythonGen from "skir-python-gen";
-import * as typescriptGen from "skir-typescript-gen";
+import * as JavaGen from "skir-java-gen";
+import * as KotlinGen from "skir-kotlin-gen";
+import * as PythonGen from "skir-python-gen";
+import * as TypescriptGen from "skir-typescript-gen";
 import { LineCounter, parseDocument, Scalar, YAMLMap } from "yaml";
 import { SkirConfig } from "./config.js";
 
@@ -152,13 +152,13 @@ export async function parseSkirConfig(
     } else {
       // TODO: rm the casts
       const modToGenerator: Record<string, CodeGenerator<unknown>> = {
-        "skir-cc-gen": ccGen.GENERATOR as any as CodeGenerator<unknown>,
-        "skir-dart-gen": dartGen.GENERATOR as any as CodeGenerator<unknown>,
-        "skir-java-gen": javaGen.GENERATOR as any as CodeGenerator<unknown>,
-        "skir-kotlin-gen": kotlinGen.GENERATOR as any as CodeGenerator<unknown>,
-        "skir-python-gen": pythonGen.GENERATOR as any as CodeGenerator<unknown>,
+        "skir-cc-gen": CcGen.GENERATOR as any as CodeGenerator<unknown>,
+        "skir-dart-gen": DartGen.GENERATOR as any as CodeGenerator<unknown>,
+        "skir-java-gen": JavaGen.GENERATOR as any as CodeGenerator<unknown>,
+        "skir-kotlin-gen": KotlinGen.GENERATOR as any as CodeGenerator<unknown>,
+        "skir-python-gen": PythonGen.GENERATOR as any as CodeGenerator<unknown>,
         "skir-typescript-gen":
-          typescriptGen.GENERATOR as any as CodeGenerator<unknown>,
+          TypescriptGen.GENERATOR as any as CodeGenerator<unknown>,
       };
       generator = modToGenerator[mod];
     }

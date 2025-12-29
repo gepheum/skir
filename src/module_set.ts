@@ -1,4 +1,4 @@
-import * as paths from "path";
+import * as Paths from "path";
 import {
   MutableDocReferenceName,
   unquoteAndUnescape,
@@ -1311,7 +1311,7 @@ class DefaultModuleParser extends ModuleParserBase {
   }
 
   readSourceCode(modulePath: string): string | undefined {
-    return this.fileReader.readTextFile(paths.join(this.rootPath, modulePath));
+    return this.fileReader.readTextFile(Paths.join(this.rootPath, modulePath));
   }
 }
 
@@ -1341,12 +1341,12 @@ function resolveModulePath(
   if (modulePath.startsWith("./") || modulePath.startsWith("../")) {
     // This is a relative path from the module. Let's transform it into a
     // relative path from root.
-    modulePath = paths.join(originModulePath, "..", modulePath);
+    modulePath = Paths.join(originModulePath, "..", modulePath);
   }
   // "a/./b/../c" => "a/c"
   // Note that `paths.normalize` will use backslashes on Windows.
   // We don't want that.
-  modulePath = paths.normalize(modulePath).replace(/\\/g, "/");
+  modulePath = Paths.normalize(modulePath).replace(/\\/g, "/");
   if (modulePath.startsWith(`../`)) {
     errors.push({
       token: pathToken,

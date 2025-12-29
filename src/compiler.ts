@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import * as fs from "fs/promises";
+import * as FileSystem from "fs/promises";
 import { glob } from "glob";
-import * as paths from "path";
+import * as Paths from "path";
 import type { CodeGenerator } from "skir-internal";
 import Watcher from "watcher";
 import { parseCommandLine } from "./command_line_parser.js";
@@ -45,7 +45,7 @@ async function makeGeneratorBundle(
   } else {
     skiroutDirs = config.outDir;
   }
-  skiroutDirs = skiroutDirs.map((d) => paths.join(root, d));
+  skiroutDirs = skiroutDirs.map((d) => Paths.join(root, d));
   return {
     generator: generator,
     config: config.config,
@@ -136,7 +136,7 @@ class WatchModeMainLoop {
           const successMessage = `Generation succeeded at ${date}`;
           console.log(makeGreen(successMessage));
           console.log("\nWaiting for changes in files matching:");
-          const glob = paths.resolve(paths.join(this.srcDir, "/**/*.skir"));
+          const glob = Paths.resolve(Paths.join(this.srcDir, "/**/*.skir"));
           console.log(`  ${glob}`);
         }
         return true;
@@ -153,11 +153,11 @@ class WatchModeMainLoop {
     const { skiroutDirs } = this;
     const preExistingAbsolutePaths = new Set<string>();
     for (const skiroutDir of skiroutDirs) {
-      await fs.mkdir(skiroutDir, { recursive: true });
+      await FileSystem.mkdir(skiroutDir, { recursive: true });
 
       // Collect all the files in all the skirout dirs.
       (
-        await glob(paths.join(skiroutDir, "**/*"), { withFileTypes: true })
+        await glob(Paths.join(skiroutDir, "**/*"), { withFileTypes: true })
       ).forEach((p) => preExistingAbsolutePaths.add(p.fullpath()));
     }
 
@@ -184,10 +184,10 @@ class WatchModeMainLoop {
           for (
             let pathToKeep = path;
             pathToKeep !== ".";
-            pathToKeep = paths.dirname(pathToKeep)
+            pathToKeep = Paths.dirname(pathToKeep)
           ) {
             preExistingAbsolutePaths.delete(
-              paths.resolve(paths.join(skiroutDir, pathToKeep)),
+              Paths.resolve(Paths.join(skiroutDir, pathToKeep)),
             );
           }
         }
@@ -201,9 +201,9 @@ class WatchModeMainLoop {
         const oldFile = lastWriteBatch.pathToFile.get(p);
         const generator = pathToGenerator.get(p)!;
         for (const skiroutDir of generator.skiroutDirs) {
-          const fsPath = paths.join(skiroutDir, p);
+          const fsPath = Paths.join(skiroutDir, p);
           if (oldFile?.code === newFile.code) {
-            const mtime = (await fs.stat(fsPath)).mtime;
+            const mtime = (await FileSystem.stat(fsPath)).mtime;
             if (
               mtime !== null &&
               mtime.getDate() <= lastWriteBatch.writeTime.getDate()
@@ -211,8 +211,8 @@ class WatchModeMainLoop {
               return;
             }
           }
-          await fs.mkdir(paths.dirname(fsPath), { recursive: true });
-          await fs.writeFile(fsPath, newFile.code, "utf-8");
+          await FileSystem.mkdir(Paths.dirname(fsPath), { recursive: true });
+          await FileSystem.writeFile(fsPath, newFile.code, "utf-8");
         }
       }),
     );
@@ -223,7 +223,7 @@ class WatchModeMainLoop {
         .sort((a, b) => b.localeCompare(a, "en-US"))
         .map(async (p) => {
           try {
-            await fs.rm(p, { force: true, recursive: true });
+            await FileSystem.rm(p, { force: true, recursive: true });
           } catch (_e) {
             // Ignore error.
           }
@@ -248,12 +248,12 @@ class WatchModeMainLoop {
 function checkNoOverlappingSkiroutDirs(skiroutDirs: readonly string[]): void {
   for (let i = 0; i < skiroutDirs.length; ++i) {
     for (let j = i + 1; j < skiroutDirs.length; ++j) {
-      const dirA = paths.normalize(skiroutDirs[i]!);
-      const dirB = paths.normalize(skiroutDirs[j]!);
+      const dirA = Paths.normalize(skiroutDirs[i]!);
+      const dirB = Paths.normalize(skiroutDirs[j]!);
 
       if (
-        dirA.startsWith(dirB + paths.sep) ||
-        dirB.startsWith(dirA + paths.sep)
+        dirA.startsWith(dirB + Paths.sep) ||
+        dirB.startsWith(dirA + Paths.sep)
       ) {
         throw new ExitError(
           `Overlapping skirout directories: ${dirA} and ${dirB}`,
@@ -269,7 +269,7 @@ interface ModuleFormatResult {
 }
 
 async function format(root: string, mode: "fix" | "check"): Promise<void> {
-  const skirFiles = await glob(paths.join(root, "**/*.skir"), {
+  const skirFiles = await glob(Paths.join(root, "**/*.skir"), {
     withFileTypes: true,
   });
   const pathToFormatResult = new Map<string, ModuleFormatResult>();
@@ -296,7 +296,7 @@ async function format(root: string, mode: "fix" | "check"): Promise<void> {
   }
   let numFilesNotFormatted = 0;
   for (const [path, result] of pathToFormatResult) {
-    const relativePath = paths.relative(root, path).replace(/\\/g, "/");
+    const relativePath = Paths.relative(root, path).replace(/\\/g, "/");
     if (mode === "fix") {
       if (result.alreadyFormatted) {
         console.log(`${makeGray(relativePath)} (unchanged)`);
@@ -350,7 +350,7 @@ async function main(): Promise<void> {
     }
   }
 
-  const skirConfigPath = rewritePathForRendering(paths.join(root, "skir.yml"));
+  const skirConfigPath = rewritePathForRendering(Paths.join(root, "skir.yml"));
   const skirConfigCode = REAL_FILE_SYSTEM.readTextFile(skirConfigPath);
   if (skirConfigCode === undefined) {
     console.error(makeRed(`Cannot find ${skirConfigPath}`));
@@ -369,7 +369,7 @@ async function main(): Promise<void> {
   }
   const skirConfig = skirConfigResult.skirConfig!;
 
-  const srcDir = paths.join(root, skirConfig.srcDir || ".");
+  const srcDir = Paths.join(root, skirConfig.srcDir || ".");
 
   switch (args.kind) {
     case "format": {

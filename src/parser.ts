@@ -28,7 +28,7 @@ import type {
   UnresolvedType,
 } from "skir-internal";
 import { convertCase, simpleHash } from "skir-internal";
-import * as casing from "./casing.js";
+import * as Casing from "./casing.js";
 import { mergeDocs } from "./doc_comment_parser.js";
 import { ModuleTokens } from "./tokenizer.js";
 
@@ -398,7 +398,7 @@ function parseRecord(
     if (nameMatch.case < 0) {
       return null;
     }
-    casing.validate(nameMatch.token, "UpperCamel", it.errors);
+    Casing.validate(nameMatch.token, "UpperCamel", it.errors);
     nameToken = nameMatch.token;
   }
   let stableId: number | null = null;
@@ -476,7 +476,7 @@ function parseField(
       }
       case 2: {
         const expectedCasing = type ? "lower_underscore" : "UPPER_UNDERSCORE";
-        casing.validate(name, expectedCasing, it.errors);
+        Casing.validate(name, expectedCasing, it.errors);
         if (recordType === "enum" && name.text === "UNKNOWN") {
           it.errors.push({
             token: name,
@@ -790,7 +790,7 @@ function parseImportAs(it: TokenIterator): ImportAlias | null {
   if (aliasMatch.case < 0) {
     return null;
   }
-  casing.validate(aliasMatch.token, "lower_underscore", it.errors);
+  Casing.validate(aliasMatch.token, "lower_underscore", it.errors);
   if (it.expectThenNext(["from"]).case < 0) return null;
   const modulePathMatch = it.expectThenNext([TOKEN_IS_STRING_LITERAL]);
   if (modulePathMatch.case < 0) {
@@ -838,7 +838,7 @@ function parseMethod(it: TokenIterator, doc: Doc): MutableMethod | null {
     return null;
   }
   const name = nameMatch.token;
-  casing.validate(name, "UpperCamel", it.errors);
+  Casing.validate(name, "UpperCamel", it.errors);
   if (it.expectThenNext(["("]).case < 0) {
     return null;
   }
@@ -898,7 +898,7 @@ function parseConstant(it: TokenIterator, doc: Doc): MutableConstant | null {
   if (nameMatch.case < 0) {
     return null;
   }
-  casing.validate(nameMatch.token, "UPPER_UNDERSCORE", it.errors);
+  Casing.validate(nameMatch.token, "UPPER_UNDERSCORE", it.errors);
   if (it.expectThenNext([":"]).case < 0) {
     return null;
   }
