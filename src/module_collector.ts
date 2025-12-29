@@ -1,6 +1,11 @@
 import { glob } from "glob";
 import * as paths from "path";
-import { REAL_FILE_SYSTEM } from "./io.js";
+import { ExitError } from "./exit_error.js";
+import {
+  isDirectory,
+  REAL_FILE_SYSTEM,
+  rewritePathForRendering,
+} from "./io.js";
 import { ModuleSet } from "./module_set.js";
 
 export async function collectModules(srcDir: string): Promise<ModuleSet> {
@@ -9,7 +14,15 @@ export async function collectModules(srcDir: string): Promise<ModuleSet> {
     stat: true,
     withFileTypes: true,
   });
-  for await (const skirFile of skirFiles) {
+  if (skirFiles.length === 0) {
+    const isDir = await isDirectory(srcDir);
+    if (!isDir) {
+      throw new ExitError(
+        "Source directory does not exist: " + rewritePathForRendering(srcDir),
+      );
+    }
+  }
+  for (const skirFile of skirFiles) {
     if (!skirFile.isFile) {
       continue;
     }

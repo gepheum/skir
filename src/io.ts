@@ -1,4 +1,6 @@
 import * as fs from "fs";
+import * as fsPromises from "fs/promises";
+import * as paths from "path";
 
 export interface FileReader {
   readTextFile(path: string): string | undefined;
@@ -31,3 +33,20 @@ class RealFileSystem implements FileReader, FileWriter {
 }
 
 export const REAL_FILE_SYSTEM = new RealFileSystem();
+
+export async function isDirectory(path: string): Promise<boolean> {
+  try {
+    return (await fsPromises.lstat(path)).isDirectory();
+  } catch (_e) {
+    return false;
+  }
+}
+
+export function rewritePathForRendering(path: string): string {
+  if (paths.isAbsolute(path) || /^\.{1,2}[/\\]$/.test(path)) {
+    return path;
+  } else {
+    // To make it clear that it's a path, prepend "./"
+    return `.${paths.sep}${path}`;
+  }
+}

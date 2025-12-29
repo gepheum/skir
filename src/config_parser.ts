@@ -9,8 +9,14 @@ import { LineCounter, parseDocument, Scalar, YAMLMap } from "yaml";
 import { SkirConfig } from "./config.js";
 
 export interface SkirConfigResult {
+  /** Defined if and only if `errors` is empty. */
   skirConfig: SkirConfig | undefined;
   errors: readonly SkirConfigError[];
+  /**
+   * If true, the user may have forgotten to edit skir.yml after running
+   * `npx skir init`.
+   */
+  maybeForgotToEditAfterInit?: boolean;
 }
 
 export interface SkirConfigError {
@@ -66,6 +72,34 @@ export async function parseSkirConfig(
     }
     return offsetRangeToRange(node.range[0], node.range[1]);
   };
+  const pushErrorAtPath = (
+    path: readonly PropertyKey[],
+    message: string,
+  ): void => {
+    const pathRemainder: PropertyKey[] = [];
+    while (path.length !== 0) {
+      const range = pathToRange(path);
+      if (range) {
+        break;
+      } else {
+        // It's possible that 'path' does not map to a node if 'path' refers to
+        // a property which is missing. In that case, we pop the last element
+        // of 'path' and try again, until we find a node that exists. The
+        // elements which were popped will be included in the error message.
+        pathRemainder.push(path.at(-1)!);
+        path = path.slice(0, -1);
+      }
+    }
+    pathRemainder.reverse();
+    const messagePrefix = pathRemainder.length
+      ? `Missing property '${pathRemainder.join(".")}': `
+      : "";
+    const range = pathToRange(path);
+    errors.push({
+      message: messagePrefix + message,
+      range: range,
+    });
+  };
 
   // Check for YAML parsing errors
   if (doc.errors.length > 0) {
@@ -76,24 +110,27 @@ export async function parseSkirConfig(
         range: range,
       });
     }
-    return { skirConfig: undefined, errors: errors };
+    return {
+      skirConfig: undefined,
+      errors: errors,
+    };
   }
 
-  const jsData = doc.toJS();
-
   // 2. Validate with Zod schema
+  const jsData = doc.toJS();
   const result = SkirConfig.safeParse(jsData);
 
   if (!result.success) {
     for (const issue of result.error.issues) {
-      // Map the Zod path to the YAML node
-      const range = pathToRange(issue.path);
-      errors.push({
-        message: issue.message,
-        range: range,
-      });
+      pushErrorAtPath(issue.path, issue.message);
     }
-    return { skirConfig: undefined, errors: errors };
+    const maybeForgotToEditAfterInit =
+      jsData && typeof jsData === "object" && jsData.generators === null;
+    return {
+      skirConfig: undefined,
+      errors: errors,
+      maybeForgotToEditAfterInit,
+    };
   }
 
   // 3. Validate each generator's config with Zod schema
@@ -106,11 +143,7 @@ export async function parseSkirConfig(
         generator = await importCodeGenerator(mod);
       } catch (e) {
         if (e instanceof Error) {
-          const range = pathToRange(["generators", i, "mod"]);
-          errors.push({
-            message: e.message,
-            range: range,
-          });
+          pushErrorAtPath(["generators", i, "mod"], e.message);
           continue;
         } else {
           throw e;
@@ -141,11 +174,7 @@ export async function parseSkirConfig(
             "config",
             ...issue.path,
           ];
-          const range = pathToRange(path);
-          errors.push({
-            message: issue.message ?? "Error",
-            range: range,
-          });
+          pushErrorAtPath(path, issue.message ?? "Error");
         }
       }
     }

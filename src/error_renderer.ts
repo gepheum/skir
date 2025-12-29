@@ -61,6 +61,7 @@ export function renderSkirConfigErrors(
   errors: readonly SkirConfigError[],
   context: {
     skirConfigPath: string;
+    maybeForgotToEditAfterInit: boolean | undefined;
   },
 ): void {
   for (const error of errors) {
@@ -68,6 +69,13 @@ export function renderSkirConfigErrors(
     console.error(formatSkirConfigError(error, context));
   }
   console.error();
+  if (context.maybeForgotToEditAfterInit) {
+    const {skirConfigPath} = context;
+    console.warn(
+      `Did you forget to edit ${skirConfigPath} after running 'npx skir init'?`,
+    );
+    console.warn();
+  }
 }
 
 function formatSkirConfigError(

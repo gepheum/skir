@@ -14,8 +14,13 @@ import {
   renderErrors,
   renderSkirConfigErrors,
 } from "./error_renderer.js";
+import { ExitError } from "./exit_error.js";
 import { formatModule } from "./formatter.js";
-import { REAL_FILE_SYSTEM } from "./io.js";
+import {
+  isDirectory,
+  REAL_FILE_SYSTEM,
+  rewritePathForRendering,
+} from "./io.js";
 import { collectModules } from "./module_collector.js";
 import { ModuleSet } from "./module_set.js";
 import { initializeProject } from "./project_initializer.js";
@@ -167,7 +172,9 @@ class WatchModeMainLoop {
       for (const file of files) {
         const { path } = file;
         if (pathToFile.has(path)) {
-          throw new Error(`Multiple generators produce ${path}`);
+          throw new ExitError(
+            "Multiple generators produce " + rewritePathForRendering(path),
+          );
         }
         pathToFile.set(path, file);
         pathToGenerator.set(path, generator);
@@ -238,14 +245,6 @@ class WatchModeMainLoop {
   };
 }
 
-async function isDirectory(path: string): Promise<boolean> {
-  try {
-    return (await fs.lstat(path)).isDirectory();
-  } catch (_e) {
-    return false;
-  }
-}
-
 function checkNoOverlappingSkiroutDirs(skiroutDirs: readonly string[]): void {
   for (let i = 0; i < skiroutDirs.length; ++i) {
     for (let j = i + 1; j < skiroutDirs.length; ++j) {
@@ -256,7 +255,9 @@ function checkNoOverlappingSkiroutDirs(skiroutDirs: readonly string[]): void {
         dirA.startsWith(dirB + paths.sep) ||
         dirB.startsWith(dirA + paths.sep)
       ) {
-        throw new Error(`Overlapping skirout directories: ${dirA} and ${dirB}`);
+        throw new ExitError(
+          `Overlapping skirout directories: ${dirA} and ${dirB}`,
+        );
       }
     }
   }
@@ -278,7 +279,9 @@ async function format(root: string, mode: "fix" | "check"): Promise<void> {
     }
     const unformattedCode = REAL_FILE_SYSTEM.readTextFile(skirFile.fullpath());
     if (unformattedCode === undefined) {
-      throw new Error(`Cannot read ${skirFile.fullpath()}`);
+      throw new ExitError(
+        "Cannot read " + rewritePathForRendering(skirFile.fullpath()),
+      );
     }
     const tokens = tokenizeModule(unformattedCode, "");
     if (tokens.errors.length) {
@@ -331,14 +334,14 @@ async function main(): Promise<void> {
 
   const root = args.root || ".";
 
-  if (!(await isDirectory(root!))) {
+  if (!(await isDirectory(root))) {
     console.error(makeRed(`Not a directory: ${root}`));
     process.exit(1);
   }
 
   switch (args.kind) {
     case "init": {
-      initializeProject(root!);
+      initializeProject(root);
       return;
     }
     case "help":
@@ -347,14 +350,7 @@ async function main(): Promise<void> {
     }
   }
 
-  let skirConfigPath = paths.join(root!, "skir.yml");
-  if (
-    !paths.isAbsolute(skirConfigPath) &&
-    !/^\.{1,2}[/\\]$/.test(skirConfigPath)
-  ) {
-    // To make it clear that it's a path, prepend "./"
-    skirConfigPath = `.${paths.sep}${skirConfigPath}`;
-  }
+  const skirConfigPath = rewritePathForRendering(paths.join(root, "skir.yml"));
   const skirConfigCode = REAL_FILE_SYSTEM.readTextFile(skirConfigPath);
   if (skirConfigCode === undefined) {
     console.error(makeRed(`Cannot find ${skirConfigPath}`));
@@ -364,12 +360,13 @@ async function main(): Promise<void> {
   const skirConfigResult = await parseSkirConfig(skirConfigCode, "import-mods");
   if (skirConfigResult.errors.length > 0) {
     console.error(makeRed("Invalid skir config"));
-    renderSkirConfigErrors(skirConfigResult.errors, { skirConfigPath });
+    const {maybeForgotToEditAfterInit} = skirConfigResult;
+    renderSkirConfigErrors(skirConfigResult.errors, { skirConfigPath, maybeForgotToEditAfterInit });
     process.exit(1);
   }
   const skirConfig = skirConfigResult.skirConfig!;
 
-  const srcDir = paths.join(root!, skirConfig.srcDir || ".");
+  const srcDir = paths.join(root, skirConfig.srcDir || ".");
 
   switch (args.kind) {
     case "format": {
@@ -381,15 +378,9 @@ async function main(): Promise<void> {
       // Run the skir code generators in watch mode or once.
       const generatorBundles: GeneratorBundle[] = await Promise.all(
         skirConfig.generators.map((config) =>
-          makeGeneratorBundle(config, root!),
+          makeGeneratorBundle(config, root),
         ),
       );
-      // Sort for consistency.
-      generatorBundles.sort((a, b) => {
-        const aId = a.generator.id;
-        const bId = b.generator.id;
-        return aId.localeCompare(bId, "en-US");
-      });
       // Look for duplicates.
       for (let i = 0; i < generatorBundles.length - 1; ++i) {
         const { id } = generatorBundles[i]!.generator;
@@ -415,11 +406,11 @@ async function main(): Promise<void> {
     case "snapshot": {
       if (args.subcommand === "view") {
         viewSnapshot({
-          rootDir: root!,
+          rootDir: root,
         });
       } else {
         takeSnapshot({
-          rootDir: root!,
+          rootDir: root,
           srcDir: srcDir,
           check: args.subcommand === "check",
         });
@@ -433,4 +424,14 @@ async function main(): Promise<void> {
   }
 }
 
-main();
+try {
+  await main();
+} catch (e) {
+  if (e instanceof Error) {
+    console.error(makeRed(e.message));
+    if (e instanceof ExitError) {
+      process.exit(1);
+    }
+  }
+  throw e;
+}

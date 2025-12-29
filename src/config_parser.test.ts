@@ -109,18 +109,31 @@ generators:
       const result = await parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: undefined,
-        errors: [
-          {
-            // message: "",
-          },
-        ], // At least one error
+        errors: [{}], // At least one error
+        maybeForgotToEditAfterInit: undefined,
       });
     });
 
-    it("should return error with line number for YAML syntax error", async () => {
+    it("should return error for invalid YAML syntax", async () => {
+      const yamlCode = `
+generators:
+  - mod: "@example/generator"
+    outDir: ./skirout
+    config:
+      invalid: [unclosed array
+`;
+      const result = await parseSkirConfig(yamlCode);
+      expect(result).toMatch({
+        skirConfig: undefined,
+        errors: [{}], // At least one error
+        maybeForgotToEditAfterInit: undefined,
+      });
+    });
+
+    it("user maybe forgot to edit after init", async () => {
       const yamlCode = `generators:
-  - mod: test
-    bad indentation`;
+
+      `;
       const result = await parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: undefined,
@@ -128,18 +141,12 @@ generators:
           {
             range: {
               start: {
-                lineNumber: 3,
-                colNumber: 5,
-                offset: 30,
-              },
-              end: {
-                lineNumber: 3,
-                colNumber: 20,
-                offset: 45,
+                lineNumber: 1,
               },
             },
           },
         ],
+        maybeForgotToEditAfterInit: true,
       });
     });
 
@@ -152,9 +159,24 @@ generators:
       expect(result).toMatch({
         skirConfig: undefined,
         errors: [
-          {}, // At least two errors (missing mod and missing outDir)
-          {},
+          {
+            message: /^Missing property 'mod': /,
+            range: {
+              start: {
+                lineNumber: 3,
+              },
+            },
+          },
+          {
+            message: /^Missing property 'outDir': /,
+            range: {
+              start: {
+                lineNumber: 3,
+              },
+            },
+          },
         ],
+        maybeForgotToEditAfterInit: false,
       });
     });
 
