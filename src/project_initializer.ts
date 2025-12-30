@@ -63,7 +63,7 @@ generators:
   # # To install runtime dependencies: dart pub add skir_client
   # # --------------------------------------------------------------------------
   # - mod: skir-dart-gen
-  #   outDir: ./skirout
+  #   outDir: ./lib/skirout
   #   config: {}
 
   # # --------------------------------------------------------------------------
