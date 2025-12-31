@@ -76,7 +76,7 @@ generators:
   #   outDir: ./src/main/java/skirout
   #   config: {}
   #   # Alternatively:
-  #   # outDir: ./src/main/java/skirout/my/project
+  #   # outDir: ./src/main/java/my/project/skirout
   #   # config:
   #   #   packagePrefix: "my.project."
 
@@ -90,7 +90,7 @@ generators:
   #   outDir: ./src/main/kotlin/skirout
   #   config: {}
   #   # Alternatively:
-  #   # outDir: ./src/main/kotlin/skirout/my/project
+  #   # outDir: ./src/main/kotlin/my/project/skirout
   #   # config:
   #   #   packagePrefix: "my.project."
 
