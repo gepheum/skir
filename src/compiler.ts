@@ -6,7 +6,10 @@ import type { CodeGenerator } from "skir-internal";
 import Watcher from "watcher";
 import { parseCommandLine } from "./command_line_parser.js";
 import { GeneratorConfig } from "./config.js";
-import { importCodeGenerator, parseSkirConfig } from "./config_parser.js";
+import {
+  importCodeGenerator,
+  parseSkirConfigWithDynamicImports,
+} from "./config_parser.js";
 import {
   makeGray,
   makeGreen,
@@ -357,7 +360,8 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const skirConfigResult = await parseSkirConfig(skirConfigCode, "import-mods");
+  const skirConfigResult =
+    await parseSkirConfigWithDynamicImports(skirConfigCode);
   if (skirConfigResult.errors.length > 0) {
     console.error(makeRed("Invalid skir config"));
     const { maybeForgotToEditAfterInit } = skirConfigResult;

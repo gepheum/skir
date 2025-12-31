@@ -4,7 +4,7 @@ import { parseSkirConfig } from "./config_parser.js";
 
 describe("config_parser", () => {
   describe("parseConfig", () => {
-    it("should parse valid config with single generator", async () => {
+    it("should parse valid config with single generator", () => {
       const yamlCode = `
 generators:
   - mod: "@example/generator"
@@ -13,7 +13,7 @@ generators:
       foo: bar
 srcDir: src
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: {
           generators: [
@@ -29,7 +29,7 @@ srcDir: src
       });
     });
 
-    it("should parse valid config with multiple generators", async () => {
+    it("should parse valid config with multiple generators", () => {
       const yamlCode = `
 generators:
   - mod: "@example/gen1"
@@ -40,7 +40,7 @@ generators:
       setting: value
     outDir: custom/skirout
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: {
           generators: [
@@ -56,7 +56,7 @@ generators:
       });
     });
 
-    it("should parse config with outDir array", async () => {
+    it("should parse config with outDir array", () => {
       const yamlCode = `
 generators:
   - mod: "@example/generator"
@@ -65,7 +65,7 @@ generators:
       - path/to/skirout
       - another/skirout
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: {
           generators: [
@@ -80,14 +80,14 @@ generators:
       });
     });
 
-    it("should parse config without optional srcDir", async () => {
+    it("should parse config without optional srcDir", () => {
       const yamlCode = `
 generators:
   - mod: "@example/generator"
     outDir: ./skirout
     config: {}
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: {
           generators: [
@@ -98,7 +98,7 @@ generators:
       });
     });
 
-    it("should return error for invalid YAML syntax", async () => {
+    it("should return error for invalid YAML syntax", () => {
       const yamlCode = `
 generators:
   - mod: "@example/generator"
@@ -106,7 +106,7 @@ generators:
     config:
       invalid: [unclosed array
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: undefined,
         errors: [{}], // At least one error
@@ -114,7 +114,7 @@ generators:
       });
     });
 
-    it("should return error for invalid YAML syntax", async () => {
+    it("should return error for invalid YAML syntax", () => {
       const yamlCode = `
 generators:
   - mod: "@example/generator"
@@ -122,7 +122,7 @@ generators:
     config:
       invalid: [unclosed array
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: undefined,
         errors: [{}], // At least one error
@@ -130,11 +130,11 @@ generators:
       });
     });
 
-    it("user maybe forgot to edit after init", async () => {
+    it("user maybe forgot to edit after init", () => {
       const yamlCode = `generators:
 
       `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: undefined,
         errors: [
@@ -150,12 +150,12 @@ generators:
       });
     });
 
-    it("should return error for missing required field", async () => {
+    it("should return error for missing required field", () => {
       const yamlCode = `
 generators:
   - config: {}
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: undefined,
         errors: [
@@ -180,25 +180,25 @@ generators:
       });
     });
 
-    it("should return error for wrong type", async () => {
+    it("should return error for wrong type", () => {
       const yamlCode = `
 generators: "not an array"
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: undefined,
         errors: [{}], // At least one error
       });
     });
 
-    it("should return error with line/column for schema validation error", async () => {
+    it("should return error with line/column for schema validation error", () => {
       const yamlCode = `
 generators:
   - mod: "@example/generator"
     config: {}
     outDir: invalid/path
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: undefined,
         errors: [
@@ -221,7 +221,7 @@ generators:
       });
     });
 
-    it("should return error for extra fields in strict schema", async () => {
+    it("should return error for extra fields in strict schema", () => {
       const yamlCode = `
 generators:
   - mod: "@example/generator"
@@ -229,7 +229,7 @@ generators:
     config: {}
     extraField: value
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: undefined,
         errors: [
@@ -240,21 +240,21 @@ generators:
       });
     });
 
-    it("should return error for invalid outDir pattern", async () => {
+    it("should return error for invalid outDir pattern", () => {
       const yamlCode = `
 generators:
   - mod: "@example/generator"
     config: {}
     outDir: does/not/end/properly
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: undefined,
         errors: [{}], // At least one error
       });
     });
 
-    it("should return error for invalid outDir array element", async () => {
+    it("should return error for invalid outDir array element", () => {
       const yamlCode = `
 generators:
   - mod: "@example/generator"
@@ -263,18 +263,18 @@ generators:
       - valid/skirout
       - invalid/path
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: undefined,
         errors: [{}], // At least one error
       });
     });
 
-    it("should parse config with empty generators array", async () => {
+    it("should parse config with empty generators array", () => {
       const yamlCode = `
 generators: []
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: {
           generators: [],
@@ -283,9 +283,9 @@ generators: []
       });
     });
 
-    it("should handle empty YAML document", async () => {
+    it("should handle empty YAML document", () => {
       const yamlCode = "";
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       // Empty YAML parses as null/undefined, which fails schema validation
       expect(result).toMatch({
         skirConfig: undefined,
@@ -293,7 +293,7 @@ generators: []
       });
     });
 
-    it("should handle YAML with comments", async () => {
+    it("should handle YAML with comments", () => {
       const yamlCode = `
 # This is a comment
 generators:
@@ -304,7 +304,7 @@ generators:
 # Source directory
 srcDir: src
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: {
           generators: [
@@ -320,21 +320,21 @@ srcDir: src
       });
     });
 
-    it("should return multiple errors for multiple validation issues", async () => {
+    it("should return multiple errors for multiple validation issues", () => {
       const yamlCode = `
 generators:
   - config: {}
   - mod: "@example/gen"
 extraField: invalid
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: undefined,
         errors: [{}, {}, {}, {}], // At least four errors
       });
     });
 
-    it("should handle complex nested config objects", async () => {
+    it("should handle complex nested config objects", () => {
       const yamlCode = `
 generators:
   - mod: "@example/generator"
@@ -348,7 +348,7 @@ generators:
         - item2
       boolean: true
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: {
           generators: [
@@ -371,14 +371,14 @@ generators:
       });
     });
 
-    it("should validate outDir ends with skirout", async () => {
+    it("should validate outDir ends with skirout", () => {
       const yamlCode = `
 generators:
   - mod: "@example/generator"
     config: {}
     outDir: path/to/skirout
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         skirConfig: {
           generators: [
@@ -393,7 +393,7 @@ generators:
       });
     });
 
-    it("should handle YAML with duplicate keys as warning/error", async () => {
+    it("should handle YAML with duplicate keys as warning/error", () => {
       const yamlCode = `
 generators:
   - mod: "@example/generator"
@@ -401,7 +401,7 @@ generators:
     config: {}
     mod: "@another/generator"
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       // YAML library should detect duplicate keys
       // The exact behavior depends on yaml library settings
       if (result.errors.length > 0) {
@@ -409,7 +409,7 @@ generators:
       }
     });
 
-    it("should do validation on generator's config if known", async () => {
+    it("should do validation on generator's config if known", () => {
       const yamlCode = `
 generators:
   - mod: skir-typescript-gen
@@ -417,7 +417,7 @@ generators:
     config:
       importPathExtension: .jss
 `;
-      const result = await parseSkirConfig(yamlCode);
+      const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
         errors: [
           {

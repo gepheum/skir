@@ -38,10 +38,37 @@ export interface SkirConfigErrorPos {
   colNumber: number;
 }
 
-export async function parseSkirConfig(
+/** Synchronous version - doesn't import any module. */
+export function parseSkirConfig(yamlCode: string): SkirConfigResult {
+  return parseSkirConfigInternal(yamlCode, (mod) => STATIC_GENERATORS[mod]);
+}
+
+/** Async version - dynamically imports generator modules. */
+export async function parseSkirConfigWithDynamicImports(
   yamlCode: string,
-  importMods?: "import-mods",
 ): Promise<SkirConfigResult> {
+  return parseSkirConfigInternalAsync(yamlCode, importCodeGenerator);
+}
+
+export async function importCodeGenerator(
+  mod: string,
+): Promise<CodeGenerator<unknown>> {
+  const module = await import(mod);
+  const generator = module.GENERATOR;
+  if (typeof generator !== "object") {
+    throw new Error(`Cannot import GENERATOR from module ${mod}`);
+  }
+  return generator as CodeGenerator<unknown>;
+}
+
+interface ParsedYamlResult {
+  earlyReturn?: SkirConfigResult;
+  zodResult: ReturnType<typeof SkirConfig.safeParse>;
+  errors: SkirConfigError[];
+  pushErrorAtPath: (path: readonly PropertyKey[], message: string) => void;
+}
+
+function parseYaml(yamlCode: string): ParsedYamlResult {
   const errors: SkirConfigError[] = [];
 
   // 1. Parse YAML into a Document object
@@ -116,56 +143,115 @@ export async function parseSkirConfig(
       });
     }
     return {
-      skirConfig: undefined,
-      errors: errors,
+      earlyReturn: {
+        skirConfig: undefined,
+        errors: errors,
+      },
+      zodResult: { success: false } as any,
+      errors,
+      pushErrorAtPath,
     };
   }
 
   // 2. Validate with Zod schema
   const jsData = doc.toJS();
-  const result = SkirConfig.safeParse(jsData);
+  const zodResult = SkirConfig.safeParse(jsData);
 
-  if (!result.success) {
-    for (const issue of result.error.issues) {
+  if (!zodResult.success) {
+    for (const issue of zodResult.error.issues) {
       pushErrorAtPath(issue.path, issue.message);
     }
-    const maybeForgotToEditAfterInit =
-      jsData && typeof jsData === "object" && jsData.generators === null;
+    const maybeForgotToEditAfterInit: boolean | undefined =
+      jsData &&
+      typeof jsData === "object" &&
+      "generators" in jsData &&
+      jsData.generators === null
+        ? true
+        : false;
     return {
-      skirConfig: undefined,
-      errors: errors,
-      maybeForgotToEditAfterInit,
+      earlyReturn: {
+        skirConfig: undefined,
+        errors: errors,
+        maybeForgotToEditAfterInit,
+      },
+      zodResult,
+      errors,
+      pushErrorAtPath,
     };
   }
 
-  // 3. Validate each generator's config with Zod schema
-  for (let i = 0; i < result.data.generators.length; i++) {
-    const generatorConfig = result.data.generators[i]!;
+  return {
+    zodResult,
+    errors,
+    pushErrorAtPath,
+  };
+}
+
+function parseSkirConfigInternal(
+  yamlCode: string,
+  getGenerator: (mod: string) => CodeGenerator<unknown> | undefined,
+): SkirConfigResult {
+  const { earlyReturn, errors, zodResult, pushErrorAtPath } =
+    parseYaml(yamlCode);
+
+  if (earlyReturn) {
+    return earlyReturn;
+  }
+
+  // Validate each generator's config with Zod schema
+  for (let i = 0; i < zodResult.data!.generators.length; i++) {
+    const generatorConfig = zodResult.data!.generators[i]!;
     const { mod } = generatorConfig;
-    let generator: CodeGenerator<unknown> | undefined;
-    if (importMods) {
-      try {
-        generator = await importCodeGenerator(mod);
-      } catch (e) {
-        if (e instanceof Error) {
-          pushErrorAtPath(["generators", i, "mod"], e.message);
-          continue;
-        } else {
-          throw e;
+    const generator = getGenerator(mod);
+    if (generator) {
+      const parsedGeneratorConfig = generator.configType.safeParse(
+        generatorConfig.config,
+      );
+      if (!parsedGeneratorConfig.success) {
+        for (const issue of parsedGeneratorConfig.error.issues) {
+          const path: readonly PropertyKey[] = [
+            "generators",
+            i,
+            "config",
+            ...issue.path,
+          ];
+          pushErrorAtPath(path, issue.message ?? "Error");
         }
       }
-    } else {
-      // TODO: rm the casts
-      const modToGenerator: Record<string, CodeGenerator<unknown>> = {
-        "skir-cc-gen": CcGen.GENERATOR as any as CodeGenerator<unknown>,
-        "skir-dart-gen": DartGen.GENERATOR as any as CodeGenerator<unknown>,
-        "skir-java-gen": JavaGen.GENERATOR as any as CodeGenerator<unknown>,
-        "skir-kotlin-gen": KotlinGen.GENERATOR as any as CodeGenerator<unknown>,
-        "skir-python-gen": PythonGen.GENERATOR as any as CodeGenerator<unknown>,
-        "skir-typescript-gen":
-          TypescriptGen.GENERATOR as any as CodeGenerator<unknown>,
-      };
-      generator = modToGenerator[mod];
+    }
+  }
+  if (errors.length > 0) {
+    return { skirConfig: undefined, errors: errors };
+  }
+
+  return { skirConfig: zodResult.data!, errors: [] };
+}
+
+async function parseSkirConfigInternalAsync(
+  yamlCode: string,
+  getGenerator: (mod: string) => Promise<CodeGenerator<unknown>>,
+): Promise<SkirConfigResult> {
+  const { earlyReturn, errors, zodResult, pushErrorAtPath } =
+    parseYaml(yamlCode);
+
+  if (earlyReturn) {
+    return earlyReturn;
+  }
+
+  // Validate each generator's config with Zod schema
+  for (let i = 0; i < zodResult.data!.generators.length; i++) {
+    const generatorConfig = zodResult.data!.generators[i]!;
+    const { mod } = generatorConfig;
+    let generator: CodeGenerator<unknown> | undefined;
+    try {
+      generator = await getGenerator(mod);
+    } catch (e) {
+      if (e instanceof Error) {
+        pushErrorAtPath(["generators", i, "mod"], e.message);
+        continue;
+      } else {
+        throw e;
+      }
     }
     if (generator) {
       const parsedGeneratorConfig = generator.configType.safeParse(
@@ -188,16 +274,14 @@ export async function parseSkirConfig(
     return { skirConfig: undefined, errors: errors };
   }
 
-  return { skirConfig: result.data, errors: [] };
+  return { skirConfig: zodResult.data!, errors: [] };
 }
 
-export async function importCodeGenerator(
-  mod: string,
-): Promise<CodeGenerator<unknown>> {
-  const module = await import(mod);
-  const generator = module.GENERATOR;
-  if (typeof generator !== "object") {
-    throw new Error(`Cannot import GENERATOR from module ${mod}`);
-  }
-  return generator as CodeGenerator<unknown>;
-}
+const STATIC_GENERATORS: Record<string, CodeGenerator<unknown>> = {
+  "skir-cc-gen": CcGen.GENERATOR,
+  "skir-dart-gen": DartGen.GENERATOR,
+  "skir-java-gen": JavaGen.GENERATOR,
+  "skir-kotlin-gen": KotlinGen.GENERATOR,
+  "skir-python-gen": PythonGen.GENERATOR,
+  "skir-typescript-gen": TypescriptGen.GENERATOR,
+};

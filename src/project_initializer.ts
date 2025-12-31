@@ -78,7 +78,7 @@ generators:
   #   # Alternatively:
   #   # outDir: ./src/main/java/my/project/skirout
   #   # config:
-  #   #   packagePrefix: "my.project."
+  #   #   packagePrefix: my.project.
 
   # # --------------------------------------------------------------------------
   # # Kotlin code generator
@@ -92,7 +92,7 @@ generators:
   #   # Alternatively:
   #   # outDir: ./src/main/kotlin/my/project/skirout
   #   # config:
-  #   #   packagePrefix: "my.project."
+  #   #   packagePrefix: my.project.
 
   # # --------------------------------------------------------------------------
   # # Python code generator
@@ -105,7 +105,7 @@ generators:
   #   # Alternatively:
   #   # outDir: ./my/project/skirout
   #   # config:
-  #   #   packagePrefix: "my.project."
+  #   #   packagePrefix: my.project.
 
   # # --------------------------------------------------------------------------
   # # TypeScript/JavaScript code generator
