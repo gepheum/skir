@@ -44,8 +44,8 @@ assert(point == shapes_skir.Point(x=3, y=4, label="P"))
 
 As of November 2025, Skir has official plugins for:
 
-*   JavaScript/TypeScript: [documentation](https://github.com/gepheum/skir-typescript-gen), [documentation](https://github.com/gepheum/skir-typescript-example)
-*   Python: [documentation](https://github.com/gepheum/skir-python-gen), [documentation](https://github.com/gepheum/skir-python-example)
+*   JavaScript/TypeScript: [documentation](https://github.com/gepheum/skir-typescript-gen), [example](https://github.com/gepheum/skir-typescript-example)
+*   Python: [documentation](https://github.com/gepheum/skir-python-gen), [example](https://github.com/gepheum/skir-python-example)
 *   C++: [documentation](https://github.com/gepheum/skir-cc-gen), [example](https://github.com/gepheum/skir-cc-example)
 *   Java: [documentation](https://github.com/gepheum/skir-java-gen), [example](https://github.com/gepheum/skir-java-example)
 *   Kotlin: [documentation](https://github.com/gepheum/skir-kotlin-gen), [example](https://github.com/gepheum/skir-kotlin-example)
@@ -76,8 +76,8 @@ The fields of a struct have a name, but during serialization they are actually i
 
 ```d
 struct Point {
-  x: int = 0;
-  y: int = 1;
+  x: int32 = 0;
+  y: int32 = 1;
   label: string = 2;
 }
 ```
@@ -86,8 +86,8 @@ or implicitly:
 
 ```d
 struct Point {
-  x: int;  // implicitly set to 0
-  y: int;  // implicitly set to 1
+  x: int32;  // implicitly set to 0
+  y: int32;  // implicitly set to 1
   label: string;  // implicitly set to 2
 }
 ```
@@ -98,8 +98,8 @@ If you're not explicitly specifying the field numbers, you must be careful not t
 // BAD: you can't reorder the fields and keep implicit numbering
 // struct Point {
 //  label: string;
-//   x: int;
-//   y: int;
+//   x: int32;
+//   y: int32;
 // }
 
 // GOOD
@@ -107,8 +107,8 @@ struct Point {
   label: string = 2;
 
   // Fine to rename fields
-  x_coordinate: int = 0;
-  y_coordinate: int = 1;
+  x_coordinate: int32 = 0;
+  y_coordinate: int32 = 1;
 
   // Fine to add new fields
   color: Color = 3;
@@ -165,9 +165,9 @@ enum ImplicitNumbering {
 }
 ```
 
-The fields numbers are used for identifying the variants in the serialization format (not the field names). You must be careful not to change the number of a field, or you won't be able to deserialize old values. For example, if you're using implicit numbering, you must not reorder the fields.
+The variant numbers are used for identifying the variants in the serialization format (not the variant names). You must be careful not to change the number of a variant, or you won't be able to deserialize old values. For example, if you're using implicit numbering, you must not reorder the variants.
 
-It is always fine to rename an enum, rename the fields of an enum, or add new fields to an enum.
+It is always fine to rename an enum, rename the variants of an enum, or add new variants to an enum.
 
 #### Nesting records
 
@@ -387,11 +387,11 @@ The `method` keyword allows you to define the signature of a remote method.
 
 ```d
 struct GetUserProfileRequest {
-  // ...
+  user_id: uint64;
 }
 
 struct GetUserProfileResponse {
-  // ...
+  profile: UserProfile?;
 }
 
 method GetUserProfile(GetUserProfileRequest): GetUserProfileResponse;
@@ -405,37 +405,15 @@ Just as you can define structs and enums inline for fields, Skir supports inline
 
 When records are defined inline within a method, the Skir compiler automatically generates the record names by appending `Request` to the method name for the input and `Response` for the output.
 
-Consider a method designed to send a single email.
-
-```d
-// Not using inline records
-
-struct SendEmailRequest {
-  recipient: string;
-  subject: string;
-  body: string;
-}
-
-struct SendEmailResponse {
-  message_id: string;
-  success: bool;
-}
-
-method SendEmail(SendEmailRequest): SendEmailResponse;
-```
-
-By using inline records, you can define the same method more concisely without needing to declare the request and response structs separately:
+This syntax allows you to define the same method as above more concisely:
 
 ```d
 // Using inline records
 
-method SendEmail(struct {
-  recipient: string;
-  subject: string;
-  body: string;
+method GetUserProfile(struct {
+  user_id: uint64;
 }): struct {
-  message_id: string;
-  success: bool;
+  profile: UserProfile?;
 }
 ````
 
@@ -460,6 +438,34 @@ struct Disk {
 
 The path is always relative to the root of the Skir source directory.
 
+### Doc comments
+
+Doc comments are designated by three forward slashes (`///`) and are used to provide high-level documentation for records, fields, and methods. Unlike regular comments (`//` or `/*`), which are ignored by the compiler, doc comments are processed as part of your schema definition.
+
+#### Referencing symbols
+
+Doc comments can contain references to other symbols within your schema by enclosing them in square brackets. If a symbol referenced in square brackets is missing or misspelled, the Skir compiler will trigger a compilation error. This ensures that your documentation never becomes *stale* or refers to fields that no longer exist.
+
+```d
+struct Account {
+  /// Same as [User.email]
+  email: string;
+  /// True if the [email] has been confirmed via a verification link.
+  is_verified: bool;
+  created_at: timestamp;
+}
+```
+
+#### Integration with code generators
+
+One of the primary advantages of doc comments is that they are copied directly into the generated code. Developers using IDEs like VSCode or IntelliJ will see your documentation in hover information, code completion, and inlay hints.
+
+#### RPC visibility and security
+
+When documenting types used as a request or response for an RPC method, be aware that these comments may be visible to any user or client with access to that interface.
+
+For this reason, it is critical **not** to include business-confidential information, internal server paths, or sensitive security logic in doc comments for types that will be exposed via public-facing services.
+
 ## Serialization formats
 
 When serializing a data structure, you can chose one of 3 formats.
@@ -472,7 +478,7 @@ Structs are serialized as JSON arrays, where the field numbers in the index defi
 
 ```d
 struct User {
-  user_id: int;
+  user_id: uint64;
   removed;
   name: string;
   rest_day: Weekday;
