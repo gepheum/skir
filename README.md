@@ -7,7 +7,7 @@
 
 Skir is a language for representing data types, constants and RPC interfaces. Skir files have the `.skir` extension.
 
-```rust
+```d
 // shapes.skir
 
 struct Point {
@@ -27,7 +27,7 @@ const TOP_RIGHT_CORNER: Point = {
   label = "top-right corner",
 };
 
-// Method of an RPC interface
+/// Returns true if no part of the shape's boundary curves inward.
 method IsConvex(Polyline): bool;
 ```
 
@@ -399,6 +399,46 @@ method GetUserProfile(GetUserProfileRequest): GetUserProfileResponse;
 
 The request and response can have any type.
 
+#### Inline request/response records
+
+Just as you can define structs and enums inline for fields, Skir supports inline record definitions for RPC methods. This allows you to define the request and response structures directly within the method signature.
+
+When records are defined inline within a method, the Skir compiler automatically generates the record names by appending `Request` to the method name for the input and `Response` for the output.
+
+Consider a method designed to send a single email.
+
+```d
+// Not using inline records
+
+struct SendEmailRequest {
+  recipient: string;
+  subject: string;
+  body: string;
+}
+
+struct SendEmailResponse {
+  message_id: string;
+  success: bool;
+}
+
+method SendEmail(SendEmailRequest): SendEmailResponse;
+```
+
+By using inline records, you can define the same method more concisely without needing to declare the request and response structs separately:
+
+```d
+// Using inline records
+
+method SendEmail(struct {
+  recipient: string;
+  subject: string;
+  body: string;
+}): struct {
+  message_id: string;
+  success: bool;
+}
+````
+
 ### Imports
 
 The `import` statement allows you to import types from another module. You can either specify the names to import, or import the whole module with an alias using the `as` keyword.
@@ -430,7 +470,7 @@ This is the serialization format you should chose in most cases.
 
 Structs are serialized as JSON arrays, where the field numbers in the index definition match the indexes in the array. Enum constants are serialized as numbers.
 
-```rust
+```d
 struct User {
   user_id: int;
   removed;
