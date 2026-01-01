@@ -28,7 +28,7 @@ const TOP_RIGHT_CORNER: Point = {
 };
 
 // Method of an RPC interface
-method IsPalindrome(string): bool;
+method IsConvex(Polyline): bool;
 ```
 
 The Skir compiler takes in a set of `.skir` files and generates source files containg the definition of the data types and constants in various programming languages. It also generates functions for serializing the data types to either JSON or a more compact binary format.
