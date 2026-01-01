@@ -335,6 +335,15 @@ async function format(root: string, mode: "fix" | "check"): Promise<void> {
 async function main(): Promise<void> {
   const args = parseCommandLine(process.argv.slice(2));
 
+  if (args.kind === "version") {
+    const packageJsonPath = new URL("../package.json", import.meta.url);
+    const packageJson = JSON.parse(
+      await FileSystem.readFile(packageJsonPath, "utf-8"),
+    );
+    console.log(`v${packageJson.version}`);
+    return;
+  }
+
   const root = args.root || ".";
 
   if (!(await isDirectory(root))) {

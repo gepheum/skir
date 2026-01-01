@@ -23,6 +23,10 @@ export type ParsedArgs =
       root?: undefined;
     }
   | {
+      kind: "version";
+      root?: undefined;
+    }
+  | {
       kind: "error";
       root?: undefined;
     };
@@ -44,6 +48,10 @@ export function parseCommandLine(args: string[]): ParsedArgs {
   if (command === "help" || command === "--help" || command === "-h") {
     printHelp();
     return { kind: "help" };
+  }
+
+  if (command === "version" || command === "--version" || command === "-v") {
+    return { kind: "version" };
   }
 
   const validCommands = ["gen", "format", "snapshot", "init"];
