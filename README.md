@@ -16,8 +16,9 @@ struct Point {
   label: string;
 }
 
-struct Polyline {
+struct Shape {
   points: [Point];
+  /// A short string describing this shape.
   label: string;
 }
 
@@ -28,7 +29,7 @@ const TOP_RIGHT_CORNER: Point = {
 };
 
 /// Returns true if no part of the shape's boundary curves inward.
-method IsConvex(Polyline): bool;
+method IsConvex(Shape): bool;
 ```
 
 The Skir compiler takes in a set of `.skir` files and generates source files containg the definition of the data types and constants in various programming languages. It also generates functions for serializing the data types to either JSON or a more compact binary format.
@@ -250,16 +251,18 @@ When removing a field from a struct or an enum, you must mark the removed number
 ```d
 struct ExplicitNumbering {
   a: string = 0;
-  b: string = 1:
-  d: string = 3;
-  removed 2, 4;
+  b: string = 1;
+  f: string = 5;
+  removed 2..4, 6;  // 2..4 is same as 2, 3, 4
 }
 
 struct ImplicitNumbering {
   a: string;
   b: string:
   removed;
-  d: string;
+  removed;
+  removed;
+  f: string;
   removed;
 }
 ```
@@ -414,8 +417,27 @@ method GetUserProfile(struct {
   user_id: uint64;
 }): struct {
   profile: UserProfile?;
-}
+};
 ````
+
+#### Method numbers
+
+Every method in a Skir service is uniquely identified by an integer used during RPC communication to ensure that the client and server correctly execute the intended procedure.
+
+You can set this number explicitly using the following syntax:
+
+```rust
+// Method identified by the meaningless number 878787
+method MyMethod(Request): Response = 878787;
+```
+
+If you don't explicitly set it, the Skir compiler uses a hash of the method name and module location.
+
+By explicitly setting a *meaningless* number, you decouple the method's network identity from its name and location. This is critical for maintaining long-term backward and forward compatibility in distributed systems where clients and servers are updated on different schedules.
+
+Without an explicit number, renaming a method or moving it to a different module would change its computed hash, breaking the interface for any client still using the old name. Fixing the number allows you to safely refactor, rename, or move methods across modules while ensuring that desynchronized services can still communicate perfectly.
+
+You can start development using automatic hashing and only *freeze* the method identity when a change is required. To do this, locate the previously hashed number in your generated source code and manually assign that value to the method in your `.skir` file.
 
 ### Imports
 
