@@ -77,12 +77,13 @@ The compiler will monitor your source directory and automatically regenerate cod
 > [!TIP]
 > If your project is a Node project, add add `skir gen` to your `package.json` scripts. Using the `prebuild` hook is recommended so that code is regenerated automatically before every build.
 > ```json
-{
-  "scripts": {
-    "prebuild": "skir gen",
-    "build": "tsc" 
-  }
-}```
+> {
+>   "scripts": {
+>     "prebuild": "skir gen",
+>     "build": "tsc" 
+>   }
+> }
+> ```
 > *For a full implementation, see this [example project](https://github.com/gepheum/skir-typescript-example/blob/main/package.json).*
 
 ## Formatting `.skir` files
