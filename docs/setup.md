@@ -74,8 +74,16 @@ npx skir gen --watch
 
 The compiler will monitor your source directory and automatically regenerate code whenever you modify a `.skir` file.
 
-> [!NOTE]
-> If your project is a Node project, you can consider adding Skir codegen to your `build` script in `package.json`, and so you would never have to run `npx skir gen` manually. See this [example](https://github.com/gepheum/skir-typescript-example/blob/main/package.json).
+> [!TIP]
+> If your project is a Node project, add add `skir gen` to your `package.json` scripts. Using the `prebuild` hook is recommended so that code is regenerated automatically before every build.
+> ```json
+{
+  "scripts": {
+    "prebuild": "skir gen",
+    "build": "tsc" 
+  }
+}```
+> *For a full implementation, see this [example project](https://github.com/gepheum/skir-typescript-example/blob/main/package.json).*
 
 ## Formatting `.skir` files
 
