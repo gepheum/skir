@@ -19,17 +19,42 @@ This command creates:
 
 ### Configure code generation
 
-The `skir.yml` file controls how Skir generates code for your project. It contains the following top-level properties:
+The `skir.yml` file controls how Skir generates code for your project. Here's an example:
 
--   `srcDir`: The directory containing your `.skir` files. Defaults to `./skir-src`. Paths are relative to the directory containing `skir.yml` (the root directory).
+```yml
+# skir.yml
 
--    `generators`: An array of code generators to run, one for each target language. All entries are commented out by default. Uncomment the languages you want to target.
+# Directory containing .skir files
+srcDir: skir-src
+
+generators:
+  - mod: skir-cc-gen
+    outDir: ./app/src/skirout
+    config:
+      writeGoogleTestHeaders: true
+  - mod: skir-typescript-gen
+    outDir: ./frontend/skirout
+    config: {}
+```
+
+All paths are relative to the directory containing `skir.yml` (the root directory).
 
 Every generator entry has the following properties:
 
 -    `mod`: Identifies the code generator to run (e.g., `skir-python-gen` for Python).
--    `outDir`: The output directory for generated source code (e.g., `./src/skirout`). The directory must be named `skirout`. Do not edit this directory manually — Skir manages its contents entirely. Typically, you'll place this directory at the root of your source tree, but there can be exceptions: in a TypeScript project for example, it's often more convenient to place `skirout` adjacent to the `src` directory. Multiple generators can write to the same output directory, producing source code in different languages. If you specify an array of strings, the generator will write to multiple output directories, which is useful when you have multiple sub-projects in the same language and they need to share the same data types.
+-    `outDir`: The output directory for generated source code (e.g., `./src/skirout`). The directory **must** be named `skirout`. If you specify an array of strings, the generator will write to multiple output directories, which is useful when you have multiple sub-projects in the same language.
 -    `config`: Generator-specific configuration. Use `{}` for default settings.
+
+### Output directory location
+
+Typically, you should place the skirout directory at the root of your sub-project's source tree. However, placement varies by ecosystem to ensure idiomatic results:
+-   TypeScript: It's often more convenient to place `skirout` adjacent to the `src` directory.
+-   Java / Kotlin / Python: Place the directory inside your top-level package (e.g., `src/main/java/com/myproject/skirout`). This ensures generated package names (like `com.myproject.skirout.*`) follow standard naming conventions.
+
+Multiple generators can write to the same output directory, which means this directory will contain source files in different languages.
+
+> [!WARNING]
+> Do not manually edit any of the files inside a `skirout` directory. This directory is managed by Skir. Any manual change will be overwritten during the next generation.
 
 ## Core workflow
 
@@ -48,6 +73,9 @@ npx skir gen --watch
 ```
 
 The compiler will monitor your source directory and automatically regenerate code whenever you modify a `.skir` file.
+
+> [!NOTE]
+> If your project is a Node project, you can consider adding Skir codegen to your `build` script in `package.json`, and so you would never have to run `npx skir gen` manually. See this [example](https://github.com/gepheum/skir-typescript-example/blob/main/package.json).
 
 ## Formatting `.skir` files
 
