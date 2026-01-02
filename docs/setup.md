@@ -104,10 +104,10 @@ If you have a formatting check step, it may fail on Skir-generated code. You can
 Consider adding these optional steps for stricter validation:
 
 ```yml
-      - name: "[Skir] format check"
+      - name: Run Skir format checker
         run: npx skir format --ci
 
-      - name: "[Skir] snapshot up-to-date"
+      - name: Ensure Skir snapshot up-to-date
         run: npx skir snapshot --ci
 ```
 
