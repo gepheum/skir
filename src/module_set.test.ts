@@ -2290,7 +2290,7 @@ describe("module set", () => {
         result: {},
         errors: [
           {
-            token: { text: "[NonExistent]" },
+            token: { text: "[NonExistent]", line: { lineNumber: 1 } },
             message: "Cannot resolve reference",
           },
         ],
