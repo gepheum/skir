@@ -28,16 +28,26 @@ The `skir.yml` file controls how Skir generates code for your project. It contai
 Every generator entry has the following properties:
 
 -    `mod`: Identifies the code generator to run (e.g., `skir-python-gen` for Python).
--    `outDir`: The output directory for generated source code (e.g., `./src/skirout`). The directory must be named `skirout`. Do not edit this directory manually — Skir manages its contents entirely. Typically, you'll place this directory at the root of your source tree, but there can be exceptions: in a TypeScript project for example, it's often more convenient to place `skirout` adjacent to the `src` directory. Multiple generators can write to the same output directory, producing source code in different languages. If you specify an array of strings instead of a single string, the generator will write to multiple output directories, which is useful when you have multiple sub-projects in the same language and they need to share the same data types.
+-    `outDir`: The output directory for generated source code (e.g., `./src/skirout`). The directory must be named `skirout`. Do not edit this directory manually — Skir manages its contents entirely. Typically, you'll place this directory at the root of your source tree, but there can be exceptions: in a TypeScript project for example, it's often more convenient to place `skirout` adjacent to the `src` directory. Multiple generators can write to the same output directory, producing source code in different languages. If you specify an array of strings, the generator will write to multiple output directories, which is useful when you have multiple sub-projects in the same language and they need to share the same data types.
 -    `config`: Generator-specific configuration. Use `{}` for default settings.
 
 ## Core workflow
 
 Run Skir code generation before compiling your language-specific source code.
 
-Use `npx skir gen` to compile your `.skir` files into the target languages specified in your configuration. This creates or updates your `skirout` directories containing the generated source code.
+```shell
+npx skir gen
+```
 
-For automatic regeneration, run `npx skir gen --watch`. The compiler will monitor your source directory and regenerate code whenever you modify a `.skir` file.
+This command transpiles your `.skir` files into the target languages specified in your configuration. This creates or updates your `skirout` directories containing the generated source code.
+
+For a more seamless experience, consider using watch mode:
+
+```shell
+npx skir gen --watch
+```
+
+The compiler will monitor your source directory and automatically regenerate code whenever you modify a `.skir` file.
 
 ## Formatting `.skir` files
 
