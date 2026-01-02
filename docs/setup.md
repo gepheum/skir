@@ -1,7 +1,5 @@
 # Getting started: setup and workflow
 
-Skir is a universal language for representing data types, constants, and RPC interfaces. It allows you to define your data structures and interfaces once in `.skir` files, then generate idiomatic source code for multiple target languages.
-
 ## Prerequisites
 
 The Skir compiler requires [Node.js](https://nodejs.org/en/download) to be installed.
