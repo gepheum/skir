@@ -1,10 +1,10 @@
-## Language reference
+# Skir language reference
 
-### Records
+## Records
 
 There are two types of records: structs and enums.
 
-#### Structs
+### Structs
 
 Use the keyword `struct` to define a struct, which is a collection of fields of different types.
 
@@ -51,7 +51,7 @@ struct Point {
 }
 ```
 
-#### Enums
+### Enums
 
 Enums in Skir are similar to enums in Rust. An enum value is one of several possible variants, and each variant can optionally have data associated with it.
 
@@ -105,7 +105,7 @@ The variant numbers are used for identifying the variants in the serialization f
 
 It is always fine to rename an enum, rename the variants of an enum, or add new variants to an enum.
 
-#### Nesting records
+### Nesting records
 
 You can define a record (struct or enum) within the definition of another record. This is simply for namespacing, and it can help make your `.skir` files more organized.
 
@@ -125,7 +125,7 @@ struct Foo {
 }
 ```
 
-#### Inline records
+### Inline records
 
 For improved readability and conciseness, Skir allows you to define records (structs or enums) directly within a field's type definition. This **inline** syntax is a shorthand for explicitly nesting a record definition and then referencing it as a type.
 
@@ -179,7 +179,7 @@ struct Notification {
 
 These two methods of definition are strictly equivalent. The generated code will be identical regardless of whether the record was defined explicitly or inline.
 
-#### Removed fields
+### Removed fields
 
 When removing a field from a struct or an enum, you must mark the removed number in the record definition using the `removed` keyword. The syntax is different whether you're using explicit or implicit numbering:
 
@@ -202,9 +202,9 @@ struct ImplicitNumbering {
 }
 ```
 
-### Data types
+## Data types
 
-#### Primitive types
+### Primitive types
 
 *   `bool`: true or false
 *   `int32`: a signed 32-bits integer
@@ -216,11 +216,11 @@ struct ImplicitNumbering {
 *   `bytes`: a sequence of bytes
 *   `timestamp`: a specific instant in time represented as an integral number of milliseconds since the Unix epoch, from 100M days before the Unix epoch to 100M days after the Unix epoch
 
-#### Array type
+### Array type
 
 Wrap the item type inside square brackets to represent an array of items, e.g. `[string]` or `[User]`.
 
-##### Keyed arrays
+#### Keyed arrays
 
 If the items are structs and one of the struct fields can be used to identify every item in the array, you can add the field name next to a pipe character: `[Item|key_field]`.
 
@@ -269,11 +269,11 @@ struct Employee {
 }
 ```
 
-#### Optional type
+### Optional type
 
 Add a question mark at the end of a non-optional type to make it optional. An `other_type?` value is either an `other_type` or null.
 
-### Constants
+## Constants
 
 You can define constants of any type with the `const` keyword. The syntax for representing the value is similar to JSON, with the following differences:
 
@@ -319,7 +319,7 @@ const NOT_IMPLEMENTED_ERROR: OperationStatus = {
 };
 ```
 
-### RPC methods
+## RPC methods
 
 The `method` keyword allows you to define the signature of a remote method.
 
@@ -337,7 +337,7 @@ method GetUserProfile(GetUserProfileRequest): GetUserProfileResponse;
 
 The request and response can have any type.
 
-#### Inline request/response records
+### Inline request/response records
 
 Just as you can define structs and enums inline for fields, Skir supports inline record definitions for RPC methods. This allows you to define the request and response structures directly within the method signature.
 
@@ -374,7 +374,7 @@ Without an explicit number, renaming a method or moving it to a different module
 
 You can start development using automatic hashing and only *freeze* the method identity when a change is required. To do this, locate the previously hashed number in your generated source code and manually assign that value to the method in your `.skir` file.
 
-### Imports
+## Imports
 
 The `import` statement allows you to import types from another module. You can either specify the names to import, or import the whole module with an alias using the `as` keyword.
 
@@ -395,11 +395,11 @@ struct Disk {
 
 The path is always relative to the root of the Skir source directory.
 
-### Doc comments
+## Doc comments
 
 Doc comments are designated by three forward slashes (`///`) and are used to provide high-level documentation for records, fields, and methods. Unlike regular comments (`//` or `/*`), which are ignored by the compiler, doc comments are processed as part of your schema definition.
 
-#### Referencing symbols
+### Referencing symbols
 
 Doc comments can contain references to other symbols within your schema by enclosing them in square brackets. If a symbol referenced in square brackets is missing or misspelled, the Skir compiler will trigger a compilation error. This ensures that your documentation never becomes *stale* or refers to fields that no longer exist.
 
@@ -413,11 +413,11 @@ struct Account {
 }
 ```
 
-#### Integration with code generators
+### Integration with code generators
 
 One of the primary advantages of doc comments is that they are copied directly into the generated code. Developers using IDEs like VSCode or IntelliJ will see your documentation in hover information, code completion, and inlay hints.
 
-#### RPC visibility and security
+### RPC visibility and security
 
 When documenting types used as a request or response for an RPC method, be aware that these comments may be visible to any user or client with access to that interface.
 
