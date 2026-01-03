@@ -439,7 +439,7 @@ function primitiveTypesAreCompatible(type: BeforeAfter<Primitive>): boolean {
         type.after === "bool" ||
         type.after === "int32" ||
         type.after === "int64" ||
-        type.after === "uint64"
+        type.after === "hash64"
       );
     case "int32":
       return type.after === "int32" || type.after === "int64";
@@ -450,7 +450,7 @@ function primitiveTypesAreCompatible(type: BeforeAfter<Primitive>): boolean {
     case "string":
     case "bytes":
     case "int64":
-    case "uint64":
+    case "hash64":
       return type.after === type.before;
   }
 }

@@ -64,15 +64,15 @@ describe("literals", () => {
       expect(valueHasPrimitiveType("3.14", "int64")).toBe(false);
     });
 
-    it("works with uint64", () => {
-      expect(valueHasPrimitiveType("0", "uint64")).toBe(true);
-      expect(valueHasPrimitiveType("18446744073709551615", "uint64")).toBe(
+    it("works with hash64", () => {
+      expect(valueHasPrimitiveType("0", "hash64")).toBe(true);
+      expect(valueHasPrimitiveType("18446744073709551615", "hash64")).toBe(
         true,
       );
-      expect(valueHasPrimitiveType("18446744073709551616", "uint64")).toBe(
+      expect(valueHasPrimitiveType("18446744073709551616", "hash64")).toBe(
         false,
       );
-      expect(valueHasPrimitiveType("3.14", "uint64")).toBe(false);
+      expect(valueHasPrimitiveType("3.14", "hash64")).toBe(false);
     });
 
     it("works with float32", () => {
@@ -134,8 +134,8 @@ describe("literals", () => {
       );
     });
 
-    it("works with uint64", () => {
-      expect(literalValueToIdentity("18446744073709551615", "uint64")).toBe(
+    it("works with hash64", () => {
+      expect(literalValueToIdentity("18446744073709551615", "hash64")).toBe(
         "18446744073709551615",
       );
     });
@@ -181,8 +181,8 @@ describe("literals", () => {
       );
     });
 
-    it("works with uint64", () => {
-      expect(literalValueToDenseJson("18446744073709551615", "uint64")).toBe(
+    it("works with hash64", () => {
+      expect(literalValueToDenseJson("18446744073709551615", "hash64")).toBe(
         "18446744073709551615",
       );
     });

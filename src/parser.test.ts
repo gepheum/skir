@@ -357,7 +357,7 @@ describe("module parser", () => {
         bool: bool;
         int32: int32;
         int64: int64;
-        uint64: uint64;
+        hash64: hash64;
         float32: float32;
         float64: float64;
         timestamp: timestamp;
@@ -390,10 +390,10 @@ describe("module parser", () => {
                   primitive: "int64",
                 },
               },
-              uint64: {
+              hash64: {
                 unresolvedType: {
                   kind: "primitive",
-                  primitive: "uint64",
+                  primitive: "hash64",
                 },
               },
               float32: {

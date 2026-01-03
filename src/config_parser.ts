@@ -277,11 +277,13 @@ async function parseSkirConfigInternalAsync(
   return { skirConfig: zodResult.data!, errors: [] };
 }
 
+// TODO: remove the casts
 const STATIC_GENERATORS: Record<string, CodeGenerator<unknown>> = {
-  "skir-cc-gen": CcGen.GENERATOR,
-  "skir-dart-gen": DartGen.GENERATOR,
-  "skir-java-gen": JavaGen.GENERATOR,
-  "skir-kotlin-gen": KotlinGen.GENERATOR,
-  "skir-python-gen": PythonGen.GENERATOR,
-  "skir-typescript-gen": TypescriptGen.GENERATOR,
+  "skir-cc-gen": CcGen.GENERATOR as any as CodeGenerator<unknown>,
+  "skir-dart-gen": DartGen.GENERATOR as any as CodeGenerator<unknown>,
+  "skir-java-gen": JavaGen.GENERATOR as any as CodeGenerator<unknown>,
+  "skir-kotlin-gen": KotlinGen.GENERATOR as any as CodeGenerator<unknown>,
+  "skir-python-gen": PythonGen.GENERATOR as any as CodeGenerator<unknown>,
+  "skir-typescript-gen":
+    TypescriptGen.GENERATOR as any as CodeGenerator<unknown>,
 };

@@ -642,7 +642,7 @@ export class ModuleSet {
           : !valueJson ||
             (Array.isArray(valueJson) && !valueJson.length) ||
             (type.kind === "primitive" &&
-              (type.primitive === "int64" || type.primitive === "uint64") &&
+              (type.primitive === "int64" || type.primitive === "hash64") &&
               valueJson === "0");
       if (!hasDefaultValue) {
         arrayLen = Math.max(arrayLen, field.number + 1);
@@ -774,7 +774,7 @@ export class ModuleSet {
           case "bool":
           case "int32":
           case "int64":
-          case "uint64":
+          case "hash64":
           case "float32":
           case "float64":
           case "timestamp":

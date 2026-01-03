@@ -507,7 +507,7 @@ const PRIMITIVE_TYPES: ReadonlySet<string> = new Set<Primitive>([
   "bool",
   "int32",
   "int64",
-  "uint64",
+  "hash64",
   "float32",
   "float64",
   "timestamp",

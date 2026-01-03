@@ -488,7 +488,7 @@ describe("compatibility checker", () => {
             str: string;
             num: int32;
             int_field: int32;
-            uint_field: uint64;
+            uint_field: hash64;
           }
         `,
         after: `

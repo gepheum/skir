@@ -38,7 +38,7 @@ export function valueHasPrimitiveType(
         BigInt("-9223372036854775808"),
         BigInt("9223372036854775807"),
       );
-    case "uint64":
+    case "hash64":
       return isIntLiteral(token, BigInt(0), BigInt("18446744073709551615"));
     case "float32":
     case "float64": {
@@ -92,7 +92,7 @@ export function literalValueToDenseJson(
       return isStringLiteral(token) ? unquoteAndUnescape(token) : Number(token);
     }
     case "int64":
-    case "uint64":
+    case "hash64":
       return String(BigInt(token));
     case "string":
       return unquoteAndUnescape(token);
