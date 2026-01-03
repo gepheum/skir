@@ -207,11 +207,11 @@ struct ImplicitNumbering {
 ### Primitive types
 
 *   `bool`: true or false
-*   `int32`: a signed 32-bits integer
-*   `int64`: a signed 64-bits integer
-*   `uint64`: an unsigned 64-bits integer
-*   `float32`: a 32-bits floating point number; can be one of `NaN`, `Infinity` and `-Infinity`
-*   `float64`: a 64-bits floating point number; can be one of `NaN`, `Infinity` and `-Infinity`
+*   `int32`: a signed 32-bit integer
+*   `int64`: a signed 64-bit integer
+*   `hash64`: an unsigned 64-bit integer; prefer using this for hash codes and `int64` for numbers which represent an actual *count*
+*   `float32`: a 32-bit floating point number; can be one of `NaN`, `Infinity` or `-Infinity`
+*   `float64`: a 64-bit floating point number; can be one of `NaN`, `Infinity` or `-Infinity`
 *   `string`: a Unicode string
 *   `bytes`: a sequence of bytes
 *   `timestamp`: a specific instant in time represented as an integral number of milliseconds since the Unix epoch, from 100M days before the Unix epoch to 100M days after the Unix epoch
@@ -227,7 +227,7 @@ If the items are structs and one of the struct fields can be used to identify ev
 Example:
 ```d
 struct User {
-  id: uint64;
+  id: int32;
   name: string;
 }
 
@@ -325,7 +325,7 @@ The `method` keyword allows you to define the signature of a remote method.
 
 ```d
 struct GetUserProfileRequest {
-  user_id: uint64;
+  user_id: int32;
 }
 
 struct GetUserProfileResponse {
@@ -349,7 +349,7 @@ This syntax allows you to define the same method as above more concisely:
 // Using inline records
 
 method GetUserProfile(struct {
-  user_id: uint64;
+  user_id: int32;
 }): struct {
   profile: UserProfile?;
 };

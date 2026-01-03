@@ -34,7 +34,7 @@ export interface SkirConfigErrorPos {
   offset: number;
   /** 1-based */
   lineNumber: number;
-  /** 2-based */
+  /** 1-based */
   colNumber: number;
 }
 

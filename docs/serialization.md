@@ -10,7 +10,7 @@ Structs are serialized as JSON arrays, where the field numbers in the index defi
 
 ```d
 struct User {
-  user_id: uint64;
+  user_id: int32;
   removed;
   name: string;
   rest_day: Weekday;

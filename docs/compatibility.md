@@ -1,236 +1,119 @@
 # Schema evolution & compatibility
 
-Skir is built with a **"serialize now, deserialize in 100 years"** philosophy. At its core, Skir makes it easy to maintain both backward and forward compatibility as your schemas evolve over time.
+Skir is designed for long-term data persistence and distributed systems. It ensures that your application can evolve its data structures while maintaining compatibility with older data (backward compatibility) and older clients (forward compatibility).
 
-## The core concepts
+## Core concepts
 
-Compatibility in Skir is divided into two categories:
+*   **Backward compatibility**: New code can read old data. This is essential for reading records stored in a database created with an older schema.
+*   **Forward compatibility**: Old code can read new data. This is critical in distributed systems where different services or clients may be running different versions of your application.
 
-### Backward compatibility
+## Safe schema changes
 
-The ability of **new code to read old data**. This is relevant even for single-service architectures where you must deserialize records stored in a database months or years ago.
+The following changes are safe and preserve both backward and forward compatibility:
 
-### Forward compatibility
+### 1. Adding fields to a struct
+New code reading old data will use default values for missing fields:
+*   **Numbers**: `0`
+*   **Booleans**: `false`
+*   **Strings/Bytes**: Empty string/bytes
+*   **Arrays**: Empty array `[]`
+*   **Structs**: A struct with all fields at their default values
+*   **Enums**: The implicit `UNKNOWN` variant
+*   **Optional types**: `null`
 
-The ability of **old code to read new data**. This is a primary challenge in distributed systems, where services (like mobile apps or microservices) are updated at different times. It ensures that an older binary does not fail when it encounters data containing fields it does not yet recognize.
+### 2. Adding variants to an enum
+Old code encountering a new variant will treat it as the implicit `UNKNOWN` variant.
 
-## Schema evolution
+### 3. Renaming types, fields, and variants
+Skir uses numeric identifiers (field numbers) in its binary and compact JSON formats, not names. Therefore, renaming any element is safe.
 
-### Safe changes
+> [!NOTE]
+> Names *are* used in the human-readable JSON format. This format is for debugging only and should not be used for storage or inter-service communication.
 
-You can safely make these changes to a schema without breaking either backward or forward compatibility.
+### 4. Removing fields or variants
+You must mark the field or variant number as `removed` to prevent accidental reuse.
 
-#### Add fields to a struct
-
-When you add a field to a struct, Skir maintains backward compatibility by providing **default values** for any missing fields during deserialization. The default value depends on the type:
-
-* **Numeric types:** `0`
-* **Timestamps:** Unix epoch (Jan 1, 1970)
-* **Strings and byte strings:** an empty string or byte string
-* **Structs:** An empty struct: all fields at their own defaults
-* **Enums:** The implicit `UNKNOWN` variant
-* **Optional types:** `null`
-* **Array types:** `[]`
-
-#### Add variants to an enum
-
-Forward compatibility: when an older binary encounters a variant it does not recognize, it automatically resolves to the implicit `UNKNOWN` variant.
-
-#### Mark fields and variants as `removed`
-
-#### Rename types, fields and variants
-
-Renaming a struct, enum, field, variant is always legal. Because Skir identifies elements by their index numbers in both the *binary* and *dense JSON* formats, these human-readable names are not included in the serialized data. 
-
-> [!NOTE] While names are included in the *readable JSON* format, this format is intended for debugging and inspection only; it is not recommended for long-term persistence or cross-system communication.
-
-#### Switch to compatible types
-
-You can change the type of a field, wrapper variant, method request, or method response, provided the new type is **backward compatible** with the old one. These rules define what type conversions are authorized:
-
-*   `bool` → `int32` | `int64` | `uint64`
+### 5. Compatible type changes
+You can change a type if the new type is backward-compatible with the old one:
+*   `bool` → `int32`, `int64`, `hash64`
 *   `int32` → `int64`
 *   `float32` → `float64`
-*   `float64` → `float32`
-*   `[A]` → `[B]` assuming `A` → `B` is authorized
-*   `A?` → `B?` assuming `A` → `B` is authorized
+*   `float64` → `float32` (precision loss possible)
+*   `[A]` → `[B]` (if `A` → `B` is valid)
+*   `A?` → `B?` (if `A` → `B` is valid)
 
-### Unsafe changes
+## Unsafe changes
 
-All these schema changes can break either backward compatibility (new code won't be able to deserialize old data) or forward compatibility (old code won't be able to deserialize new data):
+The following changes will break compatibility:
 
-*   Change the number of a field, or reorder fields if you use implicit numbering
-*   Change the type of a field, wrapper variant, method request or method response to a type that is not compatible
-*   Change the stable identifier (number) of a method; or if the method is not explicitly given a number, rename it or move it to a different module
-*   Reintroduce a field or variant number which was marked as `removed`. Removed numbers are forever.
-*   Remove a field from a struct or a variant from an enum without marking the field/variant number as `removed`
-*   Turn a constant variant into an enum variant or vice-versa
+*   Changing a field/variant number.
+*   Reordering fields/variants (if using implicit numbering).
+*   Changing a type to an incompatible one.
+*   Changing a method's stable identifier (or renaming/moving a method without an explicit ID).
+*   Reusing a `removed` field or variant number.
+*   Deleting a field or variant without marking it as `removed`.
+*   Changing a constant variant to a wrapper variant or vice-versa.
 
-## Automatically verify the safety of schema evolution
+## Automated compatibility checks
 
-The `snapshot` command of the Skir compiler allows you to make sure you're not introducing changes which could break backward of forward compatibility. A *snapshot* refers to an imprint of all your `.skir` files at a given time *t*.
+The Skir compiler includes a snapshot tool to prevent accidental breaking changes.
 
-Two things happen when you run:
+### The snapshot workflow
 
-```shell
-npx skir snapshot
-```
+1.  **Create/Update Snapshot**: Run `npx skir snapshot` to create a `skir.snapshot.json` file representing your current schema state.
+2.  **Verify Changes**: Subsequent runs compare your current `.skir` files against this snapshot. If a breaking change is detected, the command fails and reports the issue.
+3.  **CI Integration**: Add `npx skir snapshot --ci` to your CI pipeline to enforce compatibility checks on every commit.
 
-First, Skir checks if you already have a snapshot file (`skir.snapshot.json`) in your root directory. If you do, it looks for breaking changes between your old snapshot and your `.skir` files now. If there are breaking changes, the program prints a readable description of the breaking changes and exits. If there are no breaking changes, a new snapshot file is created.
+### Tracked types and stable identifiers
 
-### Tracked types
-
-Because structs and enums can be renamed, in order to know whether a change to a type definition is safe, Skir needs a stable identifier for this type.
-
-Consider this file at *t0*:
+To track compatibility across renames, Skir needs a stable identifier for your types. You can assign a random integer ID to any struct or enum:
 
 ```d
-struct Foo {
-  b: bool;
+// "User" is now tracked by ID 500996846
+struct User(500996846) {
+  name: string;
 }
 ```
 
-And at *t1*:
+If you rename `User` to `Account` but keep the ID `500996846`, Skir knows it's the same type and will validate the change safely.
 
-```d
-struct Bar {
-  b: bool;
-}
+**Best Practice**: Assign stable identifiers to all root types used for storage or RPC. Nested types are implicitly tracked through their parents.
 
-struct Zoo {
-  s: string;
-}
-```
+### Handling intentional breaking changes
 
-If `Foo` got renamed to `Bar`: the change is safe. But if it got renamed to `Zoo`, it's a breaking change because a `bool` field cannot be turned into a `string` field.
+If you must make a breaking change (e.g., during early development), simply delete the `skir.snapshot.json` file and run `npx skir snapshot` again to establish a new baseline.
 
-To solve this problem, Skir lets you set a stable identifier in a form of a meaningless (random) number when you define a type.
+## Round-tripping unknown data
 
-```d
-struct Foo(500996846) {
-  b: bool;
-}
-```
+When an older client reads data with new fields, it can either **drop** or **preserve** the unknown data when re-serializing.
 
-When you rename a type, you leave the stable identifier unchanged:
+*   **Drop (Default)**: Unknown fields are discarded. This is safer but may result in data loss if the object is saved back to storage.
+*   **Preserve**: Unknown fields are kept and written back. This enables "round-tripping" but carries security risks.
 
-```d
-struct Bar(500996846) {
-  b: bool;
-}
-```
+> [!NOTE]
+> Unrecognized data can only be preserved during round-trip conversion if the serialization format (dense JSON or binary) is the same as the deserialization format.
 
-Now Skir knows that the change is safe: `Foo` was simply renamed to `Zoo`.
+### Example
 
-Assigning a stable identifier to a type definition make the type *tracked*. Other types which are automatically tracked are types used as RPC method requests or responses. When verifying whether a change is safe, `npx skir snapshot` only looks at tracked types.
+**Schema Evolution**:
+*   v1: `struct User { id: int64; }`
+*   v2: `struct User { id: int64; name: string; }`
 
-#### What types to track
+**Scenario**: A v1 service receives a v2 object (`{id: 1, name: "Alice"}`).
 
-You should assign a stable identifier to all types that you intend to serialize and store on disk or in a databse. You do not need to do this recursively for all the types of their fields or variants, because when a type is tracked, the types of fields and variants are implicitly tracked as well. In other words, you only need to track a type `T` if you explicitly call the generated Skir serialization method expecting a `T`.
+**Default Behavior (Drop)**:
+The v1 service deserializes it to `{id: 1}`. If it saves the object, `name` is lost.
 
-### Suggested workflow
-
-(BEFORE RELASING)
-(DRAFTING)
-
-### Moving forward with unsafe changes
-
-(DELETING THE FILE)
-
-## Forward compatibility and round-tripping
-
-Consider a service, in a distributed system, which reads a Skir value from a given source (e.g. an HTTP request), modifies it, then writes it back somewhere else. What happens if the schema has evolved (e.g. new fields were added), but the service still runs with the old code, and it encounters new data?
-
-You can chose one of two options: drop or preserve the data which was not present in the old schema. This option must be specified at deserialization time. The default option is to drop. This feature exists in all languages.
-
-Let's consider this schema:
-
-```d
-struct UserBefore {
-  id: int64;
-  subscription_status: enum {
-    FREE;
-    PREMIUM;
-  };
-}
-```
-
-Let's evolve this schema by adding a field to the struct and a variant to the enum:
-
-```d
-struct UserAfter {
-  id: int64;
-  subscription_status: enum {
-    FREE;
-    PREMIUM;
-    TRIAL;  // New variant
-  };
-  name: string;  // New field
-}
-```
-
-This TypeScript example illustrates what happens when the old code tries to deserialize and reserialize new data:
+**Preserve Behavior**:
+You can configure the deserializer to keep unknown fields.
 
 ```typescript
-const user = UserAfter.create({
-  id: 123,
-  subscription_status: "TRIAL",
-  name: "Jane",
-});
-
-const userJson = UserAfter.serializer.toJson(user);
+// TypeScript example
+const user = User.serializer.fromJson(json, "keep-unrecognized-values");
+// user.name is not accessible in code, but is stored internally.
+const newJson = User.serializer.toJson(user);
+// newJson contains "name": "Alice"
 ```
 
-Default option - unrecognized data is dropped:
-
-```typescript
-const newUser = UserAfter.serializer.fromJson(
-  UserBefore.serializer.toJson(
-    UserBefore.serializer.fromJson(
-      userJson
-    )
-  )
-);
-
-assert(newUser.id === 123);
-assert(newUser.name === "");  // Default value for string fields
-assert(newUser.subscriptionStatus.union.kind === "?");  // UNKNOWN variant
-```
-
-Option to keep unrecognized data at deserialization:
-
-```typescript
-const newUser = UserAfter.serializer.fromJson(
-  UserBefore.serializer.toJson(
-    UserBefore.serializer.fromJson(
-      userJson,
-      "keep-unrecognized-values",  // <- this
-    )
-  )
-);
-
-assert(newUser.id === 123);
-assert(newUser.name === "Jane");
-assert(newUser.subscriptionStatus.union.kind === "TRIAL");
-```
-
-Note that unrecognized data can only be preserved during round-trip conversion if the serialization format (dense JSON or binary) is the same as the deserialization format.
-
-```typescript
-const newUser = UserAfter.serializer.fromBytes(
-  UserBefore.serializer.toBytes(  // JSON -> bytes: dropped here
-    UserBefore.serializer.fromJson(
-      userJson,
-      "keep-unrecognized-values",
-    )
-  )
-);
-
-assert(newUser.id === 123);
-assert(newUser.name === "");  // The unrecognized field was dropped
-```
-
-### When to chose to preserve unrecognized data
-
-While it can seem like a benefit to always preserve unrecognized data, it comes with a security risk: you should **only keep unrecognized data if the data comes from a source you trust**. The reason is that a malicious user could send data which conforms to the current schema but also contains field numbers which don't exist yet in your schema. If you later add these field numbers to your schema, bad things will happen when you try to deserialize these old values.
-
+> [!WARNING]
+> Only preserve unknown data from trusted sources. Malicious actors could inject fields with IDs that you haven't defined yet, potentially causing issues if you define those IDs in a future version.
