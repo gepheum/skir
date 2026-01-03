@@ -210,8 +210,8 @@ struct ImplicitNumbering {
 *   `int32`: a signed 32-bits integer
 *   `int64`: a signed 64-bits integer
 *   `uint64`: an unsigned 64-bits integer
-*   `float32`: a 32-bits floating point number
-*   `float64`: a 64-bits floating point number
+*   `float32`: a 32-bits floating point number; can be one of `NaN`, `Infinity` and `-Infinity`
+*   `float64`: a 64-bits floating point number; can be one of `NaN`, `Infinity` and `-Infinity`
 *   `string`: a Unicode string
 *   `bytes`: a sequence of bytes
 *   `timestamp`: a specific instant in time represented as an integral number of milliseconds since the Unix epoch, from 100M days before the Unix epoch to 100M days after the Unix epoch

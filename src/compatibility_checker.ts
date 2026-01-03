@@ -439,36 +439,18 @@ function primitiveTypesAreCompatible(type: BeforeAfter<Primitive>): boolean {
         type.after === "bool" ||
         type.after === "int32" ||
         type.after === "int64" ||
-        type.after === "uint64" ||
-        type.after === "float32" ||
-        type.after === "float64"
+        type.after === "uint64"
       );
     case "int32":
-      return (
-        type.after === "int32" ||
-        type.after === "int64" ||
-        type.after === "uint64" ||
-        type.after === "float32" ||
-        type.after === "float64"
-      );
-    case "int64":
-      return (
-        type.after === "int64" ||
-        type.after === "float32" ||
-        type.after === "float64"
-      );
-    case "uint64":
-      return (
-        type.after === "uint64" ||
-        type.after === "float32" ||
-        type.after === "float64"
-      );
+      return type.after === "int32" || type.after === "int64";
     case "float32":
     case "float64":
       return type.after === "float32" || type.after === "float64";
     case "timestamp":
     case "string":
     case "bytes":
+    case "int64":
+    case "uint64":
       return type.after === type.before;
   }
 }

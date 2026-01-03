@@ -45,7 +45,7 @@ describe("compatibility checker", () => {
         after: `
           struct PointPoint {
             xx: int64;
-            yy: float32;
+            yy: int64;
           }
 
           struct Triangle(789) {
@@ -464,7 +464,6 @@ describe("compatibility checker", () => {
             bool_field: bool;
             int32_field: int32;
             int64_field: int64;
-            uint64_field: uint64;
             float32_field: float32;
             float64_field: float64;
           }
@@ -472,11 +471,10 @@ describe("compatibility checker", () => {
         after: `
           struct A(101) {
             bool_field: int64;
-            int32_field: float64;
-            int64_field: float32;
-            uint64_field: float64;
+            int32_field: int64;
+            int64_field: int64;
             float32_field: float64;
-            float64_field: float32;
+            float64_field: float64;
           }
         `,
       }),
@@ -489,12 +487,16 @@ describe("compatibility checker", () => {
           struct B(102) {
             str: string;
             num: int32;
+            int_field: int32;
+            uint_field: uint64;
           }
         `,
         after: `
           struct B(102) {
             str: bytes;
             num: string;
+            int_field: float64;
+            uint_field: int32;
           }
         `,
       }),
@@ -553,6 +555,64 @@ describe("compatibility checker", () => {
             },
             fieldName: {
               text: "num",
+            },
+          },
+        },
+      },
+      {
+        kind: "illegal-type-change",
+        expression: {
+          before: {
+            kind: "property",
+            structExpression: {
+              kind: "record",
+              recordName: {
+                text: "B",
+              },
+            },
+            fieldName: {
+              text: "int_field",
+            },
+          },
+          after: {
+            kind: "property",
+            structExpression: {
+              kind: "record",
+              recordName: {
+                text: "B",
+              },
+            },
+            fieldName: {
+              text: "int_field",
+            },
+          },
+        },
+      },
+      {
+        kind: "illegal-type-change",
+        expression: {
+          before: {
+            kind: "property",
+            structExpression: {
+              kind: "record",
+              recordName: {
+                text: "B",
+              },
+            },
+            fieldName: {
+              text: "uint_field",
+            },
+          },
+          after: {
+            kind: "property",
+            structExpression: {
+              kind: "record",
+              recordName: {
+                text: "B",
+              },
+            },
+            fieldName: {
+              text: "uint_field",
             },
           },
         },
