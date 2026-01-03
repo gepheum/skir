@@ -46,9 +46,8 @@ You can change a type if the new type is backward-compatible with the old one:
 
 The following changes will break compatibility:
 
-*   Changing a field/variant number.
-*   Reordering fields/variants (if using implicit numbering).
-*   Changing a type to an incompatible one.
+*   Changing a field/variant number, or reordering fields/variants if using implicit numbering.
+*   Changing the type of a field, wrapper variant, method request or method response to an incompatible type.
 *   Changing a method's stable identifier (or renaming/moving a method without an explicit ID).
 *   Reusing a `removed` field or variant number.
 *   Deleting a field or variant without marking it as `removed`.

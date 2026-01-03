@@ -355,24 +355,24 @@ method GetUserProfile(struct {
 };
 ````
 
-#### Method numbers
+#### Stable identifiers
 
 Every method in a Skir service is uniquely identified by an integer used during RPC communication to ensure that the client and server correctly execute the intended procedure.
 
-You can set this number explicitly using the following syntax:
+You can set this identifier explicitly using the following syntax:
 
-```rust
-// Method identified by the meaningless number 878787
+```d
+// Method identified by the stable identifier 878787
 method MyMethod(Request): Response = 878787;
 ```
 
 If you don't explicitly set it, the Skir compiler uses a hash of the method name and module location.
 
-By explicitly setting a *meaningless* number, you decouple the method's network identity from its name and location. This is critical for maintaining long-term backward and forward compatibility in distributed systems where clients and servers are updated on different schedules.
+By explicitly setting a stable identifier, you decouple the method's network identity from its name and location. This is critical for maintaining long-term backward and forward compatibility in distributed systems where clients and servers are updated on different schedules.
 
-Without an explicit number, renaming a method or moving it to a different module would change its computed hash, breaking the interface for any client still using the old name. Fixing the number allows you to safely refactor, rename, or move methods across modules while ensuring that desynchronized services can still communicate perfectly.
+Without an explicit identifier, renaming a method or moving it to a different module would change its computed hash, breaking the interface for any client still using the old name. Fixing the identifier allows you to safely refactor, rename, or move methods across modules while ensuring that desynchronized services can still communicate perfectly.
 
-You can start development using automatic hashing and only *freeze* the method identity when a change is required. To do this, locate the previously hashed number in your generated source code and manually assign that value to the method in your `.skir` file.
+You can start development using automatic hashing and only *freeze* the method identity when a change is required. To do this, locate the previously hashed identifier in your generated source code and manually assign that value to the method in your `.skir` file.
 
 ## Imports
 
