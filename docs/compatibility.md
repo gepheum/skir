@@ -55,13 +55,41 @@ The following changes will break compatibility:
 
 ## Automated compatibility checks
 
-The Skir compiler includes a snapshot tool to prevent accidental breaking changes.
+The Skir compiler includes a `snapshot` tool to prevent accidental breaking changes.
 
 ### The snapshot workflow
 
-1.  **Create/Update Snapshot**: Run `npx skir snapshot` to create a `skir.snapshot.json` file representing your current schema state.
-2.  **Verify Changes**: Subsequent runs compare your current `.skir` files against this snapshot. If a breaking change is detected, the command fails and reports the issue.
-3.  **CI Integration**: Add `npx skir snapshot --ci` to your CI pipeline to enforce compatibility checks on every commit.
+The `npx skir snapshot` command helps you manage schema evolution by maintaining a history of your schema state.
+
+When you run this command, two things happen:
+
+1.  **Verification**: Skir checks for a `skir.snapshot.json` file. If it exists, it compares your current `.skir` files against it. If breaking changes are detected, the command reports them and exits.
+2.  **Update**: If no breaking changes are found (or if no snapshot exists), Skir creates or updates the `skir.snapshot.json` file to reflect the current schema.
+
+#### Recommended workflow
+
+**1. During Development**
+
+While drafting a new schema version, use the `--dry` flag to check for backward compatibility without updating the snapshot:
+
+```shell
+npx skir snapshot --dry
+```
+
+This confirms that your changes are safe relative to the last release (snapshot).
+
+**2. Before Release**
+
+Run `npx skir snapshot` without flags to verify compatibility and commit the new schema state to the snapshot file.
+
+**3. Continuous Integration**
+
+Add the command to your CI pipeline or pre-commit hook to prevent accidental breaking changes. The `--ci` flag ensures the snapshot is up-to-date and compatible:
+
+```yml
+      - name: Ensure Skir snapshot up-to-date
+        run: npx skir snapshot --ci
+```
 
 ### Tracked types and stable identifiers
 
@@ -76,7 +104,7 @@ struct User(500996846) {
 
 If you rename `User` to `Account` but keep the ID `500996846`, Skir knows it's the same type and will validate the change safely.
 
-**Best Practice**: Assign stable identifiers to all root types used for storage or RPC. Nested types are implicitly tracked through their parents. Similarly, the request and response types of methods are automatically tracked as part of the method definition.
+**Best Practice**: Assign stable identifiers to all root types used for storage. Nested types are implicitly tracked through their parents so you don't need to give them a stable identifier. Similarly, the request and response types of methods are automatically tracked as part of the method definition.
 
 ### Handling intentional breaking changes
 
