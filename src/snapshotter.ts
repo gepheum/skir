@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { checkBackwardCompatibility } from "./compatibility_checker.js";
+import { checkCompatibility } from "./compatibility_checker.js";
 import {
   formatError,
   makeGreen,
@@ -37,7 +37,7 @@ export async function takeSnapshot(args: {
     );
     return false;
   }
-  const breakingChanges = checkBackwardCompatibility({
+  const breakingChanges = checkCompatibility({
     before: oldModuleSet,
     after: newModuleSet,
   });

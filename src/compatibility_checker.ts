@@ -96,13 +96,13 @@ export type Expression =
       variantName: Token;
     };
 
-export function checkBackwardCompatibility(
+export function checkCompatibility(
   moduleSet: BeforeAfter<ModuleSet>,
 ): readonly BreakingChange[] {
-  return new BackwardCompatibilityChecker(moduleSet).check();
+  return new CompatibilityChecker(moduleSet).check();
 }
 
-class BackwardCompatibilityChecker {
+class CompatibilityChecker {
   constructor(private readonly moduleSet: BeforeAfter<ModuleSet>) {}
 
   check(): readonly BreakingChange[] {

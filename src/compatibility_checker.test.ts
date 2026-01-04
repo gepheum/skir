@@ -3,7 +3,7 @@ import { describe, it } from "mocha";
 import {
   BeforeAfter,
   BreakingChange,
-  checkBackwardCompatibility,
+  checkCompatibility,
 } from "./compatibility_checker.js";
 import { ModuleSet } from "./module_set.js";
 
@@ -663,7 +663,7 @@ function doCheckBackwardCompatibility(
     before: parseModuleSet(sourceCode.before),
     after: parseModuleSet(sourceCode.after),
   };
-  return checkBackwardCompatibility(moduleSet);
+  return checkCompatibility(moduleSet);
 }
 
 function parseModuleSet(sourceCode: string): ModuleSet {
