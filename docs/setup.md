@@ -115,4 +115,4 @@ The first step ensures `.skir` files are properly formatted. The second step ver
 
 ## IDE support
 
-The official VS Code [extension](https://marketplace.visualstudio.com/items?itemName=TylerFibonacci.skir-language) for Skir provides syntax highlighting, validation, jump-to-definition, and other language features.
+The official VS Code [extension](https://marketplace.visualstudio.com/items?itemName=TylerFibonacci.skir-language) for Skir provides syntax highlighting, auto-formatting, validation, jump-to-definition, and other language features.

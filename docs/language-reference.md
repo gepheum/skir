@@ -214,6 +214,9 @@ This identifier is used by the `npx skir snapshot` command to track record ident
 
 No two types in your Skir project can have the same stable identifier.
 
+> [!TIP]
+> You can use `?` as a placeholder for the identifier and run `npx skir format`. It will replace the question mark with a generated random number. This replacement happens automatically on save if you are using the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=TylerFibonacci.skir-language).
+
 ## Data types
 
 ### Primitive types
@@ -354,6 +357,9 @@ The request and response can have any type.
 Every method must have a unique integer identifier (e.g. `= 12345`) used for RPC routing. This identifier decouples the method's identity from its name, allowing safe renaming and refactoring without breaking compatibility with older clients.
 
 No two methods in your Skir project can have the same stable identifier.
+
+> [!TIP]
+> You can use `?` as a placeholder for the identifier and run `npx skir format`. It will replace the question mark with a generated random number. This replacement happens automatically on save if you are using the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=TylerFibonacci.skir-language).
 
 ### Inline request/response records
 
