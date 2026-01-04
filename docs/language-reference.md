@@ -179,9 +179,9 @@ struct Notification {
 
 These two methods of definition are strictly equivalent. The generated code will be identical regardless of whether the record was defined explicitly or inline.
 
-### Removed fields
+### Removed numbers
 
-When removing a field from a struct or an enum, you must mark the removed number in the record definition using the `removed` keyword. The syntax is different whether you're using explicit or implicit numbering:
+When removing a field from a struct or a variant from an enum, you must mark the removed number in the record definition using the `removed` keyword. The syntax is different whether you're using explicit or implicit numbering:
 
 ```d
 struct ExplicitNumbering {
@@ -201,6 +201,18 @@ struct ImplicitNumbering {
   removed;
 }
 ```
+
+### Stable identifiers
+
+You can assign a numeric stable identifier to a struct or an enum by specifying it in parentheses after the record name:
+
+```d
+struct Point(23456) { ... }
+```
+
+This identifier is used by the `npx skir snapshot` command to track record identity across renames and detect breaking changes. For more information, see the [compatibility guide](compatibility.md).
+
+No two types in your Skir project can have the same stable identifier.
 
 ## Data types
 
@@ -319,7 +331,7 @@ const NOT_IMPLEMENTED_ERROR: OperationStatus = {
 };
 ```
 
-## RPC methods
+## Methods (RPCs)
 
 The `method` keyword allows you to define the signature of a remote method.
 
@@ -332,10 +344,16 @@ struct GetUserProfileResponse {
   profile: UserProfile?;
 }
 
-method GetUserProfile(GetUserProfileRequest): GetUserProfileResponse;
+method GetUserProfile(GetUserProfileRequest): GetUserProfileResponse = 12345;
 ```
 
 The request and response can have any type.
+
+### Stable identifiers
+
+Every method must have a unique integer identifier (e.g. `= 12345`) used for RPC routing. This identifier decouples the method's identity from its name, allowing safe renaming and refactoring without breaking compatibility with older clients.
+
+No two methods in your Skir project can have the same stable identifier.
 
 ### Inline request/response records
 
@@ -352,27 +370,8 @@ method GetUserProfile(struct {
   user_id: int32;
 }): struct {
   profile: UserProfile?;
-};
+} = 12345;
 ````
-
-#### Stable identifiers
-
-Every method in a Skir service is uniquely identified by an integer used during RPC communication to ensure that the client and server correctly execute the intended procedure.
-
-You can set this identifier explicitly using the following syntax:
-
-```d
-// Method identified by the stable identifier 878787
-method MyMethod(Request): Response = 878787;
-```
-
-If you don't explicitly set it, the Skir compiler uses a hash of the method name and module location.
-
-By explicitly setting a stable identifier, you decouple the method's network identity from its name and location. This is critical for maintaining long-term backward and forward compatibility in distributed systems where clients and servers are updated on different schedules.
-
-Without an explicit identifier, renaming a method or moving it to a different module would change its computed hash, breaking the interface for any client still using the old name. Fixing the identifier allows you to safely refactor, rename, or move methods across modules while ensuring that desynchronized services can still communicate perfectly.
-
-You can start development using automatic hashing and only *freeze* the method identity when a change is required. To do this, locate the previously hashed identifier in your generated source code and manually assign that value to the method in your `.skir` file.
 
 ## Imports
 

@@ -29,7 +29,7 @@ const TOP_RIGHT_CORNER: Point = {
 };
 
 /// Returns true if no part of the shape's boundary curves inward.
-method IsConvex(Shape): bool;
+method IsConvex(Shape): bool = 12345;
 ```
 
 The Skir compiler translates definitions from `.skir` files into idiomatic source code in supported languages such as TypeScript, Python, Java, Kotlin, C++, Dart. This generated code provides typesafe definitions and built-in logic for serializing and deserializing data into either JSON or a more compact binary format.

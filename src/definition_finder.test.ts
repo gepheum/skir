@@ -35,7 +35,7 @@ describe("definition finder", () => {
           zoo: other_module.Outer.Zoo;
         }
 
-        method GetBar(Outer.Foo): Bar;
+        method GetBar(Outer.Foo): Bar = 101;
         method GetBar2(Outer.Foo): Bar = 100;
 
         const FOO: Outer.Foo = {};
@@ -93,14 +93,14 @@ describe("definition finder", () => {
   it("works with response type", () => {
     expect(findDefinition(module, 367)).toMatch({
       modulePath: "path/to/module",
-      position: 131,
+      position: 98,
     });
   });
 
   it("works with constant type", () => {
     expect(findDefinition(module, 404)).toMatch({
       modulePath: "path/to/module",
-      position: 98,
+      position: 73,
     });
   });
 
@@ -159,23 +159,23 @@ describe("definition finder", () => {
       },
       {
         text: "Outer",
-        position: 354,
-      },
-      {
-        text: "Foo",
         position: 360,
       },
       {
-        text: "Bar",
+        text: "Foo",
         position: 366,
       },
       {
+        text: "Bar",
+        position: 372,
+      },
+      {
         text: "Outer",
-        position: 397,
+        position: 403,
       },
       {
         text: "Foo",
-        position: 403,
+        position: 409,
       },
     ]);
   });

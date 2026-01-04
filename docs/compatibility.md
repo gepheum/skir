@@ -48,7 +48,7 @@ The following changes will break compatibility:
 
 *   Changing a field/variant number, or reordering fields/variants if using implicit numbering.
 *   Changing the type of a field, wrapper variant, method request or method response to an incompatible type.
-*   Changing a method's stable identifier (or renaming/moving a method without an explicit ID).
+*   Changing a method's stable identifier.
 *   Reusing a `removed` field or variant number.
 *   Deleting a field or variant without marking it as `removed`.
 *   Changing a constant variant to a wrapper variant or vice-versa.
@@ -76,7 +76,7 @@ struct User(500996846) {
 
 If you rename `User` to `Account` but keep the ID `500996846`, Skir knows it's the same type and will validate the change safely.
 
-**Best Practice**: Assign stable identifiers to all root types used for storage or RPC. Nested types are implicitly tracked through their parents.
+**Best Practice**: Assign stable identifiers to all root types used for storage or RPC. Nested types are implicitly tracked through their parents. Similarly, the request and response types of methods are automatically tracked as part of the method definition.
 
 ### Handling intentional breaking changes
 

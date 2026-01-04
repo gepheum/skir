@@ -177,7 +177,7 @@ describe("compatibility checker", () => {
           method Capitalize(string): string = 101;
         `,
         after: `
-          method Capitalize(string): string;
+          method Capitalize(string): string = 102;
         `,
       }),
     ).toMatch([

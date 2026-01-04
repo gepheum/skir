@@ -34,9 +34,9 @@ describe("module set", () => {
           loo_loo: struct {};
         }
 
-        method GetBar(Outer.Foo): Bar;
+        method GetBar(Outer.Foo): Bar = 123;
         method GetBar2(Outer.Foo): Bar = 100;
-        method Search(enum {}): struct {};
+        method Search(enum {}): struct {} = 456;
       `,
     );
     fakeFileReader.pathToCode.set(
@@ -139,8 +139,7 @@ describe("module set", () => {
                 text: "Bar",
               },
             },
-            number: 2103196129,
-            hasExplicitNumber: false,
+            number: 123,
           },
           GetBar2: {
             number: 100,
@@ -738,8 +737,8 @@ describe("module set", () => {
           struct Foo {
           }
 
-          method Pa([Foo|a]): string;
-          method Pb(string): [Foo|b];
+          method Pa([Foo|a]): string = 1;
+          method Pb(string): [Foo|b] = 2;
           const FOO: [Foo|c] = [];
           const PI: float32 = -3.14;
         `,
@@ -1129,7 +1128,7 @@ describe("module set", () => {
       "path/to/root/path/to/module",
       `
         method GetFoo(string): string = 2103196129;
-        method GetBar(string): string;
+        method GetBar(string): string = 2103196129;
       `,
     );
 
@@ -1873,7 +1872,7 @@ describe("module set", () => {
           /// Calls [GetData]
           struct Foo {}
 
-          method GetData(Foo): Foo;
+          method GetData(Foo): Foo = 123;
         `,
       );
       const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
@@ -2030,7 +2029,7 @@ describe("module set", () => {
           struct Response {}
 
           /// Input [x] must be positive
-          method DoWork(Request): Response;
+          method DoWork(Request): Response = 123;
         `,
       );
       const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");

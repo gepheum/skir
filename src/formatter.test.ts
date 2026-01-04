@@ -56,7 +56,7 @@ enum E2 {
   B=2;
 }
 
-method M(Request):Response;
+method M(Request):Response = 123;
 
 const CONST: [Type] = [
   1, [], {}, {
@@ -108,7 +108,7 @@ h: //
 [
 int32 //
 ?];}; b: bool; }): struct {
-  x: int32; y: int32;};
+  x: int32; y: int32;} = 123;
 
   struct G {
   // a
@@ -172,7 +172,7 @@ const EXPECTED_FORMATTED_MODULE = [
   "  B = 2;",
   "}",
   "",
-  "method M(Request): Response;",
+  "method M(Request): Response = 123;",
   "",
   "const CONST: [Type] = [",
   "  1,",
@@ -235,7 +235,7 @@ const EXPECTED_FORMATTED_MODULE = [
   "): struct {",
   "  x: int32;",
   "  y: int32;",
-  "};",
+  "} = 123;",
   "",
   "struct G {",
   "  // a",

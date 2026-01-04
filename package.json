@@ -1,6 +1,6 @@
 {
   "name": "skir",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "",
   "homepage": "https://github.com/gepheum/skir#readme",
   "bugs": {
@@ -44,7 +44,7 @@
     "glob": "^11.0.1",
     "skir-cc-gen": "^1.0.0",
     "skir-dart-gen": "^1.0.0",
-    "skir-internal": "^0.0.9",
+    "skir-internal": "^0.1.0",
     "skir-java-gen": "^1.0.0",
     "skir-kotlin-gen": "^1.0.0",
     "skir-python-gen": "^1.0.0",

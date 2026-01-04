@@ -1003,7 +1003,7 @@ describe("module parser", () => {
   it("method", () => {
     const actualModule = parse(`
       /// Doc comment for Search
-      method Search(req):resp;`);
+      method Search(req):resp = 12345;`);
 
     expect(actualModule).toMatch({
       result: {
@@ -1032,8 +1032,7 @@ describe("module parser", () => {
                 },
               ],
             },
-            number: 2446226092,
-            hasExplicitNumber: false,
+            number: 12345,
           },
         },
         methods: [
@@ -1042,8 +1041,7 @@ describe("module parser", () => {
             name: {
               text: "Search",
             },
-            number: 2446226092,
-            hasExplicitNumber: false,
+            number: 12345,
           },
         ],
       },
@@ -1059,7 +1057,7 @@ describe("module parser", () => {
         }
       ): struct {
         y: int32;
-      };`);
+      } = 12345;`);
 
     expect(actualModule).toMatch({
       result: {
@@ -1087,8 +1085,7 @@ describe("module parser", () => {
                 },
               ],
             },
-            number: 2446226092,
-            hasExplicitNumber: false,
+            number: 12345,
           },
           SearchRequest: {
             name: {
@@ -1127,7 +1124,7 @@ describe("module parser", () => {
         struct {
           x: int32;
         }
-      ): string;
+      ): string = 12345;
 
       struct SearchRequest {}`);
 
@@ -1190,7 +1187,6 @@ describe("module parser", () => {
               text: "Search",
             },
             number: 200,
-            hasExplicitNumber: true,
           },
         ],
       },

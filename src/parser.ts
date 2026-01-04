@@ -27,7 +27,7 @@ import type {
   UnresolvedRecordRef,
   UnresolvedType,
 } from "skir-internal";
-import { convertCase, simpleHash } from "skir-internal";
+import { convertCase } from "skir-internal";
 import * as Casing from "./casing.js";
 import { mergeDocs } from "./doc_comment_parser.js";
 import { ModuleTokens } from "./tokenizer.js";
@@ -862,19 +862,14 @@ function parseMethod(it: TokenIterator, doc: Doc): MutableMethod | null {
     return null;
   }
 
-  const explicitNumber = it.expectThenNext(["=", ";"]).case === 0;
-  let number: number;
-  if (explicitNumber) {
-    number = parseUint32(it);
-    if (number < 0) {
-      return null;
-    }
-    it.expectThenNext([";"]);
-  } else {
-    const methodName = nameMatch.token.text;
-    const { modulePath } = nameMatch.token.line;
-    number = simpleHash(`${modulePath}:${methodName}`);
+  if (it.expectThenNext(["="]).case < 0) {
+    return null;
   }
+  const number = parseUint32(it);
+  if (number < 0) {
+    return null;
+  }
+  it.expectThenNext([";"]);
 
   return {
     kind: "method",
@@ -887,7 +882,6 @@ function parseMethod(it: TokenIterator, doc: Doc): MutableMethod | null {
     // Will be populated at a later stage.
     responseType: undefined,
     number: number,
-    hasExplicitNumber: explicitNumber,
     inlineRequestRecord: requestTypeOrInlineRecord.inlineRecord,
     inlineResponseRecord: responseTypeOrInlineRecord.inlineRecord,
   };

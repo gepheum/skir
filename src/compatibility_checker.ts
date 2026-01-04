@@ -108,20 +108,18 @@ class BackwardCompatibilityChecker {
   check(): readonly BreakingChange[] {
     for (const moduleBefore of this.moduleSet.before.resolvedModules) {
       for (const methodBefore of moduleBefore.methods) {
-        if (methodBefore.hasExplicitNumber) {
-          const { number } = methodBefore;
-          const methodAfter = this.moduleSet.after.findMethodByNumber(number);
-          if (methodAfter === undefined) {
-            this.breakingChanges.push({
-              kind: "missing-method",
-              method: methodBefore,
-            });
-          } else {
-            this.checkMethod({
-              before: methodBefore,
-              after: methodAfter,
-            });
-          }
+        const { number } = methodBefore;
+        const methodAfter = this.moduleSet.after.findMethodByNumber(number);
+        if (methodAfter === undefined) {
+          this.breakingChanges.push({
+            kind: "missing-method",
+            method: methodBefore,
+          });
+        } else {
+          this.checkMethod({
+            before: methodBefore,
+            after: methodAfter,
+          });
         }
       }
       for (const recordBefore of moduleBefore.records) {
