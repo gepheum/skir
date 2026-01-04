@@ -1,5 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { RecordLocation, ResolvedType } from "skir-internal";
 import { checkCompatibility } from "./compatibility_checker.js";
 import {
   formatError,
@@ -65,6 +66,33 @@ export async function takeSnapshot(args: {
   }
   await writeFile(snapshotPath, JSON.stringify(newSnapshot, null, 2), "utf-8");
   console.log("Snapshot taken. No breaking changes detected.");
+
+  const trackedRecordCount = newSnapshot.trackedRecordIds.length;
+  const untrackedRecordCount = newSnapshot.untrackedRecordIds.length;
+  const formatCount = (n: number, what: string): string => {
+    return `${n} ${what}${n === 1 ? "" : "s"}`;
+  };
+  console.log(
+    [
+      formatCount(trackedRecordCount, "tracked record"),
+      ", ",
+      formatCount(untrackedRecordCount, "untracked record"),
+      " found in new snapshot.",
+    ].join(""),
+  );
+  console.log("See them in " + rewritePathForRendering(snapshotPath));
+
+  if (trackedRecordCount === 0) {
+    console.log(makeRed("Warning: no tracked records found."));
+    console.log(
+      "Breaking changes cannot be detected without tracking records.",
+    );
+    console.log(
+      "To track a record and its dependencies, give it a stable identifier, e.g.:",
+    );
+    console.log("  struct MyStruct(56789) { ... }");
+  }
+
   return true;
 }
 
@@ -173,9 +201,12 @@ function makeSnapshot(moduleSet: ModuleSet, now: Date): Snapshot {
   for (const module of moduleSet.resolvedModules) {
     modules[module.path] = module.sourceCode;
   }
+  const trackedRecordIds = collectTrackedRecords(moduleSet);
   return {
     readMe: "DO NOT EDIT. To update, run: npx skir snapshot",
     lastChange: now.toISOString(),
+    trackedRecordIds: Array.from(trackedRecordIds.trackedRecordIds).sort(),
+    untrackedRecordIds: Array.from(trackedRecordIds.untrackedRecordIds).sort(),
     modules,
   };
 }
@@ -192,5 +223,70 @@ function sameModules(a: Snapshot, b: Snapshot): boolean {
 interface Snapshot {
   readMe: string;
   lastChange: string;
-  modules: { [path: string]: string };
+  trackedRecordIds: readonly string[];
+  untrackedRecordIds: readonly string[];
+  modules: Readonly<{ [path: string]: string }>;
+}
+
+interface TrackedRecords {
+  trackedRecordIds: ReadonlySet<string>;
+  untrackedRecordIds: ReadonlySet<string>;
+}
+
+function collectTrackedRecords(moduleSet: ModuleSet): TrackedRecords {
+  const seenRecordIds = new Set<string>();
+  const trackedRecordIds = new Set<string>();
+
+  const getRecordId = (record: RecordLocation): string => {
+    const qualifiedName = record.recordAncestors
+      .map((token) => token.name.text)
+      .join(".");
+    return `${record.modulePath}:${qualifiedName}`;
+  };
+
+  const getRecordForType = (type: ResolvedType): RecordLocation | null => {
+    switch (type.kind) {
+      case "array":
+        return getRecordForType(type.item);
+      case "optional":
+        return getRecordForType(type.other);
+      case "primitive":
+        return null;
+      case "record":
+        return moduleSet.recordMap.get(type.key) ?? null;
+    }
+  };
+
+  const processRecord = (record: RecordLocation): void => {
+    const recordId = getRecordId(record);
+    if (seenRecordIds.has(recordId)) {
+      return;
+    }
+    seenRecordIds.add(recordId);
+    if (record.record.recordNumber === null) {
+      return;
+    }
+    trackedRecordIds.add(recordId);
+    // Recursively process the field/variant types
+    for (const field of record.record.fields) {
+      const fieldType = field.type;
+      if (fieldType) {
+        const fieldRecord = getRecordForType(fieldType);
+        if (fieldRecord) {
+          processRecord(fieldRecord);
+        }
+      }
+    }
+  };
+
+  for (const record of moduleSet.recordMap.values()) {
+    processRecord(record);
+  }
+  const untrackedRecordIds = new Set(
+    [...seenRecordIds].filter((id) => !trackedRecordIds.has(id)),
+  );
+  return {
+    trackedRecordIds: trackedRecordIds,
+    untrackedRecordIds: untrackedRecordIds,
+  };
 }
