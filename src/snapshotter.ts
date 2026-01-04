@@ -96,7 +96,7 @@ export async function takeSnapshot(args: {
   return true;
 }
 
-interface CorruptedError {
+export interface CorruptedError {
   kind: "corrupted";
   error: any;
 }

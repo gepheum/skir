@@ -138,7 +138,7 @@ function formatBreakingChange(
     case "missing-slots": {
       const { missingRangeEnd, missingRangeStart, recordExpression, record } =
         breakingChange;
-      const errorHeader = makeRed("Missing slots in record");
+      const errorHeader = makeRed("Missing slots in struct");
       return [
         `${locationPrefix}${errorHeader}\n`,
         "  [Last snapshot]\n",
@@ -254,6 +254,53 @@ function formatBreakingChange(
           ? `         ${makeGray("Field:")} ${reintroducedAs.text}`
           : `       ${makeGray("Variant:")} ${reintroducedAs.text}`,
       ].join("\n");
+    }
+  }
+}
+
+/**
+ * Returns a short error message for a breaking change, meant to be rendered
+ * directly in the IDE.
+ */
+export function getShortMessageForBreakingChange(
+  breakingChange: BreakingChange,
+  before: ModuleSet,
+): string {
+  switch (breakingChange.kind) {
+    case "illegal-type-change": {
+      const { type } = breakingChange;
+      return "Illegal type change; was: " + formatType(type.before, before);
+    }
+    case "missing-slots": {
+      const { missingRangeEnd } = breakingChange;
+      return `Missing slots; had ${missingRangeEnd}`;
+    }
+    case "variant-kind-change": {
+      const { record, variantName } = breakingChange;
+      const enumName = map(record, getQualifiedName);
+      const variantKind = caseMatches(
+        variantName.before.text,
+        "lower_underscore",
+      )
+        ? "wrapper"
+        : "constant";
+      return `Was a ${variantKind} variant`;
+    }
+    case "missing-variant": {
+      const { number } = breakingChange;
+      return `Missing variant: ${number}`;
+    }
+    case "record-kind-change": {
+      const { recordType } = breakingChange;
+      return recordType.before === "struct" ? "Was a struct" : "Was an enum";
+    }
+    case "removed-number-reintroduced": {
+      return "Number was marked as removed";
+    }
+    case "missing-record":
+    case "missing-method": {
+      // No token in the new module set, so we cannot render these errors in the IDE.
+      return "";
     }
   }
 }
