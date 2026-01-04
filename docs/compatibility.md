@@ -63,8 +63,8 @@ The `npx skir snapshot` command helps you manage schema evolution by maintaining
 
 When you run this command, two things happen:
 
-1.  **Verification**: Skir checks for a `skir_snapshot.json` file. If it exists, it compares your current `.skir` files against it. If breaking changes are detected, the command reports them and exits.
-2.  **Update**: If no breaking changes are found (or if no snapshot exists), Skir creates or updates the `skir_snapshot.json` file to reflect the current schema.
+1.  **Verification**: Skir checks for a `skir-snapshot.json` file. If it exists, it compares your current `.skir` files against it. If breaking changes are detected, the command reports them and exits.
+2.  **Update**: If no breaking changes are found (or if no snapshot exists), Skir creates or updates the `skir-snapshot.json` file to reflect the current schema.
 
 #### Recommended workflow
 
@@ -108,7 +108,7 @@ If you rename `User` to `Account` but keep the ID `500996846`, Skir knows it's t
 
 ### Handling intentional breaking changes
 
-If you must make a breaking change (e.g., during early development), simply delete the `skir_snapshot.json` file and run `npx skir snapshot` again to establish a new baseline.
+If you must make a breaking change (e.g., during early development), simply delete the `skir-snapshot.json` file and run `npx skir snapshot` again to establish a new baseline.
 
 ## Round-tripping unrecognized data
 
