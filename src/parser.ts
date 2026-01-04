@@ -33,10 +33,13 @@ import { mergeDocs } from "./doc_comment_parser.js";
 import { ModuleTokens } from "./tokenizer.js";
 
 /** Runs syntactic analysis on a module. */
-export function parseModule(moduleTokens: ModuleTokens): Result<MutableModule> {
+export function parseModule(
+  moduleTokens: ModuleTokens,
+  mode: "strict" | "lenient",
+): Result<MutableModule> {
   const { modulePath, sourceCode } = moduleTokens;
   const errors: SkirError[] = [];
-  const it = new TokenIterator(moduleTokens, errors);
+  const it = new TokenIterator(moduleTokens, mode, errors);
   const declarations = parseDeclarations(it, "module");
   it.expectThenNext([""]);
   // Create a mappinng from names to declarations, and check for duplicates.
@@ -404,8 +407,8 @@ function parseRecord(
   let stableId: number | null = null;
   if (it.current === "(") {
     it.next();
-    stableId = parseUint32(it);
-    if (stableId < 0) {
+    stableId = parseUint32(it, "?");
+    if (stableId === -2) {
       return null;
     }
     if (it.expectThenNext([")"]).case < 0) {
@@ -671,10 +674,14 @@ function parseRecordRef(
   return { kind: "record", nameParts: nameParts, absolute: absolute };
 }
 
-function parseUint32(it: TokenIterator): number {
+function parseUint32(it: TokenIterator, maybeQuestionMark?: "?"): number {
+  if (maybeQuestionMark && it.mode === "lenient" && it.current === "?") {
+    it.next();
+    return -1;
+  }
   const match = it.expectThenNext([TOKEN_IS_POSITIVE_INT]);
   if (match.case < 0) {
-    return -1;
+    return -2;
   }
   const { text } = match.token;
   const valueAsBigInt = BigInt(text);
@@ -685,7 +692,7 @@ function parseUint32(it: TokenIterator): number {
       token: match.token,
       message: "Value out of uint32 range",
     });
-    return -1;
+    return -2;
   }
 }
 
@@ -865,8 +872,8 @@ function parseMethod(it: TokenIterator, doc: Doc): MutableMethod | null {
   if (it.expectThenNext(["="]).case < 0) {
     return null;
   }
-  const number = parseUint32(it);
-  if (number < 0) {
+  const number = parseUint32(it, "?");
+  if (number === -2) {
     return null;
   }
   it.expectThenNext([";"]);
@@ -1121,6 +1128,7 @@ class TokenIterator {
 
   constructor(
     readonly moduleTokens: ModuleTokens,
+    readonly mode: "strict" | "lenient",
     readonly errors: ErrorSink,
   ) {
     this.tokens = moduleTokens.tokens;

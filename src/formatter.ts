@@ -14,11 +14,17 @@ export interface TextEdit {
   readonly newText: string;
 }
 
+/** A function which returns a random number between 0 and 1. */
+export type RandomGenerator = () => number;
+
 /**
  * Formats the given module and returns the new source code.
  * Preserves token ordering.
  */
-export function formatModule(moduleTokens: ModuleTokens): FormattedModule {
+export function formatModule(
+  moduleTokens: ModuleTokens,
+  randomGenerator: RandomGenerator = Math.random,
+): FormattedModule {
   const tokens = moduleTokens.tokensWithComments;
 
   const context: Context = {
@@ -28,15 +34,23 @@ export function formatModule(moduleTokens: ModuleTokens): FormattedModule {
 
   let newSourceCode = "";
   const textEdits: TextEdit[] = [];
+  let lastNonCommentToken = "";
 
   const appendToken: (t: Token) => void = (t: Token) => {
-    const newToken = normalizeToken(t.text);
+    const newToken = normalizeToken(
+      t.text,
+      lastNonCommentToken,
+      randomGenerator,
+    );
     if (newToken !== t.text) {
       textEdits.push({
         oldStart: t.position,
         oldEnd: t.position + t.text.length,
         newText: newToken,
       });
+    }
+    if (!isComment(t)) {
+      lastNonCommentToken = t.text;
     }
     newSourceCode += newToken;
   };
@@ -248,7 +262,11 @@ function isComment(token: Token): boolean {
   return token.text.startsWith("//") || token.text.startsWith("/*");
 }
 
-function normalizeToken(token: string): string {
+function normalizeToken(
+  token: string,
+  lastNonCommentToken: string,
+  randomGenerator: RandomGenerator,
+): string {
   if (token.startsWith("//")) {
     // Make sure there is a space between the double slash and the comment text.
     if (
@@ -279,6 +297,9 @@ function normalizeToken(token: string): string {
     // A double-quoted string
     // Remove escape characters before double quotes.
     return token.replace(/\\(?=(?:\\\\)*')/g, "");
+  } else if (token === "?" && ["=", "("].includes(lastNonCommentToken)) {
+    const randomNumber = Math.floor(randomGenerator() * 1_000_000);
+    return String(randomNumber);
   } else {
     return token;
   }

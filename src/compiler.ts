@@ -26,6 +26,7 @@ import {
 } from "./io.js";
 import { collectModules } from "./module_collector.js";
 import { ModuleSet } from "./module_set.js";
+import { parseModule } from "./parser.js";
 import { initializeProject } from "./project_initializer.js";
 import { takeSnapshot, viewSnapshot } from "./snapshotter.js";
 import { tokenizeModule } from "./tokenizer.js";
@@ -290,6 +291,14 @@ async function format(root: string, mode: "fix" | "check"): Promise<void> {
     if (tokens.errors.length) {
       renderErrors(tokens.errors);
       process.exit(1);
+    }
+    // Make sure there are no parsing errors.
+    {
+      const { errors } = parseModule(tokens.result, "lenient");
+      if (errors.length) {
+        renderErrors(errors);
+        process.exit(1);
+      }
     }
     const formattedCode = formatModule(tokens.result).newSourceCode;
     pathToFormatResult.set(skirFile.fullpath(), {

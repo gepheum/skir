@@ -120,7 +120,10 @@ int32 //
   // c
 
 
-  }`;
+  struct WithQuestionMarkStableIdentifier( ? ) {}
+}
+
+  method WithQuestionMarkStableIdentifier(bool):bool = /**/ ?;`;
 
 const EXPECTED_FORMATTED_MODULE = [
   "// module",
@@ -244,7 +247,12 @@ const EXPECTED_FORMATTED_MODULE = [
   "  // b2",
   "",
   "  // c",
+  "",
+  "  struct WithQuestionMarkStableIdentifier(500000) {}",
   "}",
+  "",
+  "method WithQuestionMarkStableIdentifier(bool): bool =  /**/",
+  "500000;",
   "",
 ].join("\n");
 
@@ -252,9 +260,9 @@ describe("formatModule", () => {
   it("works", () => {
     const tokens = tokenizeModule(UNFORMATTED_MODULE, "path/to/module");
     expect(tokens.errors).toMatch([]);
-    const parsedModule = parseModule(tokens.result);
+    const parsedModule = parseModule(tokens.result, "lenient");
     expect(parsedModule.errors).toMatch([]);
-    const formatted = formatModule(tokens.result);
+    const formatted = formatModule(tokens.result, () => 0.5);
     expect(formatted).toMatch({
       newSourceCode: EXPECTED_FORMATTED_MODULE,
       textEdits: [
@@ -385,6 +393,18 @@ describe("formatModule", () => {
         {},
         {},
         {},
+        {},
+        {
+          newText: "500000",
+        },
+        {},
+        {},
+        {},
+        {},
+        {},
+        {
+          newText: "500000",
+        },
         {},
       ],
     });

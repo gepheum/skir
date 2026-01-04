@@ -1298,7 +1298,7 @@ abstract class ModuleParserBase implements ModuleParser {
       };
     }
 
-    return parseModule(tokens.result);
+    return parseModule(tokens.result, "strict");
   }
 }
 

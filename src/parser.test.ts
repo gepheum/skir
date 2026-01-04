@@ -4,10 +4,13 @@ import { Module, Result } from "skir-internal";
 import { parseModule } from "./parser.js";
 import { tokenizeModule } from "./tokenizer.js";
 
-function parse(content: string): Result<Module> {
+function parse(
+  content: string,
+  mode: "strict" | "lenient" = "strict",
+): Result<Module> {
   const pathToModule = "path/to/module";
   const tokenizerResult = tokenizeModule(content, pathToModule);
-  return parseModule(tokenizerResult.result);
+  return parseModule(tokenizerResult.result, mode);
 }
 
 describe("module parser", () => {
@@ -1644,6 +1647,88 @@ describe("module parser", () => {
         errors: [
           {
             expected: "one of: 'struct', 'enum', 'import', 'method', 'const'",
+          },
+        ],
+      });
+    });
+  });
+
+  describe("lenient mode", () => {
+    it("method with ? as stable id in lenient mode", () => {
+      const actualModule = parse(
+        `
+        method Foo(Request): Response = ?;
+        `,
+        "lenient",
+      );
+      expect(actualModule).toMatch({
+        result: {
+          methods: [
+            {
+              name: { text: "Foo" },
+              number: -1,
+            },
+          ],
+        },
+        errors: [],
+      });
+    });
+
+    it("record with ? as stable id in lenient mode", () => {
+      const actualModule = parse(
+        `
+        struct Point(?) {
+          x: float32;
+          y: float32;
+        }
+        `,
+        "lenient",
+      );
+      expect(actualModule).toMatch({
+        result: {
+          records: [
+            {
+              record: {
+                name: { text: "Point" },
+                recordNumber: -1,
+              },
+            },
+          ],
+        },
+        errors: [],
+      });
+    });
+
+    it("method with ? as stable id in strict mode", () => {
+      const actualModule = parse(
+        `
+        method Foo(Request): Response = ?;
+        `,
+        "strict",
+      );
+      expect(actualModule).toMatch({
+        errors: [
+          {
+            expected: "positive integer",
+          },
+        ],
+      });
+    });
+
+    it("record with ? as stable id in strict mode", () => {
+      const actualModule = parse(
+        `
+        struct Point(?) {
+          x: float32;
+          y: float32;
+        }
+        `,
+        "strict",
+      );
+      expect(actualModule).toMatch({
+        errors: [
+          {
+            expected: "positive integer",
           },
         ],
       });
