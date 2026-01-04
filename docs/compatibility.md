@@ -123,20 +123,27 @@ When deserializing, you can choose to either **drop** or **preserve** this unrec
 
 Consider a schema evolution where a field and an enum variant are added:
 
-**Version 1 (`UserBefore`)**:
+**Version 1**:
 ```d
-struct User {
+struct UserBefore(999) {
   id: int64;
-  subscription_status: enum { FREE; PREMIUM; };
+  subscription_status: enum {
+    FREE;
+    PREMIUM;
+  };
 }
 ```
 
-**Version 2 (`UserAfter`)**:
+**Version 2**:
 ```d
-struct User {
+struct UserAfter(999) {
   id: int64;
-  subscription_status: enum { FREE; PREMIUM; TRIAL; }; // Added TRIAL
-  name: string;                                        // Added name
+  subscription_status: enum {
+    FREE;
+    PREMIUM;
+    TRIAL;  // Added
+  };
+  name: string;  // Added
 }
 ```
 
