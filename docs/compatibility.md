@@ -110,37 +110,90 @@ If you rename `User` to `Account` but keep the ID `500996846`, Skir knows it's t
 
 If you must make a breaking change (e.g., during early development), simply delete the `skir.snapshot.json` file and run `npx skir snapshot` again to establish a new baseline.
 
-## Round-tripping unknown data
+## Round-tripping unrecognized data
 
-When an older client reads data with new fields, it can either **drop** or **preserve** the unknown data when re-serializing.
+Consider a service in a distributed system that reads a Skir value, modifies it, and writes it back. If the schema has evolved (e.g., new fields were added) but the service is running older code, it may encounter data it doesn't recognize.
 
-*   **Drop (Default)**: Unknown fields are discarded. This is safer but may result in data loss if the object is saved back to storage.
-*   **Preserve**: Unknown fields are kept and written back. This enables "round-tripping" but carries security risks.
+When deserializing, you can choose to either **drop** or **preserve** this unrecognized data.
 
-> [!NOTE]
-> Unrecognized data can only be preserved during round-trip conversion if the serialization format (dense JSON or binary) is the same as the deserialization format.
+*   **Drop (Default)**: Unrecognized fields and variants are discarded. This is safer but results in data loss if the object is saved back to storage.
+*   **Preserve**: Unrecognized data is kept internally and written back during serialization. This enables "round-tripping".
 
 ### Example
 
-**Schema Evolution**:
-*   v1: `struct User { id: int64; }`
-*   v2: `struct User { id: int64; name: string; }`
+Consider a schema evolution where a field and an enum variant are added:
 
-**Scenario**: A v1 service receives a v2 object (`{id: 1, name: "Alice"}`).
-
-**Default Behavior (Drop)**:
-The v1 service deserializes it to `{id: 1}`. If it saves the object, `name` is lost.
-
-**Preserve Behavior**:
-You can configure the deserializer to keep unknown fields.
-
-```typescript
-// TypeScript example
-const user = User.serializer.fromJson(json, "keep-unrecognized-values");
-// user.name is not accessible in code, but is stored internally.
-const newJson = User.serializer.toJson(user);
-// newJson contains "name": "Alice"
+**Version 1 (`UserBefore`)**:
+```d
+struct User {
+  id: int64;
+  subscription_status: enum { FREE; PREMIUM; };
+}
 ```
 
+**Version 2 (`UserAfter`)**:
+```d
+struct User {
+  id: int64;
+  subscription_status: enum { FREE; PREMIUM; TRIAL; }; // Added TRIAL
+  name: string;                                        // Added name
+}
+```
+
+The following TypeScript example illustrates what happens when `UserBefore` (old code) processes data created by `UserAfter` (new code):
+
+```typescript
+// Data created by new code
+const originalJson = UserAfter.serializer.toJson(UserAfter.create({
+  id: 123,
+  subscription_status: "TRIAL",
+  name: "Jane",
+}));
+```
+
+#### Default Behavior: Drop
+
+By default, unrecognized data is lost during the round-trip.
+
+```typescript
+// Old code reads and writes the data
+const oldUser = UserBefore.serializer.fromJson(originalJson);
+const roundTrippedJson = UserBefore.serializer.toJson(oldUser);
+
+// New code reads the result
+const result = UserAfter.serializer.fromJson(roundTrippedJson);
+
+assert(result.id === 123);
+assert(result.name === ""); // Lost: reset to default
+assert(result.subscriptionStatus.union.kind === "?"); // Lost: became UNKNOWN
+```
+
+#### Preserve Behavior
+
+You can configure the deserializer to keep unrecognized values.
+
+```typescript
+// Old code reads with "keep-unrecognized-values"
+const oldUser = UserBefore.serializer.fromJson(
+  originalJson,
+  "keep-unrecognized-values"
+);
+const roundTrippedJson = UserBefore.serializer.toJson(oldUser);
+
+// New code reads the result
+const result = UserAfter.serializer.fromJson(roundTrippedJson);
+
+assert(result.id === 123);
+assert(result.name === "Jane"); // Preserved!
+assert(result.subscriptionStatus.union.kind === "TRIAL"); // Preserved!
+```
+
+> [!NOTE]
+> Unrecognized data can only be preserved during round-trip conversion if the serialization format (dense JSON or binary) is the same as the deserialization format. If you read JSON and write binary, unrecognized data will be dropped even if you requested to keep it.
+
+### Security Implications
+
 > [!WARNING]
-> Only preserve unknown data from trusted sources. Malicious actors could inject fields with IDs that you haven't defined yet, potentially causing issues if you define those IDs in a future version.
+> **Only preserve unrecognized data from trusted sources.**
+>
+> Malicious actors could inject fields with IDs that you haven't defined yet. If you preserve this data and later define those IDs in a future version of your schema, the injected data could be deserialized as valid fields, potentially leading to security vulnerabilities or data corruption.
