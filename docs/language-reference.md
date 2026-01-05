@@ -217,6 +217,25 @@ No two types in your Skir project can have the same stable identifier.
 > [!TIP]
 > You can use `?` as a placeholder for the identifier and run `npx skir format`. It will replace the question mark with a generated random number. This replacement happens automatically on save if you are using the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=TylerFibonacci.skir-language).
 
+### Recursive records
+
+Records can be recursive, meaning a record can contain a field of its own type, either directly or indirectly. This feature is essential for defining recursive data structures such as trees.
+
+```d
+struct DecisionNode {
+  question: string;
+  yes: DecisionTree;
+  no: DecisionTree;
+}
+
+enum DecisionTree {
+  result: string;
+  node: DecisionNode;
+}
+```
+
+To safeguard against infinite recursion, the generated code in all supported languages has compile-time constraints to prevent an instance of a recursive type from containing itself.
+
 ## Data types
 
 ### Primitive types
@@ -333,6 +352,8 @@ const NOT_IMPLEMENTED_ERROR: OperationStatus = {
   value: "Not implemented",
 };
 ```
+
+All the fields of a struct must be specified, unless you use `{| ... |}` instead of `{ ... }`, in which case missing fields are set to their default values.
 
 ## Methods (RPCs)
 
