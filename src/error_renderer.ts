@@ -269,11 +269,11 @@ export function getShortMessageForBreakingChange(
   switch (breakingChange.kind) {
     case "illegal-type-change": {
       const { type } = breakingChange;
-      return "Illegal type change; was: " + formatType(type.before, before);
+      return "illegal type change; was: " + formatType(type.before, before);
     }
     case "missing-slots": {
       const { missingRangeEnd } = breakingChange;
-      return `Missing slots; had ${missingRangeEnd}`;
+      return `missing slots; had ${missingRangeEnd}`;
     }
     case "variant-kind-change": {
       const { record, variantName } = breakingChange;
@@ -284,18 +284,18 @@ export function getShortMessageForBreakingChange(
       )
         ? "wrapper"
         : "constant";
-      return `Was a ${variantKind} variant`;
+      return `was a ${variantKind} variant`;
     }
     case "missing-variant": {
       const { number } = breakingChange;
-      return `Missing variant: ${number}`;
+      return `missing variant: ${number}`;
     }
     case "record-kind-change": {
       const { recordType } = breakingChange;
-      return recordType.before === "struct" ? "Was a struct" : "Was an enum";
+      return recordType.before === "struct" ? "was a struct" : "was an enum";
     }
     case "removed-number-reintroduced": {
-      return "Number was marked as removed";
+      return "number was marked as removed";
     }
     case "missing-record":
     case "missing-method": {

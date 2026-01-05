@@ -22,7 +22,7 @@ describe("getShortMessageForBreakingChange", () => {
     };
     expect(
       getShortMessageForBreakingChange(breakingChange, mockModuleSet),
-    ).toBe("Illegal type change; was: int32");
+    ).toBe("illegal type change; was: int32");
   });
 
   it("missing-slots", () => {
@@ -41,7 +41,7 @@ describe("getShortMessageForBreakingChange", () => {
     };
     expect(
       getShortMessageForBreakingChange(breakingChange, mockModuleSet),
-    ).toBe("Missing slots; had 2");
+    ).toBe("missing slots; had 2");
   });
 
   it("variant-kind-change (constant to wrapper)", () => {
@@ -67,7 +67,7 @@ describe("getShortMessageForBreakingChange", () => {
     };
     expect(
       getShortMessageForBreakingChange(breakingChange, mockModuleSet),
-    ).toBe("Was a constant variant");
+    ).toBe("was a constant variant");
   });
 
   it("variant-kind-change (wrapper to constant)", () => {
@@ -93,7 +93,7 @@ describe("getShortMessageForBreakingChange", () => {
     };
     expect(
       getShortMessageForBreakingChange(breakingChange, mockModuleSet),
-    ).toBe("Was a wrapper variant");
+    ).toBe("was a wrapper variant");
   });
 
   it("missing-variant", () => {
@@ -116,7 +116,7 @@ describe("getShortMessageForBreakingChange", () => {
     };
     expect(
       getShortMessageForBreakingChange(breakingChange, mockModuleSet),
-    ).toBe("Missing variant: 1");
+    ).toBe("missing variant: 1");
   });
 
   it("record-kind-change (struct to enum)", () => {
@@ -137,7 +137,7 @@ describe("getShortMessageForBreakingChange", () => {
     };
     expect(
       getShortMessageForBreakingChange(breakingChange, mockModuleSet),
-    ).toBe("Was a struct");
+    ).toBe("was a struct");
   });
 
   it("record-kind-change (enum to struct)", () => {
@@ -158,7 +158,7 @@ describe("getShortMessageForBreakingChange", () => {
     };
     expect(
       getShortMessageForBreakingChange(breakingChange, mockModuleSet),
-    ).toBe("Was an enum");
+    ).toBe("was an enum");
   });
 
   it("removed-number-reintroduced", () => {
@@ -177,7 +177,7 @@ describe("getShortMessageForBreakingChange", () => {
     };
     expect(
       getShortMessageForBreakingChange(breakingChange, mockModuleSet),
-    ).toBe("Number was marked as removed");
+    ).toBe("number was marked as removed");
   });
 
   it("missing-record", () => {
