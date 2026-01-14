@@ -166,4 +166,7 @@ curl -X POST \
 
 Every Skir service comes with a built-in interactive documentation and testing tool called **Skir Studio**.
 
-When you visit your API endpoint in a browser (e.g., `http://localhost:8000/api`), Skir detects the browser environment and serves a lightweight HTML page. This page inspects your service, lists all available methods, and provides auto-generated forms to send test requests and view responses.
+To access it, simply visit your API endpoint in a browser with the `?studio` query parameter (e.g., `http://localhost:8000/api?studio`). Skir serves a lightweight HTML page that inspects your service, lists all available methods, and provides auto-generated forms to send test requests and view responses.
+
+> [!TIP]
+> If you are familiar with **Swagger UI** (common in the FastAPI ecosystem), Skir Studio fills the same role. It provides a dedicated, auto-generated web interface to explore your API schema and execute requests interactively.
