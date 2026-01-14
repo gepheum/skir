@@ -16,9 +16,18 @@ This design means you can embed a Skir service into **any** HTTP framework. See 
 
 The primary advantage of using Skir services is **end-to-end type safety**.
 
-In a traditional REST API, the contract between client and server is often implicit: "Send a JSON object with fields `x` and `y` to `/api/foo`, and receive a JSON object with field `z`." This contract is fragile; if the server code changes the expected keys but the client isn't updated, the API breaks at runtime.
+In a traditional REST API, the contract between client and server is often implicit: *Send a JSON object with fields `x` and `y` to `/api/foo`, and receive a JSON object with field `z`.* This contract is fragile; if the server code changes the expected keys but the client isn't updated, the API breaks at runtime.
 
 Skir enforces this contract at compile time. By defining your methods in a `.skir` schema, both your server implementation and your client calls are generated from the same source of truth. You cannot call a method that doesn't exist, pass the wrong arguments, or mishandle the response type without the compiler alerting you immediately.
+
+> [!NOTE]
+> Skir solves the same problem as [**tRPC**](https://trpc.io/), but it is **language-agnostic**. While tRPC is excellent for full-stack TypeScript applications, Skir brings that same level of developer experience and safety to polyglot environments (e.g., a TypeScript frontend talking to a Kotlin or Python backend).
+
+### Use cases
+
+Skir services are versatile and can be used in two main contexts:
+1.  **Microservices**: Similar to **gRPC**, Skir allows efficiently typed communication between backend services.
+2.  **Browser-to-Backend**: Skir works seamlessly over standard HTTP/JSON, making it perfect for connecting a web frontend (React, Vue, etc.) to your backend.
 
 ## Defining methods
 
@@ -129,6 +138,14 @@ def extract_meta_from_request(request: Request) -> RequestMeta:
 ### Using Skir Clients
 
 Skir generates a type-safe `ServiceClient` class that abstracts away the network layer. This ensures that your client code is always in sync with your API definition.
+
+See examples for:
+*   **Java**: [CallService.java](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/CallService.java)
+*   **Kotlin**: [CallService.kt](https://github.com/gepheum/skir-kotlin-example/blob/main/src/main/kotlin/callservice/CallService.kt)
+*   **Dart**: [call_service.dart](https://github.com/gepheum/skir-dart-example/blob/main/bin/call_service.dart)
+*   **Python**: [call_service.py](https://github.com/gepheum/skir-python-example/blob/main/call_service.py)
+*   **TypeScript**: [client.ts](https://github.com/gepheum/skir-typescript-example/blob/main/src/client.ts)
+*   **C++**: [service_client.cc](https://github.com/gepheum/skir-cc-example/blob/main/service_client.cc)
 
 ```python
 from skir import ServiceClient
