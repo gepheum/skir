@@ -1,3 +1,5 @@
+# Serialization
+
 ## Serialization formats
 
 When serializing a data structure, you can chose one of 3 formats.
