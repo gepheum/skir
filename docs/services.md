@@ -2,9 +2,7 @@
 
 Skir provides a transport-agnostic RPC (Remote Procedure Call) framework that lets you define API methods in your schema and implement them in your preferred programming language.
 
-Unlike many RPC frameworks that couple your code to a specific transport protocol or server implementation, Skir services are designed to be embedded within your existing application stack.
-
-This design means you can embed a Skir service into **any** HTTP framework. See the following examples:
+Unlike many RPC frameworks that couple your code to a specific transport protocol or server implementation, Skir services are designed to be embedded within your existing application stack. See the following examples:
 *   **Java**: [Spring Boot](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/StartService.java)
 *   **Kotlin**: [Ktor](https://github.com/gepheum/skir-kotlin-example/blob/main/src/main/kotlin/startservice/StartService.kt)
 *   **Dart**: [Shelf](https://github.com/gepheum/skir-dart-example/blob/main/lib/all_strings_to_upper_case.dart)
@@ -12,7 +10,9 @@ This design means you can embed a Skir service into **any** HTTP framework. See 
 *   **TypeScript**: [Express](https://github.com/gepheum/skir-typescript-example/blob/main/src/server.ts)
 *   **C++**: [httplib](https://github.com/gepheum/skir-cc-example/blob/main/service_start.cc)
 
-### Why use Skir Services?
+Features like authentification, request logging or rate limiting are handled by the underlying framework.
+
+### Why use Skir services?
 
 The primary advantage of using Skir services is **end-to-end type safety**.
 
