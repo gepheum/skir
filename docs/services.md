@@ -176,7 +176,7 @@ You can also invoke Skir methods using any HTTP client by sending a POST request
 curl -X POST \
   -H "Content-Type: application/json" \
   -d '{"method": "GetUser", "request": {"user_id": "u_123"}}' \
-  http://localhost:8787/api
+  http://localhost:8000/api
 ```
 
 ## Skir Studio
