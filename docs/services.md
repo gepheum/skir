@@ -135,7 +135,7 @@ def extract_meta_from_request(request: Request) -> RequestMeta:
 
 ## Calling a service
 
-### Using Skir Clients
+### Using Skir clients
 
 Skir generates a type-safe `ServiceClient` class that abstracts away the network layer. This ensures that your client code is always in sync with your API definition.
 
