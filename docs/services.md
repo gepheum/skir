@@ -139,14 +139,6 @@ def extract_meta_from_request(request: Request) -> RequestMeta:
 
 Skir generates a type-safe `ServiceClient` class that abstracts away the network layer. This ensures that your client code is always in sync with your API definition.
 
-See examples for:
-*   **Java**: [CallService.java](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/CallService.java)
-*   **Kotlin**: [CallService.kt](https://github.com/gepheum/skir-kotlin-example/blob/main/src/main/kotlin/callservice/CallService.kt)
-*   **Dart**: [call_service.dart](https://github.com/gepheum/skir-dart-example/blob/main/bin/call_service.dart)
-*   **Python**: [call_service.py](https://github.com/gepheum/skir-python-example/blob/main/call_service.py)
-*   **TypeScript**: [client.ts](https://github.com/gepheum/skir-typescript-example/blob/main/src/client.ts)
-*   **C++**: [service_client.cc](https://github.com/gepheum/skir-cc-example/blob/main/service_client.cc)
-
 ```python
 from skir import ServiceClient
 import aiohttp
@@ -167,6 +159,14 @@ async def main():
         # 'response' is fully typed as 'GetUserResponse'
         print(response.user.name)
 ```
+
+See examples for:
+*   **Java**: [CallService.java](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/CallService.java)
+*   **Kotlin**: [CallService.kt](https://github.com/gepheum/skir-kotlin-example/blob/main/src/main/kotlin/callservice/CallService.kt)
+*   **Dart**: [call_service.dart](https://github.com/gepheum/skir-dart-example/blob/main/bin/call_service.dart)
+*   **Python**: [call_service.py](https://github.com/gepheum/skir-python-example/blob/main/call_service.py)
+*   **TypeScript**: [client.ts](https://github.com/gepheum/skir-typescript-example/blob/main/src/client.ts)
+*   **C++**: [service_client.cc](https://github.com/gepheum/skir-cc-example/blob/main/service_client.cc)
 
 ### Using cURL
 
