@@ -244,7 +244,7 @@ export class ModuleSet {
       const { key } = record.record;
       this.mutableRecordMap.set(key, record);
       const { recordNumber } = record.record;
-      if (recordNumber != null) {
+      if (recordNumber != null && !modulePath.startsWith("@")) {
         const existing = this.numberToRecord.get(recordNumber);
         if (existing === undefined) {
           this.numberToRecord.set(recordNumber, key);
@@ -319,17 +319,19 @@ export class ModuleSet {
           this.validateArrayKeys(responseType, errors);
         }
       }
-      const { number } = method;
-      const existing = this.numberToMethod.get(number);
-      if (existing === undefined) {
-        this.numberToMethod.set(number, method);
-      } else {
-        const otherMethodName = existing.name.text;
-        const otherModulePath = existing.name.line.modulePath;
-        errors.push({
-          token: method.name,
-          message: `Same number as ${otherMethodName} in ${otherModulePath}`,
-        });
+      if (!modulePath.startsWith("@")) {
+        const { number } = method;
+        const existing = this.numberToMethod.get(number);
+        if (existing === undefined) {
+          this.numberToMethod.set(number, method);
+        } else {
+          const otherMethodName = existing.name.text;
+          const otherModulePath = existing.name.line.modulePath;
+          errors.push({
+            token: method.name,
+            message: `Same number as ${otherMethodName} in ${otherModulePath}`,
+          });
+        }
       }
       // Resolve the references in the doc comments of the method.
       this.resolveDocReferences(method, module, errors);
@@ -983,9 +985,26 @@ export class ModuleSet {
     }
   }
 
+  mergeFrom(other: ModuleSet): void {
+    for (const [key, value] of other.modules.entries()) {
+      this.modules.set(key, value);
+    }
+    for (const [key, value] of other.recordMap.entries()) {
+      this.mutableRecordMap.set(key, value);
+    }
+    this.mutableResolvedModules.push(...other.resolvedModules);
+    for (const [key, value] of other.numberToRecord.entries()) {
+      this.numberToRecord.set(key, value);
+    }
+    for (const [key, value] of other.numberToMethod.entries()) {
+      this.numberToMethod.set(key, value);
+    }
+    this.mutableErrors.push(...other.errors);
+  }
+
   private readonly modules = new Map<string, Result<Module | null>>();
   private readonly mutableRecordMap = new Map<RecordKey, RecordLocation>();
-  private readonly mutableResolvedModules: MutableModule[] = [];
+  private readonly mutableResolvedModules: Module[] = [];
   private readonly numberToRecord = new Map<number, RecordKey>();
   private readonly numberToMethod = new Map<number, Method>();
   private readonly mutableErrors: SkirError[] = [];
@@ -1342,6 +1361,9 @@ function resolveModulePath(
     // This is a relative path from the module. Let's transform it into a
     // relative path from root.
     modulePath = Paths.join(originModulePath, "..", modulePath);
+  } else if (originModulePath.startsWith("@") && !modulePath.startsWith("@")) {
+    const packagePrefix = extractPackagePrefix(originModulePath);
+    modulePath = packagePrefix + modulePath;
   }
   // "a/./b/../c" => "a/c"
   // Note that `paths.normalize` will use backslashes on Windows.
@@ -1368,4 +1390,10 @@ function tryFindRecordForType(type: ResolvedType): RecordKey | null {
     case "primitive":
       return null;
   }
+}
+
+/** Extracts the "@{...}/{...}/" package prefix from a module path. */
+function extractPackagePrefix(modulePath: string): string {
+  const match = modulePath.match(/^(@[^/]+\/[^/]+\/)/);
+  return match?.at(1) ?? "";
 }

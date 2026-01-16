@@ -276,8 +276,7 @@ export function getShortMessageForBreakingChange(
       return `missing slots; had ${missingRangeEnd}`;
     }
     case "variant-kind-change": {
-      const { record, variantName } = breakingChange;
-      const enumName = map(record, getQualifiedName);
+      const { variantName } = breakingChange;
       const variantKind = caseMatches(
         variantName.before.text,
         "lower_underscore",

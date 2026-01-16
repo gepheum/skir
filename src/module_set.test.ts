@@ -2388,4 +2388,276 @@ describe("module set", () => {
       });
     });
   });
+
+  describe("package prefixes", () => {
+    it("package prefix extraction works", () => {
+      const fakeFileReader = new FakeFileReader();
+      fakeFileReader.pathToCode.set(
+        "path/to/root/@my-org/my-package/bar",
+        `struct Bar {}`,
+      );
+      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
+      const actual = moduleSet.parseAndResolve("@my-org/my-package/bar");
+
+      expect(actual).toMatch({
+        result: {
+          nameToDeclaration: {
+            Bar: {
+              kind: "record",
+            },
+          },
+        },
+        errors: [],
+      });
+    });
+
+    it("resolves absolute imports within same package", () => {
+      const fakeFileReader = new FakeFileReader();
+      const barCode = `struct Bar {}`;
+      fakeFileReader.pathToCode.set(
+        "path/to/root/@my-org/my-package/foo",
+        `import Bar from "bar";
+
+struct Foo {
+  bar: Bar;
+}`,
+      );
+      fakeFileReader.pathToCode.set(
+        "path/to/root/@my-org/my-package/bar",
+        barCode,
+      );
+
+      // Verify the bar code is what we expect
+      const readBarCode = fakeFileReader.readTextFile(
+        "path/to/root/@my-org/my-package/bar",
+      );
+      if (readBarCode !== barCode) {
+        throw new Error(
+          `Bar code mismatch: expected ${JSON.stringify(barCode)}, got ${JSON.stringify(readBarCode)}`,
+        );
+      }
+
+      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
+      const actual = moduleSet.parseAndResolve("@my-org/my-package/foo");
+
+      // First check that the import resolved correctly
+      expect(actual).toMatch({
+        result: {
+          nameToDeclaration: {
+            Bar: {
+              kind: "import",
+              resolvedModulePath: "@my-org/my-package/bar",
+            },
+          },
+        },
+      });
+
+      expect(actual).toMatch({
+        result: {
+          nameToDeclaration: {
+            Bar: {
+              kind: "import",
+            },
+            Foo: {
+              kind: "record",
+              fields: [
+                {
+                  name: { text: "bar" },
+                  type: {
+                    kind: "record",
+                    key: "@my-org/my-package/bar:7",
+                  },
+                },
+              ],
+            },
+          },
+        },
+        errors: [],
+      });
+    });
+
+    it("does not apply package prefix to non-package modules", () => {
+      const fakeFileReader = new FakeFileReader();
+      fakeFileReader.pathToCode.set(
+        "path/to/root/regular/module",
+        `import Bar from "bar";
+
+struct Foo {
+  bar: Bar;
+}`,
+      );
+      fakeFileReader.pathToCode.set("path/to/root/bar", `struct Bar {}`);
+      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
+      const actual = moduleSet.parseAndResolve("regular/module");
+
+      expect(actual).toMatch({
+        result: {
+          nameToDeclaration: {
+            Bar: {
+              kind: "import",
+            },
+            Foo: {
+              kind: "record",
+              fields: [
+                {
+                  name: { text: "bar" },
+                  type: {
+                    kind: "record",
+                    key: "bar:7",
+                  },
+                },
+              ],
+            },
+          },
+        },
+        errors: [],
+      });
+    });
+
+    it("does not apply package prefix when import starts with @", () => {
+      const fakeFileReader = new FakeFileReader();
+      fakeFileReader.pathToCode.set(
+        "path/to/root/@my-org/my-package/foo",
+        `import Bar from "@other-org/other-package/bar";
+
+struct Foo {
+  bar: Bar;
+}`,
+      );
+      fakeFileReader.pathToCode.set(
+        "path/to/root/@other-org/other-package/bar",
+        `struct Bar {}`,
+      );
+      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
+      const actual = moduleSet.parseAndResolve("@my-org/my-package/foo");
+
+      expect(actual).toMatch({
+        result: {
+          nameToDeclaration: {
+            Bar: {
+              kind: "import",
+            },
+            Foo: {
+              kind: "record",
+              fields: [
+                {
+                  name: { text: "bar" },
+                  type: {
+                    kind: "record",
+                    key: "@other-org/other-package/bar:7",
+                  },
+                },
+              ],
+            },
+          },
+        },
+        errors: [],
+      });
+    });
+
+    it("allows duplicate record numbers across packages", () => {
+      const fakeFileReader = new FakeFileReader();
+      fakeFileReader.pathToCode.set(
+        "path/to/root/@my-org/pkg-a/module",
+        `struct Foo(100) {}`,
+      );
+      fakeFileReader.pathToCode.set(
+        "path/to/root/@my-org/pkg-b/module",
+        `struct Bar(100) {}`,
+      );
+
+      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
+      {
+        const actual = moduleSet.parseAndResolve("@my-org/pkg-a/module");
+        expect(actual).toMatch({
+          errors: [],
+        });
+      }
+      {
+        const actual = moduleSet.parseAndResolve("@my-org/pkg-b/module");
+        expect(actual).toMatch({
+          errors: [],
+        });
+      }
+    });
+
+    it("allows duplicate method numbers across packages", () => {
+      const fakeFileReader = new FakeFileReader();
+      fakeFileReader.pathToCode.set(
+        "path/to/root/@my-org/pkg-a/module",
+        `method GetFoo(string): string = 123;`,
+      );
+      fakeFileReader.pathToCode.set(
+        "path/to/root/@my-org/pkg-b/module",
+        `method GetBar(string): string = 123;`,
+      );
+
+      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
+      {
+        const actual = moduleSet.parseAndResolve("@my-org/pkg-a/module");
+        expect(actual).toMatch({
+          errors: [],
+        });
+      }
+      {
+        const actual = moduleSet.parseAndResolve("@my-org/pkg-b/module");
+        expect(actual).toMatch({
+          errors: [],
+        });
+      }
+    });
+  });
+
+  describe("mergeFrom", () => {
+    it("merges resolved modules list", () => {
+      const moduleMap1 = new Map<string, string>();
+      moduleMap1.set("module1", `struct Foo {}`);
+
+      const moduleMap2 = new Map<string, string>();
+      moduleMap2.set("module2", `struct Bar {}`);
+
+      const moduleSet1 = ModuleSet.fromMap(moduleMap1);
+      const moduleSet2 = ModuleSet.fromMap(moduleMap2);
+
+      expect(moduleSet1.resolvedModules.length).toMatch(1);
+      expect(moduleSet2.resolvedModules.length).toMatch(1);
+
+      moduleSet1.mergeFrom(moduleSet2);
+
+      expect(moduleSet1.resolvedModules.length).toMatch(2);
+      expect(moduleSet1.resolvedModules[0]!.nameToDeclaration).toMatch({
+        Foo: { kind: "record" },
+      });
+      expect(moduleSet1.resolvedModules[1]!.nameToDeclaration).toMatch({
+        Bar: { kind: "record" },
+      });
+    });
+
+    it("preserves record map after merge", () => {
+      const moduleMap1 = new Map<string, string>();
+      moduleMap1.set("module1", `struct Foo {}`);
+
+      const moduleMap2 = new Map<string, string>();
+      moduleMap2.set("module2", `struct Bar {}`);
+
+      const moduleSet1 = ModuleSet.fromMap(moduleMap1);
+      const moduleSet2 = ModuleSet.fromMap(moduleMap2);
+
+      moduleSet1.mergeFrom(moduleSet2);
+
+      const fooRecord = moduleSet1.recordMap.get("module1:7");
+      expect(fooRecord).toMatch({
+        record: {
+          name: { text: "Foo" },
+        },
+      });
+
+      const barRecord = moduleSet1.recordMap.get("module2:7");
+      expect(barRecord).toMatch({
+        record: {
+          name: { text: "Bar" },
+        },
+      });
+    });
+  });
 });
