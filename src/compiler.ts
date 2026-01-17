@@ -391,7 +391,7 @@ async function main(): Promise<void> {
   }
   const skirConfig = skirConfigResult.skirConfig!;
 
-  const srcDir = Paths.join(root, skirConfig.srcDir || ".");
+  const srcDir = Paths.join(root, "skir-src");
 
   switch (args.kind) {
     case "format": {

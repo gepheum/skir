@@ -41,9 +41,6 @@ const SKIR_YML_CONTENT = `# Configuration file for Skir code generator
 #   npx skir snapshot     Take a snapshot of the source directory, verify no
 #                         breaking changes since last snapshot
 
-# Directory containing .skir files
-srcDir: skir-src
-
 # Uncomment and configure the generators for your target language(s).
 generators:
   # # --------------------------------------------------------------------------

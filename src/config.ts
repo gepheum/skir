@@ -14,7 +14,12 @@ export type GeneratorConfig = z.infer<typeof GeneratorConfig>;
 export const SkirConfig = z
   .object({
     generators: z.array(GeneratorConfig),
-    srcDir: z.string().optional(),
+    dependencies: z
+      .record(
+        z.string().regex(/^@[A-Za-z0-9-]+\/[A-Za-z0-9\-_.]+$/),
+        z.string().regex(/^[A-Za-z0-9\-_./+]+$/),
+      )
+      .optional(),
   })
   .strict();
 

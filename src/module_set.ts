@@ -667,7 +667,7 @@ export class ModuleSet {
       // The value is a string.
       // It must match the name of one of the constants defined in the enum.
       const fieldName = unquoteAndUnescape(token.text);
-      if (fieldName === "?") {
+      if (fieldName === "UNKNOWN") {
         // Present on every enum.
         return 0;
       }

@@ -172,7 +172,7 @@ const result = UserAfter.serializer.fromJson(roundTrippedJson);
 
 assert(result.id === 123);
 assert(result.name === ""); // Lost: reset to default
-assert(result.subscriptionStatus.union.kind === "?"); // Lost: became UNKNOWN
+assert(result.subscriptionStatus.union.kind === "UNKNOWN"); // Lost: became UNKNOWN
 ```
 
 #### Preserve Behavior

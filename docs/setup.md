@@ -24,9 +24,6 @@ The `skir.yml` file controls how Skir generates code for your project. Here's an
 ```yml
 # skir.yml
 
-# Directory containing .skir files
-srcDir: skir-src
-
 generators:
   - mod: skir-cc-gen
     outDir: ./app/src/skirout

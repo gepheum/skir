@@ -186,13 +186,11 @@ Since the dense JSON and binary format use zeros to represent `removed` fields, 
 #### Enum
 
 *   **JSON (Readable)**:
-    *   **Constant variant**: The name of the variant (string), e.g. `"MONDAY"`.
+    *   **Constant variant**: The name of the variant (string), e.g. `"MONDAY"` or `"UNKNOWN"`.
     *   **Wrapper variant**: An object `{ "kind": "variant_name", "value": ... }`.
-    *   **Unknown**: The string `"?"`.
 *   **JSON (Dense)**:
     *   **Constant variant**: The variant number (integer).
     *   **Wrapper variant**: An array `[variant_number, value]`.
-    *   **Unknown**: `0`.
 *   **Binary**:
     *   **Unknown**: Encoded as byte `0`.
     *   **Constant variant**: Encoded using the `int32` positive number rules (byte, `232`+u16, etc.).

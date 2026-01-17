@@ -11,7 +11,6 @@ generators:
     outDir: ./skirout
     config:
       foo: bar
-srcDir: src
 `;
       const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
@@ -23,7 +22,6 @@ srcDir: src
               config: { foo: "bar" },
             },
           ],
-          srcDir: "src",
         },
         errors: [],
       });
@@ -80,7 +78,7 @@ generators:
       });
     });
 
-    it("should parse config without optional srcDir", () => {
+    it("should parse config without optional dependencies", () => {
       const yamlCode = `
 generators:
   - mod: "@example/generator"
@@ -95,6 +93,63 @@ generators:
           ],
         },
         errors: [],
+      });
+    });
+
+    it("should parse config with dependencies", () => {
+      const yamlCode = `
+generators:
+  - mod: "@example/generator"
+    outDir: ./skirout
+    config: {}
+dependencies:
+  "@org/package": "1.2.3"
+  "@other/lib": "path/to/lib"
+`;
+      const result = parseSkirConfig(yamlCode);
+      expect(result).toMatch({
+        skirConfig: {
+          generators: [
+            { mod: "@example/generator", outDir: "./skirout", config: {} },
+          ],
+          dependencies: {
+            "@org/package": "1.2.3",
+            "@other/lib": "path/to/lib",
+          },
+        },
+        errors: [],
+      });
+    });
+
+    it("should return error for invalid dependency key format", () => {
+      const yamlCode = `
+generators:
+  - mod: "@example/generator"
+    outDir: ./skirout
+    config: {}
+dependencies:
+  invalid-key: "1.0.0"
+`;
+      const result = parseSkirConfig(yamlCode);
+      expect(result).toMatch({
+        skirConfig: undefined,
+        errors: [{}], // At least one error
+      });
+    });
+
+    it("should return error for invalid dependency value format", () => {
+      const yamlCode = `
+generators:
+  - mod: "@example/generator"
+    outDir: ./skirout
+    config: {}
+dependencies:
+  "@org/package": "invalid value with spaces!"
+`;
+      const result = parseSkirConfig(yamlCode);
+      expect(result).toMatch({
+        skirConfig: undefined,
+        errors: [{}], // At least one error
       });
     });
 
@@ -301,8 +356,6 @@ generators:
   - mod: "@example/generator"
     outDir: ./skirout
     config: {}
-# Source directory
-srcDir: src
 `;
       const result = parseSkirConfig(yamlCode);
       expect(result).toMatch({
@@ -314,7 +367,6 @@ srcDir: src
               config: {},
             },
           ],
-          srcDir: "src",
         },
         errors: [],
       });
