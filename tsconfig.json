@@ -18,5 +18,6 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   },
+  "include": ["src/**/*"],
   "exclude": ["src/**/*.test.ts"]
 }
