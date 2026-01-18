@@ -17,5 +17,6 @@
     "skipLibCheck": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
-  }
+  },
+  "exclude": ["src/**/*.test.ts"]
 }
