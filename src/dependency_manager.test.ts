@@ -56,7 +56,7 @@ describe("DependencyManager", () => {
       "/test/root",
       undefined,
       fileReader,
-      downloader.downloadPackage.bind(downloader),
+      downloader.downloadPackage,
     );
 
     const result = await manager.getDependencies({}, "no-write");
@@ -87,7 +87,7 @@ describe("DependencyManager", () => {
       "/test/root",
       undefined,
       fileReader,
-      downloader.downloadPackage.bind(downloader),
+      downloader.downloadPackage,
     );
 
     const result = await manager.getDependencies(
@@ -135,7 +135,7 @@ describe("DependencyManager", () => {
       "/test/root",
       undefined,
       fileReader,
-      downloader.downloadPackage.bind(downloader),
+      downloader.downloadPackage,
     );
 
     const result = await manager.getDependencies(
@@ -177,7 +177,7 @@ describe("DependencyManager", () => {
       "/test/root",
       undefined,
       fileReader,
-      downloader.downloadPackage.bind(downloader),
+      downloader.downloadPackage,
     );
 
     const result = await manager.getDependencies(
@@ -200,7 +200,7 @@ describe("DependencyManager", () => {
       "/test/root",
       undefined,
       fileReader,
-      downloader.downloadPackage.bind(downloader),
+      downloader.downloadPackage,
     );
 
     const result = await manager.getDependencies(
@@ -259,7 +259,7 @@ describe("DependencyManager", () => {
       "/test/root",
       undefined,
       fileReader,
-      downloader.downloadPackage.bind(downloader),
+      downloader.downloadPackage,
     );
 
     const result = await manager.getDependencies(
@@ -331,7 +331,7 @@ describe("DependencyManager", () => {
       "/test/root",
       undefined,
       fileReader,
-      downloader.downloadPackage.bind(downloader),
+      downloader.downloadPackage,
     );
 
     const result = await manager.getDependencies(
@@ -382,7 +382,7 @@ describe("DependencyManager", () => {
       "/test/root",
       undefined,
       fileReader,
-      downloader.downloadPackage.bind(downloader),
+      downloader.downloadPackage,
     );
 
     const result = await manager.getDependencies(
@@ -415,7 +415,7 @@ describe("DependencyManager", () => {
       "/test/root",
       undefined,
       fileReader,
-      downloader.downloadPackage.bind(downloader),
+      downloader.downloadPackage,
     );
 
     const result = await manager.getDependencies(

@@ -119,7 +119,9 @@ export class DependencyManager {
     }
   }
 
-  private readonly externalDir = path.join(this.rootDir, "skir-external");
+  private get externalDir(): string {
+    return path.join(this.rootDir, "skir-external");
+  }
 
   private async readDependenciesFile(): Promise<Packages> {
     const dependenciesPath = path.join(this.externalDir, "dependencies.json");
