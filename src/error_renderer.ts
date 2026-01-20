@@ -78,7 +78,7 @@ export function renderSkirConfigErrors(
   }
 }
 
-function formatSkirConfigError(
+export function formatSkirConfigError(
   error: SkirConfigError,
   context: {
     skirConfigPath: string;

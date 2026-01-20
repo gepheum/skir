@@ -11,15 +11,14 @@ export const GeneratorConfig = z.strictObject({
 
 export type GeneratorConfig = z.infer<typeof GeneratorConfig>;
 
+const PackageId = z.string().regex(/^@[A-Za-z0-9-]+\/[A-Za-z0-9\-_.]+$/);
+const Version = z.string().regex(/^[A-Za-z0-9\-_./+]+$/);
+
 export const SkirConfig = z
   .object({
-    generators: z.array(GeneratorConfig),
-    dependencies: z
-      .record(
-        z.string().regex(/^@[A-Za-z0-9-]+\/[A-Za-z0-9\-_.]+$/),
-        z.string().regex(/^[A-Za-z0-9\-_./+]+$/),
-      )
-      .optional(),
+    version: Version.default(""),
+    generators: z.array(GeneratorConfig).default([]),
+    dependencies: z.record(PackageId, Version).default({}),
   })
   .strict();
 
