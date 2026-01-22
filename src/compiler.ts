@@ -5,11 +5,13 @@ import * as Paths from "path";
 import type { CodeGenerator } from "skir-internal";
 import Watcher from "watcher";
 import { parseCommandLine } from "./command_line_parser.js";
+import type { SkirConfig } from "./config.js";
 import { GeneratorConfig } from "./config.js";
 import {
   importCodeGenerator,
   parseSkirConfigWithDynamicImports,
 } from "./config_parser.js";
+import { DependencyManager } from "./dependency_manager.js";
 import {
   makeGray,
   makeGreen,
@@ -26,6 +28,7 @@ import {
 } from "./io.js";
 import { collectModules } from "./module_collector.js";
 import { ModuleSet } from "./module_set.js";
+import { PackageIdToVersion } from "./package_types.js";
 import { parseModule } from "./parser.js";
 import { initializeProject } from "./project_initializer.js";
 import { takeSnapshot, viewSnapshot } from "./snapshotter.js";
@@ -69,7 +72,8 @@ class WatchModeMainLoop {
   constructor(
     private readonly srcDir: string,
     private readonly generatorBundles: readonly GeneratorBundle[],
-    private readonly watchModeOn: boolean,
+    private readonly dependencies: ModuleSet,
+    private readonly mode: "watch" | "once",
   ) {
     for (const generatorBundle of generatorBundles) {
       for (const skiroutDir of generatorBundle.skiroutDirs) {
@@ -121,11 +125,11 @@ class WatchModeMainLoop {
     this.generating = true;
     this.timeoutId = undefined;
     this.mustRegenerate = false;
-    if (this.watchModeOn) {
+    if (this.mode === "watch") {
       console.clear();
     }
     try {
-      const moduleSet = await collectModules(this.srcDir);
+      const moduleSet = await collectModules(this.srcDir, this.dependencies);
       const errors = moduleSet.errors.filter((e) => !e.errorIsInOtherModule);
       if (errors.length) {
         renderErrors(errors);
@@ -135,7 +139,7 @@ class WatchModeMainLoop {
           console.error(makeRed("No skir modules found in source directory"));
         }
         await this.doGenerate(moduleSet);
-        if (this.watchModeOn) {
+        if (this.mode === "watch") {
           const date = new Date().toLocaleTimeString("en-US");
           const successMessage = `Generation succeeded at ${date}`;
           console.log(makeGreen(successMessage));
@@ -341,6 +345,67 @@ async function format(root: string, mode: "fix" | "check"): Promise<void> {
   }
 }
 
+async function getDependencies(
+  dependencies: PackageIdToVersion,
+  root: string,
+): Promise<ModuleSet> {
+  // TODO: figure out how to get the Github token? process.env.GITHUB_TOKEN?
+  const githubToken: string | undefined = undefined;
+  const manager = new DependencyManager(root, githubToken);
+  const result = await manager.getDependencies(dependencies);
+  if (result.kind === "success") {
+    const moduleMap = new Map<string, string>();
+    for (const pkg of Object.values(result.packages)) {
+      for (const [modulePath, content] of Object.entries(pkg.modules)) {
+        moduleMap.set(modulePath, content);
+      }
+    }
+    const moduleSet = ModuleSet.fromMap(moduleMap);
+    if (moduleSet.errors.length) {
+      renderErrors(moduleSet.errors);
+      process.exit(1);
+    }
+    return moduleSet;
+  } else {
+    console.error(makeRed(result.message));
+    process.exit(1);
+  }
+}
+
+async function runGeneration(
+  skirConfig: SkirConfig,
+  root: string,
+  srcDir: string,
+  mode: "watch" | "once",
+): Promise<void> {
+  // Run the skir code generators in watch mode or once.
+  const generatorBundles: GeneratorBundle[] = await Promise.all(
+    skirConfig.generators.map((config) => makeGeneratorBundle(config, root)),
+  );
+  // Look for duplicates.
+  for (let i = 0; i < generatorBundles.length - 1; ++i) {
+    const { id } = generatorBundles[i]!.generator;
+    if (id === generatorBundles[i + 1]!.generator.id) {
+      console.error(makeRed(`Duplicate generator: ${id}`));
+      process.exit(1);
+    }
+  }
+  // Get dependencies.
+  const dependencies = await getDependencies(skirConfig.dependencies, root);
+  const watchModeMainLoop = new WatchModeMainLoop(
+    srcDir,
+    generatorBundles,
+    dependencies,
+    mode,
+  );
+  if (mode === "watch") {
+    await watchModeMainLoop.start();
+  } else {
+    const success: boolean = await watchModeMainLoop.generate();
+    process.exit(success ? 0 : 1);
+  }
+}
+
 async function main(): Promise<void> {
   const args = parseCommandLine(process.argv.slice(2));
 
@@ -380,7 +445,7 @@ async function main(): Promise<void> {
 
   const skirConfigResult =
     await parseSkirConfigWithDynamicImports(skirConfigCode);
-  if (skirConfigResult.errors.length > 0) {
+  if (skirConfigResult.errors.length) {
     console.error(makeRed("Invalid skir config"));
     const { maybeForgotToEditAfterInit } = skirConfigResult;
     renderSkirConfigErrors(skirConfigResult.errors, {
@@ -400,32 +465,7 @@ async function main(): Promise<void> {
       break;
     }
     case "gen": {
-      // Run the skir code generators in watch mode or once.
-      const generatorBundles: GeneratorBundle[] = await Promise.all(
-        skirConfig.generators.map((config) =>
-          makeGeneratorBundle(config, root),
-        ),
-      );
-      // Look for duplicates.
-      for (let i = 0; i < generatorBundles.length - 1; ++i) {
-        const { id } = generatorBundles[i]!.generator;
-        if (id === generatorBundles[i + 1]!.generator.id) {
-          console.error(makeRed(`Duplicate generator: ${id}`));
-          process.exit(1);
-        }
-      }
-      const watch = args.subcommand === "watch";
-      const watchModeMainLoop = new WatchModeMainLoop(
-        srcDir,
-        generatorBundles,
-        watch,
-      );
-      if (watch) {
-        await watchModeMainLoop.start();
-      } else {
-        const success: boolean = await watchModeMainLoop.generate();
-        process.exit(success ? 0 : 1);
-      }
+      await runGeneration(skirConfig, root, srcDir, args.subcommand ?? "once");
       break;
     }
     case "snapshot": {
@@ -434,9 +474,14 @@ async function main(): Promise<void> {
           rootDir: root,
         });
       } else {
+        const dependencies = await getDependencies(
+          skirConfig.dependencies,
+          root,
+        );
         const success = takeSnapshot({
           rootDir: root,
           srcDir: srcDir,
+          dependencies: dependencies,
           subcommand: args.subcommand,
         });
         if (!success) {

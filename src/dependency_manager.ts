@@ -45,7 +45,9 @@ export class DependencyManager {
     const relPathToContent = new Map<string, string>();
     for (const [packageId, pkg] of Object.entries(packages)) {
       for (const [modulePath, content] of Object.entries(pkg.modules)) {
-        relPathToContent.set(modulePath, content);
+        const relPath =
+          packageId + "/skir-src" + modulePath.substring(packageId.length);
+        relPathToContent.set(relPath, content);
       }
       let skirYml = `version: "${pkg.version}"\n`;
       const dependencies = Object.entries(pkg.dependencies);
@@ -58,7 +60,7 @@ export class DependencyManager {
       relPathToContent.set(`${packageId}/skir.yml`, skirYml);
     }
     relPathToContent.set(
-      "dependencies.json",
+      DEPENDENCIES_FILENAME,
       JSON.stringify(packages, null, 2),
     );
 
@@ -124,7 +126,7 @@ export class DependencyManager {
   }
 
   private async readDependenciesFile(): Promise<Packages> {
-    const dependenciesPath = path.join(this.externalDir, "dependencies.json");
+    const dependenciesPath = path.join(this.externalDir, DEPENDENCIES_FILENAME);
     const content = await this.fileReader.readTextFileAsync(dependenciesPath);
     if (content === undefined) {
       return {};
@@ -240,6 +242,8 @@ function formatDependencyChain(chain: DependencyItem[]): string {
       .join(" which depends on ")
   );
 }
+
+const DEPENDENCIES_FILENAME = "dependencies.json";
 
 interface DependencyItem {
   readonly packageId: string;

@@ -8,8 +8,12 @@ import {
 } from "./io.js";
 import { ModuleSet } from "./module_set.js";
 
-export async function collectModules(srcDir: string): Promise<ModuleSet> {
+export async function collectModules(
+  srcDir: string,
+  dependencies: ModuleSet,
+): Promise<ModuleSet> {
   const modules = ModuleSet.create(REAL_FILE_SYSTEM, srcDir);
+  modules.mergeFrom(dependencies);
   const skirFiles = await glob(Paths.join(srcDir, "**/*.skir"), {
     stat: true,
     withFileTypes: true,

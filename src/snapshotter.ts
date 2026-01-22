@@ -16,9 +16,10 @@ import { ModuleSet } from "./module_set.js";
 export async function takeSnapshot(args: {
   rootDir: string;
   srcDir: string;
+  dependencies: ModuleSet;
   subcommand: "ci" | "dry-run" | undefined;
 }): Promise<boolean> {
-  const newModuleSet = await collectModules(args.srcDir);
+  const newModuleSet = await collectModules(args.srcDir, args.dependencies);
   if (newModuleSet.errors.length) {
     renderErrors(newModuleSet.errors);
     return false;
