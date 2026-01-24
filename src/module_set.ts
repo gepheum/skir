@@ -61,7 +61,7 @@ export class ModuleSet {
     modulePath: string,
     inProgressSet?: Set<string>,
   ): Result<Module | null> {
-    const inMap = this.modules.get(modulePath);
+    const inMap = this.mutableModules.get(modulePath);
     if (inMap !== undefined) {
       return inMap;
     }
@@ -69,7 +69,7 @@ export class ModuleSet {
       modulePath,
       inProgressSet || new Set<string>(),
     );
-    this.modules.set(modulePath, result);
+    this.mutableModules.set(modulePath, result);
     this.mutableErrors.push(...result.errors);
     return result;
   }
@@ -265,7 +265,7 @@ export class ModuleSet {
     const usedImports = new Set<string>();
     const typeResolver = new TypeResolver(
       module,
-      this.modules,
+      this.mutableModules,
       usedImports,
       errors,
     );
@@ -888,7 +888,7 @@ export class ModuleSet {
             if (!resolvedModulePath) {
               return false;
             }
-            const importedModule = this.modules.get(resolvedModulePath!);
+            const importedModule = this.mutableModules.get(resolvedModulePath!);
             if (!importedModule?.result) {
               return false;
             }
@@ -986,8 +986,8 @@ export class ModuleSet {
   }
 
   mergeFrom(other: ModuleSet): void {
-    for (const [key, value] of other.modules.entries()) {
-      this.modules.set(key, value);
+    for (const [key, value] of other.mutableModules.entries()) {
+      this.mutableModules.set(key, value);
     }
     for (const [key, value] of other.recordMap.entries()) {
       this.mutableRecordMap.set(key, value);
@@ -1002,12 +1002,16 @@ export class ModuleSet {
     this.mutableErrors.push(...other.errors);
   }
 
-  private readonly modules = new Map<string, Result<Module | null>>();
+  private readonly mutableModules = new Map<string, Result<Module | null>>();
   private readonly mutableRecordMap = new Map<RecordKey, RecordLocation>();
   private readonly mutableResolvedModules: Module[] = [];
   private readonly numberToRecord = new Map<number, RecordKey>();
   private readonly numberToMethod = new Map<number, Method>();
   private readonly mutableErrors: SkirError[] = [];
+
+  get modules(): ReadonlyMap<string, Result<Module | null>> {
+    return this.mutableModules;
+  }
 
   get recordMap(): ReadonlyMap<RecordKey, RecordLocation> {
     return this.mutableRecordMap;
