@@ -46,18 +46,12 @@ export class DependencyManager {
     for (const [packageId, pkg] of Object.entries(packages)) {
       for (const [modulePath, content] of Object.entries(pkg.modules)) {
         const relPath =
-          packageId + "/skir-src" + modulePath.substring(packageId.length);
+          packageId +
+          modulePath
+            .substring(packageId.length)
+            .replace(/\.skir$/, ".readonly.skir");
         relPathToContent.set(relPath, content);
       }
-      let skirYml = `version: "${pkg.version}"\n`;
-      const dependencies = Object.entries(pkg.dependencies);
-      if (dependencies.length > 0) {
-        skirYml += `\ndependencies:\n`;
-        for (const [depId, depVersion] of dependencies) {
-          skirYml += `  "${depId}": "${depVersion}"\n`;
-        }
-      }
-      relPathToContent.set(`${packageId}/skir.yml`, skirYml);
     }
     relPathToContent.set(
       DEPENDENCIES_FILENAME,

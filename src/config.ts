@@ -16,7 +16,6 @@ const Version = z.string().regex(/^[A-Za-z0-9\-_./+]+$/);
 
 export const SkirConfig = z
   .object({
-    version: Version.default(""),
     generators: z.array(GeneratorConfig).default([]),
     dependencies: z.record(PackageId, Version).default({}),
   })
