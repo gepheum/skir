@@ -348,9 +348,20 @@ async function format(root: string, mode: "fix" | "check"): Promise<void> {
 async function getDependencies(
   dependencies: PackageIdToVersion,
   root: string,
+  githubTokenEnvVar: string,
 ): Promise<ModuleSet> {
-  // TODO: figure out how to get the Github token? process.env.GITHUB_TOKEN?
-  const githubToken: string | undefined = undefined;
+  let githubToken: string | undefined = undefined;
+  if (githubTokenEnvVar) {
+    githubToken = process.env[githubTokenEnvVar];
+    if (githubToken === undefined) {
+      console.error(
+        makeRed(
+          `Environment variable ${githubTokenEnvVar} is not set. Please set it to authenticate with GitHub.`,
+        ),
+      );
+      process.exit(1);
+    }
+  }
   const manager = new DependencyManager(root, githubToken);
   const result = await manager.getDependencies(dependencies);
   if (result.kind === "success") {
@@ -391,7 +402,11 @@ async function runGeneration(
     }
   }
   // Get dependencies.
-  const dependencies = await getDependencies(skirConfig.dependencies, root);
+  const dependencies = await getDependencies(
+    skirConfig.dependencies,
+    root,
+    skirConfig.githubTokenEnvVar,
+  );
   const watchModeMainLoop = new WatchModeMainLoop(
     srcDir,
     generatorBundles,
@@ -477,6 +492,7 @@ async function main(): Promise<void> {
         const dependencies = await getDependencies(
           skirConfig.dependencies,
           root,
+          skirConfig.githubTokenEnvVar,
         );
         const success = takeSnapshot({
           rootDir: root,

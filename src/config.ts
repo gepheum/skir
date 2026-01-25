@@ -18,6 +18,7 @@ export const SkirConfig = z
   .object({
     generators: z.array(GeneratorConfig).default([]),
     dependencies: z.record(PackageId, Version).default({}),
+    githubTokenEnvVar: z.string().default(""),
   })
   .strict();
 
