@@ -27,6 +27,28 @@ export function initializeProject(rootDir: string): void {
     FileSystem.writeFileSync(helloWorldPath, HELLO_WORLD_SKIR_CONTENT, "utf-8");
   }
 
+  // Update .gitignore if it exists
+  const gitIgnorePath = Paths.join(rootDir, ".gitignore");
+  if (FileSystem.existsSync(gitIgnorePath)) {
+    const content = FileSystem.readFileSync(gitIgnorePath, "utf-8");
+    const lines = content.split(/\r?\n/);
+    const toAdd: string[] = [];
+
+    for (const dirName of ["skirout", "skir-external"]) {
+      const hasDir = lines.some(
+        (line) => line.trim().replace(/\/$/, "") === dirName,
+      );
+      if (!hasDir) {
+        toAdd.push(`${dirName}/`);
+      }
+    }
+
+    if (toAdd.length > 0) {
+      const append = `\n${toAdd.join("\n")}\n`;
+      FileSystem.appendFileSync(gitIgnorePath, append, "utf-8");
+    }
+  }
+
   console.log(`Done. Please edit: ${rewritePathForRendering(skirYmlPath)}`);
 }
 
