@@ -62,7 +62,7 @@ githubTokenEnvVar: MY_GITHUB_TOKEN
 
 Skir will now read the token from `MY_GITHUB_TOKEN` to authenticate requests.
 
-## Setting up GitHub Actions CI
+### 4. Set up GitHub Actions CI
 
 When running Skir in a Continuous Integration (CI) environment like GitHub Actions, you can use the built-in `${{ secrets.GITHUB_TOKEN }}` to access other repositories within the same organization, or use a repository secret if you need broader access.
 
