@@ -114,6 +114,21 @@ generators:
   #   config:
   #     # Use ".js" for ES modules, "" for CommonJS
   #     importPathExtension: ".js"
+
+# --------------------------------------------------------------------------
+# External Skir dependencies hosted on GitHub
+# To use an external repository, specify the GitHub repository identifier
+# in the format "@owner/repository-name" and the release tag version.
+# --------------------------------------------------------------------------
+# dependencies:
+#   "@gepheum/fantasy-game-skir-example": v1.0.0
+
+# --------------------------------------------------------------------------
+# GitHub Personal Access Token (required for private dependencies)
+# Set this to the name of an environment variable containing your GitHub
+# token. The token is used to authenticate when downloading dependencies.
+# --------------------------------------------------------------------------
+# githubTokenEnvVar: GITHUB_TOKEN
 `;
 
 const HELLO_WORLD_SKIR_CONTENT = `/// A point in 2D space.
