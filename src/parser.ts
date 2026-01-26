@@ -204,6 +204,7 @@ class RecordBuilder {
     private readonly recordType: "struct" | "enum",
     private readonly doc: Doc,
     private readonly stableId: number | null,
+    private readonly inlineContext: InlineRecordContext | undefined,
     private readonly errors: ErrorSink,
   ) {}
 
@@ -327,7 +328,10 @@ class RecordBuilder {
     );
 
     const { recordName } = this;
-    const key = `${recordName.line.modulePath}:${recordName.position}`;
+    let key = `${recordName.line.modulePath}:${recordName.position}`;
+    if (this.inlineContext) {
+      key += `:${this.inlineContext.context}`;
+    }
 
     const numSlots =
       isStruct && fields.length
@@ -425,6 +429,7 @@ function parseRecord(
     recordType,
     doc,
     stableId,
+    inlineContext,
     it.errors,
   );
   for (const declaration of declarations) {
@@ -522,8 +527,8 @@ function parseTypeOrInlineRecord(
   it: TokenIterator,
   inlineContext: InlineRecordContext,
 ): {
-  type: UnresolvedType | undefined;
-  inlineRecord: MutableRecord | undefined;
+  readonly type: UnresolvedType | undefined;
+  readonly inlineRecord: MutableRecord | undefined;
 } {
   if (it.current === "struct" || it.current === "enum") {
     const recordType = it.current as "struct" | "enum";

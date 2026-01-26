@@ -1116,6 +1116,24 @@ describe("module parser", () => {
             },
           },
         ],
+        records: [
+          {
+            record: {
+              key: "path/to/module:14:method-request",
+              name: {
+                text: "SearchRequest",
+              },
+            },
+          },
+          {
+            record: {
+              key: "path/to/module:14:method-response",
+              name: {
+                text: "SearchResponse",
+              },
+            },
+          },
+        ],
       },
       errors: [],
     });
