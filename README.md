@@ -52,7 +52,8 @@ assert(Point.serializer.from_json(json) == point)
 4.  [Serialization formats](docs/serialization.md)
 5.  [Schema evolution & compatibility](docs/compatibility.md)
 6.  [Typesafe RPC interfaces](docs/services.md)
-7.  [Comparisons](docs/comparisons.md)
+7.  [External dependencies](docs/dependencies.md)
+8.  [Comparisons](docs/comparisons.md)
 
 ## Supported languages
 
