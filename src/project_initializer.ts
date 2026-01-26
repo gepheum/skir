@@ -43,16 +43,16 @@ const SKIR_YML_CONTENT = `# Configuration file for Skir code generator
 
 # Uncomment and configure the generators for your target language(s).
 generators:
-  # # --------------------------------------------------------------------------
-  # # C++ code generator
-  # # Home: https://github.com/gepheum/skir-cc-gen
-  # # To install runtime dependencies, follow instructions in repository README
-  # # --------------------------------------------------------------------------
-  # - mod: skir-cc-gen
-  #   outDir: ./skirout
-  #   config:
-  #     # Set to true if you use GoogleTest
-  #     writeGoogleTestHeaders: false
+  # --------------------------------------------------------------------------
+  # C++ code generator
+  # Home: https://github.com/gepheum/skir-cc-gen
+  # To install runtime dependencies, follow instructions in repository README
+  # --------------------------------------------------------------------------
+  - mod: skir-cc-gen
+    outDir: ./skirout
+    config:
+      # Set to true if you use GoogleTest
+      writeGoogleTestHeaders: false
 
   # # --------------------------------------------------------------------------
   # # Dart code generator
@@ -121,6 +121,8 @@ generators:
 # in the format "@owner/repository-name" and the release tag version.
 # --------------------------------------------------------------------------
 # dependencies:
+#   # Add a dependency to:
+#   #   https://github.com/gepheum/fantasy-game-skir-example/tree/v1.0.0
 #   "@gepheum/fantasy-game-skir-example": v1.0.0
 
 # --------------------------------------------------------------------------
