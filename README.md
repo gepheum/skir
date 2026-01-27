@@ -44,16 +44,19 @@ point_json = Point.serializer.to_json(point)
 assert(Point.serializer.from_json(json) == point)
 ```
 
+## Why Skir
+
+Skir solves one of software engineering's thorniest problems: **keeping data contracts in sync across teams, languages, and time**. Define your data types and API methods once in a `.skir` schema, and Skir generates idiomatic, type-safe code in multiple languages simultaneously. This single source of truth eliminates entire classes of runtime bugs—no more mismatched request/response shapes, no more surprises when deserializing old data, no more manual synchronization between backend and frontend. Whether you're building microservices, connecting a frontend to your backend, or persisting data for years, Skir gives you the confidence that your data contracts will stay correct.
+
 ## Documentation
 
-1.  [Why Skir?](docs/introduction.md)
-2.  [Getting started: setup & workflow](docs/setup.md)
-3.  [Language reference](docs/language-reference.md)
-4.  [Serialization formats](docs/serialization.md)
-5.  [Schema evolution & compatibility](docs/compatibility.md)
-6.  [Typesafe RPC interfaces](docs/services.md)
-7.  [External dependencies](docs/dependencies.md)
-8.  [Comparisons](docs/comparisons.md)
+1.  [Getting started: setup & workflow](docs/setup.md)
+2.  [Language reference](docs/language-reference.md)
+3.  [Serialization formats](docs/serialization.md)
+4.  [Schema evolution & compatibility](docs/compatibility.md)
+5.  [Typesafe RPC interfaces](docs/services.md)
+6.  [External dependencies](docs/dependencies.md)
+7.  [Comparisons](docs/comparisons.md)
 
 ## Supported languages
 

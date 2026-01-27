@@ -4,8 +4,6 @@
 
 When serializing a data structure, you can chose one of 3 formats.
 
-Note that when Skir *deserializes* JSON, it knows how to handle both dense and readable flavor. It's only when *serializing* JSON that a flavor must be specified.
-
 ### JSON, dense flavor
 
 This is the serialization format you should chose in most cases.
@@ -66,6 +64,8 @@ The readable JSON representation of `JOHN_DOE` is:
 ```
 
 This format is more verbose and readable, but it should **not** be used if you need persistence, because Skir allows fields to be renamed in record definitions. In other words, never store a readable JSON on disk or in a database.
+
+Note that when Skir *deserializes* JSON, it knows how to handle both dense and readable flavor. It's only when *serializing* JSON that a flavor must be specified.
 
 ### Binary format
 
