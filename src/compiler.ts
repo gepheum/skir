@@ -129,7 +129,17 @@ class WatchModeMainLoop {
       console.clear();
     }
     try {
-      const moduleSet = await collectModules(this.srcDir, this.dependencies);
+      let moduleSet: ModuleSet;
+      try {
+        moduleSet = await collectModules(this.srcDir, this.dependencies);
+      } catch (e) {
+        if (this.mode === "watch" && e instanceof Error) {
+          console.error(makeRed(e.message));
+          return false;
+        } else {
+          throw e;
+        }
+      }
       const errors = moduleSet.errors.filter((e) => !e.errorIsInOtherModule);
       if (errors.length) {
         renderErrors(errors);
