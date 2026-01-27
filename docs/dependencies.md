@@ -38,6 +38,22 @@ struct QuestCollection {
 }
 ```
 
+## Code generation
+
+Code generated from external dependencies is placed in different output directories depending on the language's identifier rules.
+
+For languages that allow `@` symbols in directory names (like JavaScript), the output path is `skirout/@{owner}/{repo}`:
+
+```javascript
+import { Quest } from "../skirout/@gepheum/fantasy-game-skir-example/fantasy_game.js"
+```
+
+For languages with stricter identifier requirements (like Python), the output path uses `skirout/external/{owner}/{repo}` with dashes replaced by underscores:
+
+```python
+from skirout.external.gepheum.fantasy_game_skir_example import fantasy_game_skir
+```
+
 ## Private repositories
 
 If your dependencies are hosted in private GitHub repositories, you need to provide a GitHub Personal Access Token so Skir can download them.
