@@ -8,10 +8,9 @@ To add a dependency, open your `skir.yml` file and add an entry to the `dependen
 
 ```yaml
 dependencies:
-  # Use the definition of standard shapes
+  # This repo: https://github.com/gepheum/fantasy-game-skir-example/tree/v1.0.0
   "@gepheum/fantasy-game-skir-example": v1.0.0
 
-  # Use the user service API definitions
   "@my-org/user-service-skir": v3.5.0
 ```
 
