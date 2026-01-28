@@ -68,7 +68,7 @@ When you run this command, two things happen:
 
 #### Recommended workflow
 
-**1. During Development**
+**1. During development**
 
 While drafting a new schema version, use the `--dry` flag to check for backward compatibility without updating the snapshot:
 
@@ -78,11 +78,11 @@ npx skir snapshot --dry
 
 This confirms that your changes are safe relative to the last release (snapshot).
 
-**2. Before Release**
+**2. Before release**
 
 Run `npx skir snapshot` without flags to verify compatibility and commit the new schema state to the snapshot file.
 
-**3. Continuous Integration**
+**3. Continuous integration**
 
 Add the command to your CI pipeline or pre-commit hook to prevent accidental breaking changes. The `--ci` flag ensures the snapshot is up-to-date and compatible:
 
@@ -104,7 +104,7 @@ struct User(500996846) {
 
 If you rename `User` to `Account` but keep the ID `500996846`, Skir knows it's the same type and will validate the change safely.
 
-**Best Practice**: Assign stable identifiers to all root types used for storage. Nested types are implicitly tracked through their parents so you don't need to give them a stable identifier. Similarly, the request and response types of methods are automatically tracked as part of the method definition.
+**Best practice**: Assign stable identifiers to all root types used for storage. Nested types are implicitly tracked through their parents so you don't need to give them a stable identifier. Similarly, the request and response types of methods are automatically tracked as part of the method definition.
 
 ### Handling intentional breaking changes
 
@@ -116,7 +116,7 @@ Consider a service in a distributed system that reads a Skir value, modifies it,
 
 When deserializing, you can choose to either **drop** or **preserve** this unrecognized data.
 
-*   **Drop (Default)**: Unrecognized fields and variants are discarded. This is safer but results in data loss if the object is saved back to storage.
+*   **Drop (default)**: Unrecognized fields and variants are discarded. This is safer but results in data loss if the object is saved back to storage.
 *   **Preserve**: Unrecognized data is kept internally and written back during serialization. This enables "round-tripping".
 
 ### Example
@@ -158,7 +158,7 @@ const originalJson = UserAfter.serializer.toJson(UserAfter.create({
 }));
 ```
 
-#### Default Behavior: Drop
+#### Default behavior: drop
 
 By default, unrecognized data is lost during the round-trip.
 
@@ -175,7 +175,7 @@ assert(result.name === ""); // Lost: reset to default
 assert(result.subscriptionStatus.union.kind === "UNKNOWN"); // Lost: became UNKNOWN
 ```
 
-#### Preserve Behavior
+#### Preserve behavior
 
 You can configure the deserializer to keep unrecognized values.
 
@@ -198,7 +198,7 @@ assert(result.subscriptionStatus.union.kind === "TRIAL"); // Preserved!
 > [!NOTE]
 > Unrecognized data can only be preserved during round-trip conversion if the serialization format (dense JSON or binary) is the same as the deserialization format. If you read JSON and write binary, unrecognized data will be dropped even if you requested to keep it.
 
-### Security Implications
+### Security implications
 
 > [!WARNING]
 > **Only preserve unrecognized data from trusted sources.**
