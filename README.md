@@ -16,7 +16,7 @@
 - ✍️ **Idiomatic code gen** - Generates code that feels native to each language.
 - ✨ **Effortless serialization** - Skir generates functions to serialize your data to JSON or binary, so you never have to write parsing code manually.
 - 🦋 **Schema evolution** - Simple guidelines and built-in checks to change your schemas and maintain backward compatibibility.
-- 🤝 **RPC interfaces** - Define the interface between your microservices, enjoy end-to-end type safety.
+- 🤝 **RPC interfaces** - Define the interface between your frontend and your backend or your microservices, enjoy end-to-end type safety.
 - 🌍 **Multi-language** - First-class support for TypeScript, Python, C++, Java, Kotlin, and Dart.
 
 ## ⚡ Syntax example
