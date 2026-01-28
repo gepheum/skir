@@ -1,6 +1,6 @@
 <div align="center">
   <h1>Skir</h1>
-  <p><strong>Like Protocol Buffer, but better.</strong></p>
+  <p><strong>Like Protocol Buffer and gRPC, but better.</strong></p>
 
   [![npm](https://img.shields.io/npm/v/skir?style=flat-square)](https://www.npmjs.com/package/skir)
   [![build](https://github.com/gepheum/skir/workflows/Build/badge.svg?style=flat-square)](https://github.com/gepheum/skir/actions)
@@ -16,7 +16,7 @@
 - ✍️ **Idiomatic code gen** - Generates code that feels native to each language.
 - ✨ **Effortless serialization** - Skir generates functions to serialize your data to JSON or binary, so you never have to write parsing code manually.
 - 🦋 **Schema evolution** - Simple guidelines and built-in checks to change your schemas and maintain backward compatibibility.
-- 🤝 **RPC interfaces** - Define interfaces for microservices or frontend-backend communication, enjoy end-to-end type safety.
+- 🤝 **RPC interfaces** - Define the interface between your microservices, enjoy end-to-end type safety.
 - 🌍 **Multi-language** - First-class support for TypeScript, Python, C++, Java, Kotlin, and Dart.
 
 ## ⚡ Syntax example
