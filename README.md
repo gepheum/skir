@@ -16,7 +16,7 @@
 - 🌍 **Multi-language** - First-class support for TypeScript, Python, C++, Java, Kotlin, and Dart.
 - ✍️ **Idiomatic code gen** - Generates code that feels native to each language.
 - ✨ **Effortless serialization** - Skir generates functions to serialize your data to JSON or binary, so you never have to write parsing code manually.
-- 🦋 **Schema evolution** - Simple guidelines and built-in checks to change your schemas and maintain backward compatibibility.
+- 🦋 **Schema evolution** - Simple guidelines and built-in checks to evolve your schema without breaking backward compatibility.
 - 🤝 **RPC interfaces** - Define the interface between your frontend and your backend or your microservices, enjoy end-to-end type safety.
 - 🛠️ **Superior developer experience** - Automatic recompilation in watch mode, built-in code formatter, official VSCode extension.
 - 📦 **Built-in package manager** - Import types from other GitHub repositories to easily share common data structures across projects.
