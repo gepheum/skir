@@ -423,7 +423,7 @@ The path is always relative to the root of the Skir source directory.
 
 ## Doc comments
 
-Doc comments are designated by three forward slashes (`///`) and are used to provide high-level documentation for records, fields, and methods. Unlike regular comments (`//` or `/*`), which are ignored by the compiler, doc comments are processed as part of your schema definition.
+Doc comments are designated by three forward slashes (`///`) and are used to provide high-level documentation for records, fields, variants, methods and constants. Unlike regular comments (`//` or `/*`), which are ignored by the compiler, doc comments are processed as part of your schema definition.
 
 ### Referencing symbols
 

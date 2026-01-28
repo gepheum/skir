@@ -1,6 +1,6 @@
 <div align="center">
   <h1>Skir</h1>
-  <p><strong>Like Protocol Buffer and gRPC, but better.</strong></p>
+  <p><strong>Like Protocol Buffer, but better.</strong></p>
 
   [![npm](https://img.shields.io/npm/v/skir?style=flat-square)](https://www.npmjs.com/package/skir)
   [![build](https://github.com/gepheum/skir/workflows/Build/badge.svg?style=flat-square)](https://github.com/gepheum/skir/actions)
@@ -20,6 +20,7 @@
 - 🤝 **RPC interfaces** - Define the interface between your frontend and your backend or your microservices, enjoy end-to-end type safety.
 - 🛠️ **Superior developer experience** - Automatic recompilation in watch mode, built-in code formatter, official VSCode extension.
 - 📦 **Built-in package manager** - Import types from other GitHub repositories to easily share common data structures across projects.
+- 🍃 **Easy setup** - Get started with `npx skir init`, manage your entire project configuration from a single YAML file.
 
 ## ⚡ Syntax example
 
@@ -72,7 +73,7 @@ assert(restored == point)
 - [Schema evolution & compatibility](docs/compatibility.md)
 - [Typesafe RPC interfaces](docs/services.md)
 - [External dependencies](docs/dependencies.md)
-- [Comparisons](docs/comparisons.md)
+- [Coming from Protocol Buffers](docs/coming_from_protobuf.md)
 
 ## 🌍 Supported languages
 
