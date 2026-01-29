@@ -73,7 +73,7 @@ assert(restored == point)
 - [Schema evolution & compatibility](docs/compatibility.md)
 - [Typesafe RPC interfaces](docs/services.md)
 - [External dependencies](docs/dependencies.md)
-- [Coming from Protocol Buffers](docs/coming_from_protobuf.md)
+- [Coming from Protocol Buffer](docs/coming_from_protobuf.md)
 
 ## 🌍 Supported languages
 

@@ -1,4 +1,4 @@
-# Coming from Protocol Buffers
+# Coming from Protocol Buffer
 
 If you have used [Protocol Buffers](https://protobuf.dev/) (protobuf) before, you will find Skir very familiar. Skir was heavily inspired by protobuf and shares many of its core design principles: efficient binary serialization, schema evolution, and language-agnostic types.
 
