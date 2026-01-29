@@ -117,7 +117,7 @@ The first step ensures `.skir` files are properly formatted. The second step ver
 The official VS Code [extension](https://marketplace.visualstudio.com/items?itemName=TylerFibonacci.skir-language) for Skir provides syntax highlighting, auto-formatting, validation, jump-to-definition, and other language features.
 
 
-## Skir language reference
+## Language reference
 
 ### Records
 
@@ -646,7 +646,7 @@ This format is a bit more compact than JSON, and serialization/deserialization c
 
 This section describes precisely how each data type is serialized to each of the 3 formats. This information is intended for advanced users who want to understand the inner workings of Skir, or for developers who want to implement a Skir generator for a new programming language.
 
-#### Handling of Zeros
+#### Handling of zeros
 
 Since the dense JSON and binary format use zeros to represent `removed` fields, in order to preserve forward compatibility, zero is a valid input for any type even non-numerical types. With the exception of the optional type, all types will decode "zero" as the default value for the type (e.g. an empty array). The optional type will decode zero as the default value of the underlying type.
 
