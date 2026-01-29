@@ -18,7 +18,7 @@
 - ✨ **Effortless serialization** - Skir generates functions to serialize your data to JSON or binary, so you never have to write parsing code manually.
 - 🦋 **Schema evolution** - Simple guidelines and built-in checks to evolve your schema without breaking backward compatibility.
 - 🤝 **RPC interfaces** - Define the interface between your frontend and your backend or your microservices, enjoy end-to-end type safety.
-- 🛠️ **DevEx taken seriously** - Automatic recompilation in watch mode, built-in code formatter, official VSCode extension.
+- 🛠️ **Pleasant developer experience** - Automatic recompilation in watch mode, built-in code formatter, official VSCode extension.
 - 📦 **Built-in package manager** - Import types from other GitHub repositories to easily share common data structures across projects.
 - 🍃 **Easy setup** - Get started with `npx skir init`, manage your entire project configuration from a single YAML file.
 
