@@ -67,13 +67,7 @@ assert(restored == point)
 
 ## 📚 Documentation
 
-- [Getting started: setup & workflow](docs/setup.md)
-- [Language reference](docs/language-reference.md)
-- [Serialization formats](docs/serialization.md)
-- [Schema evolution & compatibility](docs/compatibility.md)
-- [Typesafe RPC interfaces](docs/services.md)
-- [External dependencies](docs/dependencies.md)
-- [Coming from Protocol Buffer](docs/coming_from_protobuf.md)
+[Read the full documentation here](docs/documentation.md)
 
 ## 🌍 Supported languages
 
