@@ -5,7 +5,7 @@
   [![npm](https://img.shields.io/npm/v/skir?style=flat-square)](https://www.npmjs.com/package/skir)
   [![build](https://github.com/gepheum/skir/workflows/Build/badge.svg?style=flat-square)](https://github.com/gepheum/skir/actions)
 
-  ![GIF](https://github.com/user-attachments/assets/f7111525-7099-4ea3-8535-02a5f2997125)
+  ![GIF2](https://github.com/user-attachments/assets/bbce3ea2-4ed2-42b6-9dbd-ce792a9406ff)
 </div>
 
 <br />
