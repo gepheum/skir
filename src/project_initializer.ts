@@ -132,26 +132,26 @@ generators:
   # # To install runtime dependencies: npm i skir-client
   # # --------------------------------------------------------------------------
   # - mod: skir-typescript-gen
-  #   outDir: ./src/skirout
+  #   outDir: ./skirout
   #   config:
   #     # Use ".js" for ES modules, "" for CommonJS
   #     importPathExtension: ".js"
 
-# --------------------------------------------------------------------------
-# External Skir dependencies hosted on GitHub
-# To use an external repository, specify the GitHub repository identifier
-# in the format "@owner/repository-name" and the release tag version.
-# --------------------------------------------------------------------------
+# # --------------------------------------------------------------------------
+# # External Skir dependencies hosted on GitHub
+# # To use an external repository, specify the GitHub repository identifier
+# # in the format "@owner/repository-name" and the release tag version.
+# # --------------------------------------------------------------------------
 # dependencies:
 #   # Add a dependency to:
 #   #   https://github.com/gepheum/fantasy-game-skir-example/tree/v1.0.0
 #   "@gepheum/fantasy-game-skir-example": v1.0.0
 
-# --------------------------------------------------------------------------
-# GitHub Personal Access Token (required for private dependencies)
-# Set this to the name of an environment variable containing your GitHub
-# token. The token is used to authenticate when downloading dependencies.
-# --------------------------------------------------------------------------
+# # --------------------------------------------------------------------------
+# # GitHub Personal Access Token (required for private dependencies)
+# # Set this to the name of an environment variable containing your GitHub
+# # token. The token is used to authenticate when downloading dependencies.
+# # --------------------------------------------------------------------------
 # githubTokenEnvVar: GITHUB_TOKEN
 `;
 
