@@ -10,7 +10,7 @@
 
 <br />
 
-**Skir** is a universal language for representing data types, constants, and RPC interfaces. Define your schema once in a `.skir` file and generate idiomatic, type-safe code for TypeScript, Python, Java, C++, and more.
+**Skir** is a universal language for representing data types, constants, and RPC interfaces. Define your schema once in a `.skir` file and generate idiomatic, type-safe code in TypeScript, Python, Java, C++, and more.
 
 ## ✨ Features
 
