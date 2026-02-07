@@ -2,6 +2,10 @@
   <h1>Skir</h1>
   <p><strong>Like Protocol Buffer, but better.</strong></p>
 
+  <p>
+    <a href="http://skir.build"><b>http://skir.build</b></a>
+  </p>
+
   [![npm](https://img.shields.io/npm/v/skir?style=flat-square)](https://www.npmjs.com/package/skir)
   [![build](https://github.com/gepheum/skir/workflows/Build/badge.svg?style=flat-square)](https://github.com/gepheum/skir/actions)
 
@@ -14,13 +18,13 @@
 
 ## ✨ Features
 
-- 💎 **Single source of truth** - Define your data types once and share them between your backend, frontend, and microservices.
+- 💎 **Single source of truth** - Define your data types and APIs once and share them between your backend, frontend, and microservices.
 - 🌍 **Multi-language** - First-class support for TypeScript, Python, C++, Java, Kotlin, and Dart.
 - ✍️ **Idiomatic code gen** - Generates code that feels native to each language.
 - 🍃 **Effortless serialization** - Skir generates functions to serialize your data to JSON or binary, so you never have to write parsing code manually.
 - 🦋 **Schema evolution** - Simple guidelines and built-in checks to evolve your schema without breaking backward compatibility.
-- 🤝 **RPC interfaces** - Define the interface between your frontend and your backend or your microservices, enjoy end-to-end type safety.
-- 🛠️ **Climactic developer experience** - Automatic recompilation in watch mode, built-in code formatter, official VSCode extension.
+- 🤝 **RPCs with end-to-end type safety** - Like tRPC, but for every language. Call your backend functions directly from your frontend or microservices with full compile-time safety.
+- 🛠️ **Delightful developer experience** - Automatic recompilation in watch mode, built-in code formatter, official VSCode extension.
 - 📦 **Built-in package manager** - Import types from other GitHub repositories to easily share common data structures across projects.
 - 🍃 **Easy setup** - Get started with `npx skir init`, manage your entire project configuration from a single YAML file.
 
@@ -69,13 +73,15 @@ assert(restored == point)
 
 ## 📚 Documentation
 
-- [Getting started: setup & workflow](docs/setup.md)
-- [Language reference](docs/language-reference.md)
-- [Serialization formats](docs/serialization.md)
-- [Schema evolution & compatibility](docs/compatibility.md)
-- [Typesafe RPC interfaces](docs/services.md)
-- [External dependencies](docs/dependencies.md)
-- [Coming from Protocol Buffer](docs/coming_from_protobuf.md)
+Read the full documentation at [skir.build](http://skir.build):
+
+- [Getting started: setup & workflow](https://skir.build/docs/setup)
+- [Language reference](https://skir.build/docs/language-reference)
+- [Serialization](https://skir.build/docs/serialization)
+- [Schema evolution](https://skir.build/docs/compatibility)
+- [RPC services](https://skir.build/docs/services)
+- [External dependencies](https://skir.build/docs/dependencies)
+- [Coming from Protocol Buffer](https://skir.build/docs/coming_from_protobuf)
 
 ## 🌍 Supported languages
 
