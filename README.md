@@ -3,7 +3,7 @@
   <p><strong>Like Protocol Buffer, but better.</strong></p>
 
   <p>
-    <a href="http://skir.build"><b>http://skir.build</b></a>
+    <a href="http://skir.build"><b>skir.build</b></a>
   </p>
 
   [![npm](https://img.shields.io/npm/v/skir?style=flat-square)](https://www.npmjs.com/package/skir)
@@ -73,15 +73,13 @@ assert(restored == point)
 
 ## 📚 Documentation
 
-Read the full documentation at [skir.build](http://skir.build):
-
 - [Getting started: setup & workflow](https://skir.build/docs/setup)
 - [Language reference](https://skir.build/docs/language-reference)
 - [Serialization](https://skir.build/docs/serialization)
-- [Schema evolution](https://skir.build/docs/compatibility)
+- [Schema evolution](https://skir.build/docs/schema-evolution)
 - [RPC services](https://skir.build/docs/services)
 - [External dependencies](https://skir.build/docs/dependencies)
-- [Coming from Protocol Buffer](https://skir.build/docs/coming_from_protobuf)
+- [Coming from Protocol Buffer](https://skir.build/docs/protobuf)
 
 ## 🌍 Supported languages
 
