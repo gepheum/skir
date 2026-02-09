@@ -50,6 +50,7 @@ export function initializeProject(rootDir: string): void {
   }
 
   console.log(`Done. Please edit: ${rewritePathForRendering(skirYmlPath)}`);
+  console.log("To generate code, run: npx skir gen [--watch]");
 }
 
 const SKIR_YML_CONTENT = `# Configuration file for Skir code generator
