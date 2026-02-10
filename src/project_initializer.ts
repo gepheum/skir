@@ -145,8 +145,8 @@ generators:
 # # --------------------------------------------------------------------------
 # dependencies:
 #   # Add a dependency to:
-#   #   https://github.com/gepheum/fantasy-game-skir-example/tree/v1.0.0
-#   "@gepheum/fantasy-game-skir-example": v1.0.0
+#   #   https://github.com/gepheum/skir-fantasy-game-example/tree/v1.0.0
+#   "@gepheum/skir-fantasy-game-example": v1.0.0
 
 # # --------------------------------------------------------------------------
 # # GitHub Personal Access Token (required for private dependencies)
