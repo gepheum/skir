@@ -11,7 +11,6 @@ import { ModuleSet } from "./module_set.js";
 export async function collectModules(
   srcDir: string,
   dependencies: ModuleSet,
-  lenient?: "lenient",
 ): Promise<ModuleSet> {
   const modules = ModuleSet.create(REAL_FILE_SYSTEM, srcDir);
   modules.mergeFrom(dependencies);

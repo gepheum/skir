@@ -55,7 +55,7 @@ export function initializeProject(rootDir: string): void {
 
 const SKIR_YML_CONTENT = `# Configuration file for Skir code generator
 #
-# Documentation: https://skir.build/
+# Documentation: https://skir.sh/
 #
 # Cheat sheet:
 #   npx skir gen          Generate code from .skir files
