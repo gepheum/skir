@@ -114,6 +114,7 @@ type Context = {
     | "const" // Between 'const' and '='
     | "in-value" // After 'const', between '=' and ';'
     | "removed" // Between 'removed' and ';'
+    | "import" // Between 'import' and ';'
     | null;
   readonly indentStack: IndentStackItem[];
 };
@@ -206,7 +207,9 @@ function getWhitespaceAfterToken(
       ? ""
       : oneOrTwoLineBreaks(token, next);
   } else if (token.text === ",") {
-    return context.context === "removed" ? " " : "\n";
+    return context.context === "removed" || context.context === "import"
+      ? " "
+      : "\n";
   } else if (token.text === "=") {
     if (context.context === "const") {
       context.context = "in-value";
@@ -218,6 +221,9 @@ function getWhitespaceAfterToken(
   } else if (token.text === "removed") {
     context.context = "removed";
     return next.text === ";" ? "" : " ";
+  } else if (token.text === "import") {
+    context.context = "import";
+    return " ";
   } else if (
     context.context === "in-value" &&
     ["]", "}", "|}"].includes(next.text)

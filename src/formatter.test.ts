@@ -6,6 +6,7 @@ import { tokenizeModule } from "./tokenizer.js";
 
 const UNFORMATTED_MODULE = `//module
 import A from 'module.skir';  import * as foo from 'module.skir';
+import  a,b,c  from  'module.skir';
 
   struct Empty1 { }
 struct Empty2 { //
@@ -129,6 +130,7 @@ const EXPECTED_FORMATTED_MODULE = [
   "// module",
   'import A from "module.skir";',
   'import * as foo from "module.skir";',
+  'import a, b, c from "module.skir";',
   "",
   "struct Empty1 {}",
   "struct Empty2 {  //",
@@ -286,20 +288,26 @@ describe("formatModule", () => {
           oldEnd: 73,
         },
         {
-          oldStart: 74,
-          oldEnd: 78,
-          newText: "\n\n",
+          oldStart: 81,
+          oldEnd: 83,
+          newText: " ",
         },
         {
-          oldStart: 93,
-          oldEnd: 94,
-          newText: "",
+          oldStart: 85,
+          oldEnd: 85,
+          newText: " ",
         },
         {
-          oldStart: 111,
-          oldEnd: 112,
-          newText: "  ",
+          oldStart: 87,
+          oldEnd: 87,
+          newText: " ",
         },
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
         {},
         {},
         {},
