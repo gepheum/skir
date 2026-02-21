@@ -1065,10 +1065,10 @@ function collectDoc(it: TokenIterator): MutableDoc {
   );
 }
 
-const EMPTY_DOC: Doc = {
+const EMPTY_DOC: Doc = Object.freeze({
   text: "",
-  pieces: [],
-};
+  pieces: Object.freeze([]),
+});
 
 abstract class TokenPredicate {
   abstract matches(token: string): boolean;

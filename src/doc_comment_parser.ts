@@ -269,7 +269,7 @@ export function mergeDocs(docs: readonly Doc[]): MutableDoc {
   };
 }
 
-const EMPTY_DOC: Doc = {
+const EMPTY_DOC: Doc = Object.freeze({
   text: "",
-  pieces: [],
-};
+  pieces: Object.freeze([]),
+});
