@@ -1,6 +1,6 @@
 {
   "name": "skir",
-  "version": "1.0.25",
+  "version": "1.0.26",
   "description": "",
   "homepage": "https://skir.sh/",
   "bugs": {
@@ -41,8 +41,8 @@
     "lint:fix": "eslint src/**/*.ts --fix"
   },
   "dependencies": {
-    "glob": "^11.0.1",
-    "skir-cc-gen": "^1.0.4",
+    "glob": "^13.0.6",
+    "skir-cc-gen": "^1.0.6",
     "skir-dart-gen": "^1.0.3",
     "skir-internal": "^0.1.0",
     "skir-java-gen": "^1.0.4",
@@ -51,22 +51,24 @@
     "skir-typescript-gen": "^1.0.5",
     "watcher": "^2.3.1",
     "yaml": "^2.7.1",
-    "zod": "^4.2.1"
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.2",
+    "@eslint/js": "^10.0.1",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.6.0",
-    "@typescript-eslint/eslint-plugin": "^8.50.1",
-    "@typescript-eslint/parser": "^8.50.1",
+    "@typescript-eslint/eslint-plugin": "^8.56.0",
+    "@typescript-eslint/parser": "^8.56.0",
     "buckwheat": "^1.1.2",
-    "eslint": "^9.39.2",
-    "mocha": "^11.3.0",
-    "prettier": "^3.2.4",
+    "eslint": "^10.0.1",
+    "mocha": "^11.7.5",
+    "prettier": "^3.8.1",
     "prettier-plugin-organize-imports": "^4.2.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.2.2",
-    "typescript-eslint": "^8.50.1"
-  }
+    "typescript-eslint": "^8.56.0"  },
+  "overrides": {
+    "minimatch": "^10.2.1",
+    "diff": "^8.0.0"  }
 }
