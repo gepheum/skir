@@ -1,9 +1,6 @@
 import { expect } from "buckwheat";
 import { describe, it } from "mocha";
-import {
-  findDefinition,
-  findTokensWithDefinition,
-} from "./definition_finder.js";
+import { findDefinition, findReferences } from "./definition_finder.js";
 import type { FileReader } from "./io.js";
 import { ModuleSet } from "./module_set.js";
 
@@ -15,168 +12,498 @@ class FakeFileReader implements FileReader {
   pathToCode = new Map<string, string>();
 }
 
+interface Range {
+  modulePath: string;
+  lineNumber: number;
+  colNumberStart: number;
+  colNumberEnd: number;
+}
+
 describe("definition finder", () => {
   const fakeFileReader = new FakeFileReader();
+
+  // line 0:  (empty)
+  // line 1:  import * as other_module from "./other/module";
+  // line 2:  (empty)
+  // line 3:  struct Outer {
+  // line 4:    struct Foo {}
+  // line 5:  }
+  // line 6:  (empty)
+  // line 7:  struct Bar {
+  // line 8:    foo: Outer.Foo;
+  // line 9:    foo2: .Outer.Foo;
+  // line 10: (empty)
+  // line 11:   struct Inner {}
+  // line 12:   inner: Inner;
+  // line 13:   zoo: other_module.Outer.Zoo;
+  // line 14: }
+  // line 15: (empty)
+  // line 16: method GetBar(Outer.Foo): Bar = 101;
+  // line 17: method GetBar2(Outer.Foo): Bar = 100;
+  // line 18: (empty)
+  // line 19: const FOO: Outer.Foo = {};
   fakeFileReader.pathToCode.set(
     "path/to/root/path/to/module",
-    `
-        import * as other_module from "./other/module";
-
-        struct Outer {
-          struct Foo {}
-        }
-
-        struct Bar {
-          foo: Outer.Foo;
-          foo2: .Outer.Foo;
-
-          struct Inner {}
-          inner: Inner;
-          zoo: other_module.Outer.Zoo;
-        }
-
-        method GetBar(Outer.Foo): Bar = 101;
-        method GetBar2(Outer.Foo): Bar = 100;
-
-        const FOO: Outer.Foo = {};
-      `,
+    [
+      "",
+      'import * as other_module from "./other/module";',
+      "",
+      "struct Outer {",
+      "  struct Foo {}",
+      "}",
+      "",
+      "struct Bar {",
+      "  foo: Outer.Foo;",
+      "  foo2: .Outer.Foo;",
+      "",
+      "  struct Inner {}",
+      "  inner: Inner;",
+      "  zoo: other_module.Outer.Zoo;",
+      "}",
+      "",
+      "method GetBar(Outer.Foo): Bar = 101;",
+      "method GetBar2(Outer.Foo): Bar = 100;",
+      "",
+      "const FOO: Outer.Foo = {};",
+      "",
+    ].join("\n"),
   );
   fakeFileReader.pathToCode.set(
     "path/to/root/path/to/other/module",
-    `
-        struct Outer {
-          struct Zoo {}
-        }
-      `,
+    ["", "struct Outer {", "  struct Zoo {}", "}", ""].join("\n"),
+  );
+  fakeFileReader.pathToCode.set(
+    "path/to/root/path/to/keyed-array-module",
+    [
+      "",
+      "struct Foo {",
+      "  struct Bar {",
+      "    id: int32;",
+      "  }",
+      "  bar: Bar;",
+      "}",
+      "",
+      "struct Zoo {",
+      "  foos: [Foo|bar.id];",
+      "}",
+      "",
+    ].join("\n"),
+  );
+  fakeFileReader.pathToCode.set(
+    "path/to/root/path/to/constant-value-module",
+    [
+      "",
+      "struct Foo {",
+      "  enum Bar {",
+      "    zoo: int32;",
+      "  }",
+      "  foo: int32;",
+      "  bar: Bar;",
+      "}",
+      "",
+      "const FOOS: [Foo] = [",
+      "  {",
+      "    foo: 10,",
+      "    bar: {",
+      '      kind: "zoo",',
+      "      value: 10,",
+      "    },",
+      "  },",
+      "];",
+      "",
+    ].join("\n"),
+  );
+  fakeFileReader.pathToCode.set(
+    "path/to/root/path/to/doc-comment-module",
+    [
+      "",
+      "struct Foobar {",
+      "  /// [bar]",
+      "  foo: int32;",
+      "  /// [Foobar.foo]",
+      "  bar: int32;",
+      "}",
+      "",
+    ].join("\n"),
   );
   const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
   const module = moduleSet.parseAndResolve("path/to/module").result;
   if (module === null) {
     return Error("Failed to parse module");
   }
+  const keyedArrayModule = moduleSet.parseAndResolve(
+    "path/to/keyed-array-module",
+  ).result;
+  if (keyedArrayModule === null) {
+    return Error("Failed to parse keyed-array module");
+  }
+  const constantValueModule = moduleSet.parseAndResolve(
+    "path/to/constant-value-module",
+  ).result;
+  if (constantValueModule === null) {
+    return Error("Failed to parse constant-value module");
+  }
+  const docCommentModule = moduleSet.parseAndResolve(
+    "path/to/doc-comment-module",
+  ).result;
+  if (docCommentModule === null) {
+    return Error("Failed to parse doc-comment module");
+  }
 
-  it("works with module paths", () => {
-    expect(findDefinition(module, 45)).toMatch({
-      modulePath: "path/to/other/module",
-      position: 0,
-    });
-  });
+  // Converts a (modulePath, lineNumber, colNumber) triple to a flat character
+  // position in the source string, so tests can be written in terms of
+  // human-readable line/column numbers instead of opaque offsets.
+  function positionOf(
+    modulePath: string,
+    lineNumber: number,
+    colNumber: number,
+  ): number {
+    const source = fakeFileReader.pathToCode.get(`path/to/root/${modulePath}`)!;
+    let pos = 0;
+    for (let i = 0; i < lineNumber; i++) {
+      pos = source.indexOf("\n", pos) + 1;
+    }
+    return pos + colNumber;
+  }
 
-  it("works with record type", () => {
-    expect(findDefinition(module, 154)).toMatch({
-      modulePath: "path/to/module",
-      position: 73,
-    });
-  });
+  // Verifies that:
+  //  1. findReferences(definition) returns exactly the expected reference ranges.
+  //  2. findDefinition at both the start and end column of every reference
+  //     resolves back to the definition range.
+  function checkDefinitionAndReferences(
+    definition: Range,
+    references: readonly Range[],
+  ): void {
+    const allModules = [
+      module!,
+      keyedArrayModule!,
+      constantValueModule!,
+      docCommentModule!,
+    ];
 
-  it("works with nested record type", () => {
-    expect(findDefinition(module, 187)).toMatch({
-      modulePath: "path/to/module",
-      position: 98,
-    });
-  });
+    const expectedDefPosition = positionOf(
+      definition.modulePath,
+      definition.lineNumber,
+      definition.colNumberStart,
+    );
 
-  it("works with module alias", () => {
-    expect(findDefinition(module, 262)).toMatch({
-      modulePath: "path/to/module",
-      position: 21,
-    });
-  });
+    // Get the declaration token by navigating from the first reference.
+    // findDefinition at a usage site returns the declaration.
+    if (references.length === 0) {
+      throw new Error(
+        "checkDefinitionAndReferences requires at least one reference",
+      );
+    }
+    const firstRef = references[0];
+    const firstRefMod = moduleSet.parseAndResolve(firstRef.modulePath).result!;
+    const firstRefPos = positionOf(
+      firstRef.modulePath,
+      firstRef.lineNumber,
+      firstRef.colNumberStart,
+    );
+    const firstMatch = findDefinition(firstRefMod, firstRefPos);
+    if (!firstMatch?.declaration) {
+      throw new Error(
+        `Could not find declaration via reference ` +
+          `(${firstRef.modulePath}:${firstRef.lineNumber}:${firstRef.colNumberStart})`,
+      );
+    }
+    const defToken = firstMatch.declaration.name;
 
-  it("works with request type", () => {
-    expect(findDefinition(module, 316)).toMatch({
-      modulePath: "path/to/module",
-      position: 73,
-    });
-  });
+    // 1. findReferences should return exactly the expected ranges (by position).
+    const refs = findReferences(defToken, allModules);
+    const expectedPositions = references.map((r) =>
+      positionOf(r.modulePath, r.lineNumber, r.colNumberStart),
+    );
+    expect(refs).toMatch(expectedPositions.map((p) => ({ position: p })));
 
-  it("works with response type", () => {
-    expect(findDefinition(module, 367)).toMatch({
-      modulePath: "path/to/module",
-      position: 98,
-    });
-  });
+    // 2. findDefinition at each reference's start AND end col resolves back to
+    //    the definition.
+    for (const ref of references) {
+      const refMod = moduleSet.parseAndResolve(ref.modulePath).result!;
+      for (const col of [ref.colNumberStart, ref.colNumberEnd]) {
+        const refPos = positionOf(ref.modulePath, ref.lineNumber, col);
+        const match = findDefinition(refMod, refPos);
+        expect(match).toMatch({
+          modulePath: definition.modulePath,
+          position: expectedDefPosition,
+        });
+      }
+    }
+  }
 
-  it("works with constant type", () => {
-    expect(findDefinition(module, 404)).toMatch({
-      modulePath: "path/to/module",
-      position: 73,
-    });
-  });
-
-  it("findTokensWithDefinition works", () => {
-    expect(findTokensWithDefinition(module)).toMatch([
+  it("resolves a module path import to the target module", () => {
+    // "./other/module" starts at line 1 col 31 of the main module.
+    expect(findDefinition(module, positionOf("path/to/module", 1, 31))).toMatch(
       {
-        text: '"./other/module"',
-        position: 39,
-        line: {
+        modulePath: "path/to/other/module",
+        position: 0,
+      },
+    );
+  });
+
+  describe("record types", () => {
+    it("Foo is referenced in field types, method types and constant type", () => {
+      checkDefinitionAndReferences(
+        // "Foo" struct name on line 4 col 9
+        {
           modulePath: "path/to/module",
+          lineNumber: 4,
+          colNumberStart: 9,
+          colNumberEnd: 11,
         },
-      },
-      {
-        text: "Outer",
-        position: 152,
-      },
-      {
-        text: "Foo",
-        position: 158,
-      },
-      {
-        text: "Outer",
-        position: 180,
-      },
-      {
-        text: "Foo",
-        position: 186,
-      },
-      {
-        text: "Inner",
-        position: 235,
-      },
-      {
-        text: "other_module",
-        position: 257,
-      },
-      {
-        text: "Outer",
-        position: 270,
-      },
-      {
-        text: "Zoo",
-        position: 276,
-      },
-      {
-        text: "Outer",
-        position: 314,
-      },
-      {
-        text: "Foo",
-        position: 320,
-      },
-      {
-        text: "Bar",
-        position: 326,
-      },
-      {
-        text: "Outer",
-        position: 360,
-      },
-      {
-        text: "Foo",
-        position: 366,
-      },
-      {
-        text: "Bar",
-        position: 372,
-      },
-      {
-        text: "Outer",
-        position: 403,
-      },
-      {
-        text: "Foo",
-        position: 409,
-      },
-    ]);
+        [
+          // foo: Outer.Foo  (field, line 8)
+          {
+            modulePath: "path/to/module",
+            lineNumber: 8,
+            colNumberStart: 13,
+            colNumberEnd: 15,
+          },
+          // foo2: .Outer.Foo  (field, line 9)
+          {
+            modulePath: "path/to/module",
+            lineNumber: 9,
+            colNumberStart: 15,
+            colNumberEnd: 17,
+          },
+          // method GetBar(Outer.Foo): Bar  (request type, line 16)
+          {
+            modulePath: "path/to/module",
+            lineNumber: 16,
+            colNumberStart: 20,
+            colNumberEnd: 22,
+          },
+          // method GetBar2(Outer.Foo): Bar  (request type, line 17)
+          {
+            modulePath: "path/to/module",
+            lineNumber: 17,
+            colNumberStart: 21,
+            colNumberEnd: 23,
+          },
+          // const FOO: Outer.Foo  (constant type, line 19)
+          {
+            modulePath: "path/to/module",
+            lineNumber: 19,
+            colNumberStart: 17,
+            colNumberEnd: 19,
+          },
+        ],
+      );
+    });
+
+    it("Bar is referenced in method response types", () => {
+      checkDefinitionAndReferences(
+        // "Bar" struct name on line 7 col 7
+        {
+          modulePath: "path/to/module",
+          lineNumber: 7,
+          colNumberStart: 7,
+          colNumberEnd: 9,
+        },
+        [
+          // method GetBar(...): Bar  (line 16)
+          {
+            modulePath: "path/to/module",
+            lineNumber: 16,
+            colNumberStart: 26,
+            colNumberEnd: 28,
+          },
+          // method GetBar2(...): Bar  (line 17)
+          {
+            modulePath: "path/to/module",
+            lineNumber: 17,
+            colNumberStart: 27,
+            colNumberEnd: 29,
+          },
+        ],
+      );
+    });
+
+    it("Inner is referenced in a field type", () => {
+      checkDefinitionAndReferences(
+        // "Inner" struct name on line 11 col 9
+        {
+          modulePath: "path/to/module",
+          lineNumber: 11,
+          colNumberStart: 9,
+          colNumberEnd: 13,
+        },
+        [
+          // inner: Inner  (line 12)
+          {
+            modulePath: "path/to/module",
+            lineNumber: 12,
+            colNumberStart: 9,
+            colNumberEnd: 13,
+          },
+        ],
+      );
+    });
+
+    it("returns empty references for an unused symbol", () => {
+      const decl = module.nameToDeclaration["GetBar2"];
+      if (decl.kind !== "method") throw new Error("GetBar2 not found");
+      const refs = findReferences(decl.name, [
+        module,
+        keyedArrayModule,
+        constantValueModule,
+        docCommentModule,
+      ]);
+      expect(refs).toMatch([]);
+    });
+  });
+
+  describe("keyed array key path", () => {
+    it("bar field is referenced in the array key path", () => {
+      checkDefinitionAndReferences(
+        // "bar" field on line 5 col 2
+        {
+          modulePath: "path/to/keyed-array-module",
+          lineNumber: 5,
+          colNumberStart: 2,
+          colNumberEnd: 4,
+        },
+        [
+          // [Foo|bar.id]  — "bar" token on line 9 col 13
+          {
+            modulePath: "path/to/keyed-array-module",
+            lineNumber: 9,
+            colNumberStart: 13,
+            colNumberEnd: 15,
+          },
+        ],
+      );
+    });
+
+    it("id field is referenced in the array key path", () => {
+      checkDefinitionAndReferences(
+        // "id" field on line 3 col 4
+        {
+          modulePath: "path/to/keyed-array-module",
+          lineNumber: 3,
+          colNumberStart: 4,
+          colNumberEnd: 5,
+        },
+        [
+          // [Foo|bar.id]  — "id" token on line 9 col 17
+          {
+            modulePath: "path/to/keyed-array-module",
+            lineNumber: 9,
+            colNumberStart: 17,
+            colNumberEnd: 18,
+          },
+        ],
+      );
+    });
+  });
+
+  describe("constant values", () => {
+    it("foo field is referenced as a struct value key", () => {
+      checkDefinitionAndReferences(
+        // "foo" field on line 5 col 2
+        {
+          modulePath: "path/to/constant-value-module",
+          lineNumber: 5,
+          colNumberStart: 2,
+          colNumberEnd: 4,
+        },
+        [
+          // { foo: 10, ... }  — "foo" key on line 11 col 4
+          {
+            modulePath: "path/to/constant-value-module",
+            lineNumber: 11,
+            colNumberStart: 4,
+            colNumberEnd: 6,
+          },
+        ],
+      );
+    });
+
+    it("zoo enum variant is referenced as a kind literal in a constant value", () => {
+      checkDefinitionAndReferences(
+        // "zoo" field on line 3 col 4
+        {
+          modulePath: "path/to/constant-value-module",
+          lineNumber: 3,
+          colNumberStart: 4,
+          colNumberEnd: 6,
+        },
+        [
+          // kind: "zoo"  — the "zoo" string token on line 13 col 12
+          {
+            modulePath: "path/to/constant-value-module",
+            lineNumber: 13,
+            colNumberStart: 12,
+            colNumberEnd: 16,
+          },
+        ],
+      );
+    });
+  });
+
+  describe("doc comments", () => {
+    it("Foobar struct is referenced in a doc comment", () => {
+      checkDefinitionAndReferences(
+        // "Foobar" struct name on line 1 col 7
+        {
+          modulePath: "path/to/doc-comment-module",
+          lineNumber: 1,
+          colNumberStart: 7,
+          colNumberEnd: 12,
+        },
+        [
+          // /// [Foobar.foo]  — "Foobar" token on line 4 col 7
+          {
+            modulePath: "path/to/doc-comment-module",
+            lineNumber: 4,
+            colNumberStart: 7,
+            colNumberEnd: 12,
+          },
+        ],
+      );
+    });
+
+    it("foo field is referenced in a doc comment", () => {
+      checkDefinitionAndReferences(
+        // "foo" field on line 3 col 2
+        {
+          modulePath: "path/to/doc-comment-module",
+          lineNumber: 3,
+          colNumberStart: 2,
+          colNumberEnd: 4,
+        },
+        [
+          // /// [Foobar.foo]  — "foo" token on line 4 col 14
+          {
+            modulePath: "path/to/doc-comment-module",
+            lineNumber: 4,
+            colNumberStart: 14,
+            colNumberEnd: 16,
+          },
+        ],
+      );
+    });
+
+    it("bar field is referenced in a doc comment", () => {
+      checkDefinitionAndReferences(
+        // "bar" field on line 5 col 2
+        {
+          modulePath: "path/to/doc-comment-module",
+          lineNumber: 5,
+          colNumberStart: 2,
+          colNumberEnd: 4,
+        },
+        [
+          // /// [bar]  — "bar" token on line 2 col 7
+          {
+            modulePath: "path/to/doc-comment-module",
+            lineNumber: 2,
+            colNumberStart: 7,
+            colNumberEnd: 9,
+          },
+        ],
+      );
+    });
   });
 });

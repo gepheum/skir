@@ -1242,7 +1242,9 @@ describe("module set", () => {
                         g: {},
                         b: {},
                       },
-                      type: "path/to/module:16",
+                      record: {
+                        key: "path/to/module:16",
+                      },
                     },
                   },
                   points: {
@@ -1272,7 +1274,9 @@ describe("module set", () => {
                             },
                             y: {},
                           },
-                          type: "path/to/module:110",
+                          record: {
+                            key: "path/to/module:110",
+                          },
                         },
                         {},
                         {},
@@ -1280,7 +1284,9 @@ describe("module set", () => {
                     },
                   },
                 },
-                type: "path/to/module:207",
+                record: {
+                  key: "path/to/module:207",
+                },
               },
               valueAsDenseJson: [[255], [[10, 0, 10], [0, 0, 20], [10]]],
             },

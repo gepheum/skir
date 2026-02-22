@@ -621,6 +621,7 @@ export class ModuleSet {
       const fieldEntry = value.entries[field.name.text];
       let valueJson: DenseJson | undefined;
       if (fieldEntry) {
+        fieldEntry.fieldDeclaration = field;
         valueJson = this.valueToDenseJson(fieldEntry.value, type, errors);
       } else {
         // Unless the object is declared partial, all fields are required.
@@ -653,7 +654,7 @@ export class ModuleSet {
     if (!allGood) {
       return undefined;
     }
-    value.type = expectedStruct.key;
+    value.record = expectedStruct;
     return json.slice(0, arrayLen);
   }
 
@@ -756,7 +757,7 @@ export class ModuleSet {
         });
         return undefined;
       }
-      value.type = expectedEnum.key;
+      value.record = expectedEnum;
       // Return an array of length 2.
       return [field.number, valueJson];
     } else {
