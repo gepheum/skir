@@ -585,7 +585,7 @@ describe("module set", () => {
               text: "key",
             },
             message: "Field not found in struct User",
-            expectedNames: ["b", "c"],
+            expectedNames: [{ name: "b" }, { name: "c" }],
           },
         ],
       });
@@ -754,21 +754,21 @@ describe("module set", () => {
               text: "a",
             },
             message: "Field not found in struct Foo",
-            expectedNames: ["foo"],
+            expectedNames: [{ name: "foo" }],
           },
           {
             token: {
               text: "b",
             },
             message: "Field not found in struct Foo",
-            expectedNames: ["foo"],
+            expectedNames: [{ name: "foo" }],
           },
           {
             token: {
               text: "c",
             },
             message: "Field not found in struct Foo",
-            expectedNames: ["foo"],
+            expectedNames: [{ name: "foo" }],
           },
         ],
       });
@@ -809,7 +809,11 @@ describe("module set", () => {
               text: "Bar",
             },
             message: "Cannot find name 'Bar'",
-            expectedNames: ["Foo", "Zoo", "other_module"],
+            expectedNames: [
+              { name: "Foo" },
+              { name: "Zoo" },
+              { name: "other_module" },
+            ],
           },
         ],
       });
@@ -1563,6 +1567,7 @@ describe("module set", () => {
         `
         struct Point {
           x: int32;
+          /// y coordinate
           y: int32;
         }
 
@@ -1581,7 +1586,15 @@ describe("module set", () => {
               text: "z",
             },
             message: "Field not found in struct Point",
-            expectedNames: ["x", "y"],
+            expectedNames: [
+              { name: "x" },
+              {
+                name: "y",
+                doc: {
+                  text: "y coordinate",
+                },
+              },
+            ],
           },
         ],
       });
@@ -1613,7 +1626,7 @@ describe("module set", () => {
               text: '"bar"',
             },
             message: "Variant not found in enum Enum",
-            expectedNames: ["foo"],
+            expectedNames: [{ name: "foo" }],
           },
         ],
       });
@@ -1642,7 +1655,7 @@ describe("module set", () => {
               text: '"Z"',
             },
             message: "Variant not found in enum Enum",
-            expectedNames: ["UNKNOWN", "K"],
+            expectedNames: [{ name: "UNKNOWN" }, { name: "K" }],
           },
         ],
       });

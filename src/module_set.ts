@@ -1,8 +1,9 @@
 import * as Paths from "path";
 import {
-  ModuleLevelDeclaration,
+  Declaration,
+  Doc,
   MutableDocReferenceName,
-  RecordLevelDeclaration,
+  Removed,
   unquoteAndUnescape,
   type DenseJson,
   type ErrorSink,
@@ -163,7 +164,7 @@ export class ModuleSet {
             errors.push({
               token: importedName,
               message: "Not found",
-              expectedNames: keysOfFilteredValues(
+              expectedNames: declarationsToExpectedNames(
                 otherModule.result.nameToDeclaration,
                 (d) => d.kind === "record",
               ),
@@ -466,7 +467,7 @@ export class ModuleSet {
             errors.push({
               token: fieldName,
               message: `Field not found in struct ${record.name.text}`,
-              expectedNames: keysOfFilteredValues(
+              expectedNames: declarationsToExpectedNames(
                 record.nameToDeclaration,
                 (d) => d.kind === "field",
               ),
@@ -485,7 +486,7 @@ export class ModuleSet {
             errors.push({
               token: fieldName,
               expected: "'kind'",
-              expectedNames: ["kind"],
+              expectedNames: [{ name: "kind" }],
             });
             return undefined;
           }
@@ -617,7 +618,7 @@ export class ModuleSet {
         errors.push({
           token: fieldEntry.name,
           message: `Field not found in struct ${expectedStruct.name.text}`,
-          expectedNames: keysOfFilteredValues(
+          expectedNames: declarationsToExpectedNames(
             expectedStruct.nameToDeclaration,
             (d) => d.kind === "field",
           ),
@@ -692,8 +693,8 @@ export class ModuleSet {
         errors.push({
           token: token,
           message: `Variant not found in enum ${expectedEnum.name.text}`,
-          expectedNames: ["UNKNOWN"].concat(
-            keysOfFilteredValues(
+          expectedNames: [{ name: "UNKNOWN" }].concat(
+            declarationsToExpectedNames(
               expectedEnum.nameToDeclaration,
               (d) => d.kind === "field" && !d.type,
             ),
@@ -745,7 +746,7 @@ export class ModuleSet {
         errors.push({
           token: kindValueToken,
           message: `Variant not found in enum ${expectedEnum.name.text}`,
-          expectedNames: keysOfFilteredValues(
+          expectedNames: declarationsToExpectedNames(
             expectedEnum.nameToDeclaration,
             (d) => d.kind === "field" && !!d.type,
           ),
@@ -1220,7 +1221,10 @@ class TypeResolver {
     });
     const makeCannotFindNameError = (
       name: Token,
-      expectedNames: readonly string[],
+      expectedNames: ReadonlyArray<{
+        readonly name: string;
+        readonly doc?: Doc;
+      }>,
     ): SkirError => ({
       token: name,
       message: `Cannot find name '${name.text}'`,
@@ -1240,9 +1244,7 @@ class TypeResolver {
         errors.push(
           makeCannotFindNameError(
             namePart,
-            keysOfFilteredValues<
-              ModuleLevelDeclaration | RecordLevelDeclaration
-            >(
+            declarationsToExpectedNames(
               it.nameToDeclaration,
               (d) =>
                 d.kind === "record" || (i === 0 && d.kind === "import-alias"),
@@ -1279,7 +1281,7 @@ class TypeResolver {
             errors.push(
               makeCannotFindNameError(
                 namePart,
-                keysOfFilteredValues(
+                declarationsToExpectedNames(
                   newModule.nameToDeclaration,
                   (d) => d.kind === "record",
                 ),
@@ -1451,15 +1453,20 @@ function extractPackagePrefix(modulePath: string): string {
   return match?.at(1) ?? "";
 }
 
-function keysOfFilteredValues<T>(
-  nameToDeclaration: { [name: string]: T },
-  predicate: (value: T) => boolean,
-): string[] {
-  return Object.keys(
-    Object.fromEntries(
-      Object.entries(nameToDeclaration).filter(([_, value]) =>
-        predicate(value),
-      ),
-    ),
-  );
+function declarationsToExpectedNames(
+  nameToDeclaration: { [name: string]: Declaration },
+  predicate: (value: Exclude<Declaration, Removed>) => boolean,
+): ReadonlyArray<{ readonly name: string; readonly doc?: Doc }> {
+  const result: Array<{ readonly name: string; readonly doc?: Doc }> = [];
+  for (const [name, declaration] of Object.entries(nameToDeclaration)) {
+    if (declaration.kind === "removed" || !predicate(declaration)) {
+      continue;
+    }
+    const doc =
+      declaration.kind !== "import" && declaration.kind !== "import-alias"
+        ? declaration.doc
+        : undefined;
+    result.push({ name, doc });
+  }
+  return result;
 }
