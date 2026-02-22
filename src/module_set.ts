@@ -1,6 +1,8 @@
 import * as Paths from "path";
 import {
+  ModuleLevelDeclaration,
   MutableDocReferenceName,
+  RecordLevelDeclaration,
   unquoteAndUnescape,
   type DenseJson,
   type ErrorSink,
@@ -161,6 +163,10 @@ export class ModuleSet {
             errors.push({
               token: importedName,
               message: "Not found",
+              expectedNames: keysOfFilteredValues(
+                otherModule.result.nameToDeclaration,
+                (d) => d.kind === "record",
+              ),
             });
           } else if (importedDeclaration.kind === "import") {
             errors.push({
@@ -456,10 +462,14 @@ export class ModuleSet {
         const record = this.recordMap.get(currentType.key)!.record;
         if (record.recordType === "struct") {
           const field = record.nameToDeclaration[fieldName.text];
-          if (!field || field.kind !== "field") {
+          if (field?.kind !== "field") {
             errors.push({
               token: fieldName,
               message: `Field not found in struct ${record.name.text}`,
+              expectedNames: keysOfFilteredValues(
+                record.nameToDeclaration,
+                (d) => d.kind === "field",
+              ),
             });
             return undefined;
           }
@@ -475,6 +485,7 @@ export class ModuleSet {
             errors.push({
               token: fieldName,
               expected: "'kind'",
+              expectedNames: ["kind"],
             });
             return undefined;
           }
@@ -602,10 +613,14 @@ export class ModuleSet {
     let allGood = true;
     for (const [fieldName, fieldEntry] of Object.entries(value.entries)) {
       const field = expectedStruct.nameToDeclaration[fieldName];
-      if (!field || field.kind !== "field") {
+      if (field?.kind !== "field") {
         errors.push({
           token: fieldEntry.name,
           message: `Field not found in struct ${expectedStruct.name.text}`,
+          expectedNames: keysOfFilteredValues(
+            expectedStruct.nameToDeclaration,
+            (d) => d.kind === "field",
+          ),
         });
         allGood = false;
         continue;
@@ -673,17 +688,23 @@ export class ModuleSet {
         return 0;
       }
       const field = expectedEnum.nameToDeclaration[fieldName];
-      if (!field || field.kind !== "field") {
+      if (field?.kind !== "field") {
         errors.push({
           token: token,
-          message: `Field not found in enum ${expectedEnum.name.text}`,
+          message: `Variant not found in enum ${expectedEnum.name.text}`,
+          expectedNames: ["UNKNOWN"].concat(
+            keysOfFilteredValues(
+              expectedEnum.nameToDeclaration,
+              (d) => d.kind === "field" && !d.type,
+            ),
+          ),
         });
         return undefined;
       }
       if (field.type) {
         errors.push({
           token: token,
-          message: "Refers to a wrapper field",
+          message: "Refers to a wrapper variant",
         });
         return undefined;
       }
@@ -694,9 +715,9 @@ export class ModuleSet {
       return field.number;
     } else if (value.kind === "object") {
       // The value is an object. It must have exactly two entries:
-      //   · 'kind' must match the name of one of the wrapper fields defined in
+      //   · 'kind' must match the name of one of the wrapper variants defined in
       //     the enum
-      //   · 'value' must match the type of the wrapper field
+      //   · 'value' must match the type of the wrapper variant
       const entries = { ...value.entries };
       const kindEntry = entries.kind;
       if (!kindEntry) {
@@ -720,10 +741,14 @@ export class ModuleSet {
       }
       const fieldName = unquoteAndUnescape(kindValueToken.text);
       const field = expectedEnum.nameToDeclaration[fieldName];
-      if (!field || field.kind !== "field") {
+      if (field?.kind !== "field") {
         errors.push({
           token: kindValueToken,
-          message: `Field not found in enum ${expectedEnum.name.text}`,
+          message: `Variant not found in enum ${expectedEnum.name.text}`,
+          expectedNames: keysOfFilteredValues(
+            expectedEnum.nameToDeclaration,
+            (d) => d.kind === "field" && !!d.type,
+          ),
         });
         return undefined;
       }
@@ -1193,12 +1218,16 @@ class TypeResolver {
       token: name,
       message: "Does not refer to a struct or an enum",
     });
-    const makeCannotFindNameError = (name: Token): SkirError => ({
+    const makeCannotFindNameError = (
+      name: Token,
+      expectedNames: readonly string[],
+    ): SkirError => ({
       token: name,
       message: `Cannot find name '${name.text}'`,
+      expectedNames: expectedNames,
     });
 
-    let it = start;
+    let it: Module | Record = start;
     const nameParts: Array<{
       token: Token;
       declaration: Record | ImportAlias;
@@ -1208,7 +1237,18 @@ class TypeResolver {
       const name = namePart.text;
       let newIt = it.nameToDeclaration[name];
       if (newIt === undefined) {
-        errors.push(makeCannotFindNameError(namePart));
+        errors.push(
+          makeCannotFindNameError(
+            namePart,
+            keysOfFilteredValues<
+              ModuleLevelDeclaration | RecordLevelDeclaration
+            >(
+              it.nameToDeclaration,
+              (d) =>
+                d.kind === "record" || (i === 0 && d.kind === "import-alias"),
+            ),
+          ),
+        );
         return undefined;
       } else if (newIt.kind === "record") {
         it = newIt;
@@ -1236,10 +1276,18 @@ class TypeResolver {
         if (newIt.kind === "import") {
           newIt = newModule.nameToDeclaration[name];
           if (!newIt) {
-            errors.push(makeCannotFindNameError(namePart));
+            errors.push(
+              makeCannotFindNameError(
+                namePart,
+                keysOfFilteredValues(
+                  newModule.nameToDeclaration,
+                  (d) => d.kind === "record",
+                ),
+              ),
+            );
             return undefined;
           }
-          if (!newIt || newIt.kind !== "record") {
+          if (newIt.kind !== "record") {
             this.errors.push(
               newIt.kind === "import" || newIt.kind === "import-alias"
                 ? transitiveImportError()
@@ -1401,4 +1449,17 @@ function tryFindRecordForType(type: ResolvedType): RecordKey | null {
 function extractPackagePrefix(modulePath: string): string {
   const match = modulePath.match(/^(@[^/]+\/[^/]+\/)/);
   return match?.at(1) ?? "";
+}
+
+function keysOfFilteredValues<T>(
+  nameToDeclaration: { [name: string]: T },
+  predicate: (value: T) => boolean,
+): string[] {
+  return Object.keys(
+    Object.fromEntries(
+      Object.entries(nameToDeclaration).filter(([_, value]) =>
+        predicate(value),
+      ),
+    ),
+  );
 }

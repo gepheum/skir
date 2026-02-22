@@ -568,7 +568,7 @@ describe("module set", () => {
       fakeFileReader.pathToCode.set(
         "path/to/root/path/to/module",
         `
-          struct User {}
+          struct User { b: bool; c: bool; }
           struct Foo {
             users: [User|key];
           }
@@ -585,6 +585,7 @@ describe("module set", () => {
               text: "key",
             },
             message: "Field not found in struct User",
+            expectedNames: ["b", "c"],
           },
         ],
       });
@@ -734,8 +735,7 @@ describe("module set", () => {
       fakeFileReader.pathToCode.set(
         "path/to/root/path/to/module",
         `
-          struct Foo {
-          }
+          struct Foo { foo: bool; struct Bar{} }
 
           method Pa([Foo|a]): string = 1;
           method Pb(string): [Foo|b] = 2;
@@ -754,18 +754,21 @@ describe("module set", () => {
               text: "a",
             },
             message: "Field not found in struct Foo",
+            expectedNames: ["foo"],
           },
           {
             token: {
               text: "b",
             },
             message: "Field not found in struct Foo",
+            expectedNames: ["foo"],
           },
           {
             token: {
               text: "c",
             },
             message: "Field not found in struct Foo",
+            expectedNames: ["foo"],
           },
         ],
       });
@@ -781,6 +784,18 @@ describe("module set", () => {
           struct Foo {
             bar: Bar;
           }
+
+          struct Zoo {
+            o: other_module.O;
+          }
+
+          import * as other_module from "./other/module";
+        `,
+      );
+      fakeFileReader.pathToCode.set(
+        "path/to/root/path/to/other/module",
+        `
+          struct O {}
         `,
       );
 
@@ -794,6 +809,7 @@ describe("module set", () => {
               text: "Bar",
             },
             message: "Cannot find name 'Bar'",
+            expectedNames: ["Foo", "Zoo", "other_module"],
           },
         ],
       });
@@ -1535,6 +1551,98 @@ describe("module set", () => {
               text: "'A'",
             },
             message: "Duplicate key",
+          },
+        ],
+      });
+    });
+
+    it("struct field not found", () => {
+      const fakeFileReader = new FakeFileReader();
+      fakeFileReader.pathToCode.set(
+        "path/to/root/path/to/module",
+        `
+        struct Point {
+          x: int32;
+          y: int32;
+        }
+
+        const POINT: Point = {|
+          z: 10,
+        |};
+      `,
+      );
+      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
+      const actual = moduleSet.parseAndResolve("path/to/module");
+
+      expect(actual).toMatch({
+        errors: [
+          {
+            token: {
+              text: "z",
+            },
+            message: "Field not found in struct Point",
+            expectedNames: ["x", "y"],
+          },
+        ],
+      });
+    });
+
+    it("wrapper variant not found", () => {
+      const fakeFileReader = new FakeFileReader();
+      fakeFileReader.pathToCode.set(
+        "path/to/root/path/to/module",
+        `
+        enum Enum {
+          foo: int32;
+          K;
+        }
+
+        const ENUM: Enum = {
+          kind: "bar",
+          value: 10,
+        };
+      `,
+      );
+      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
+      const actual = moduleSet.parseAndResolve("path/to/module");
+
+      expect(actual).toMatch({
+        errors: [
+          {
+            token: {
+              text: '"bar"',
+            },
+            message: "Variant not found in enum Enum",
+            expectedNames: ["foo"],
+          },
+        ],
+      });
+    });
+
+    it("constant variant not found", () => {
+      const fakeFileReader = new FakeFileReader();
+      fakeFileReader.pathToCode.set(
+        "path/to/root/path/to/module",
+        `
+        enum Enum {
+          foo: int32;
+          K;
+        }
+
+        const ENUM: Enum = "Z";
+      `,
+      );
+      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
+      const actual = moduleSet.parseAndResolve("path/to/module");
+
+      expect(actual).toMatch({
+        errors: [
+          {
+            token: {
+              text: '"Z"',
+            },
+            message: "Variant not found in enum Enum",
+            expectedNames: ["UNKNOWN", "K"],
           },
         ],
       });
