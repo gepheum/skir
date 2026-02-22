@@ -242,6 +242,15 @@ describe("definition finder", () => {
     );
   });
 
+  it("resolves the name token of a declaration to itself", () => {
+    // "Bar" struct name is on line 7 col 7 of the main module.
+    const barPosition = positionOf("path/to/module", 7, 7);
+    expect(findDefinition(module, barPosition)).toMatch({
+      modulePath: "path/to/module",
+      position: barPosition,
+    });
+  });
+
   describe("record types", () => {
     it("Foo is referenced in field types, method types and constant type", () => {
       checkDefinitionAndReferences(

@@ -72,6 +72,21 @@ function findDefinitionInDeclaration(
     }
   }
 
+  // If the position lands on the declaration's own name token, return it as
+  // its own definition.
+  switch (declaration.kind) {
+    case "constant":
+    case "field":
+    case "import-alias":
+    case "method":
+    case "record": {
+      if (tokenContains(declaration.name, position)) {
+        return declarationToMatch(declaration);
+      }
+      break;
+    }
+  }
+
   // Then look for a match in the declaration itself.
   switch (declaration.kind) {
     case "constant": {
@@ -134,7 +149,10 @@ function findDefinitionInDeclaration(
       return null;
     }
     case "record": {
-      return findDefinitionInDeclarations(declaration.fields, position);
+      return (
+        findDefinitionInDeclarations(declaration.fields, position) ??
+        findDefinitionInDeclarations(declaration.nestedRecords, position)
+      );
     }
     case "removed": {
       return null;
