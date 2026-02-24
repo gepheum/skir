@@ -6,10 +6,10 @@ import { ModuleSet2 } from "./module_set2.js";
 
 class Input {
   readonly pathToCode = new Map<string, string>();
-  CACA;
+  cache?: ModuleSet2;
 
   doCompile(): ModuleSet2 {
-    return ModuleSet2.compile(this.pathToCode);
+    return ModuleSet2.compile(this.pathToCode, this.cache);
   }
 }
 
