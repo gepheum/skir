@@ -1,5 +1,3 @@
-// TODO: test errors across modules... test errors on tokenization?
-
 import { expect } from "buckwheat";
 import { describe, it } from "node:test";
 import { ModuleSet } from "./module_set.js";
@@ -7,9 +5,10 @@ import { ModuleSet } from "./module_set.js";
 class Input {
   readonly pathToCode = new Map<string, string>();
   cache?: ModuleSet;
+  parseMode: "strict" | "lenient" = "strict";
 
   doCompile(): ModuleSet {
-    return ModuleSet.compile(this.pathToCode, this.cache);
+    return ModuleSet.compile(this.pathToCode, this.cache, this.parseMode);
   }
 }
 
@@ -1145,6 +1144,53 @@ describe("module set", () => {
             text: "GetBar",
           },
           message: "Same number as GetFoo in path/to/module",
+        },
+      ],
+    });
+  });
+
+  describe("lenient parse mode", () => {
+    it("method with ? as stable id compiles without errors in lenient mode", () => {
+      const input = new Input();
+      input.parseMode = "lenient";
+      input.pathToCode.set("module", `method GetFoo(string): string = ?;`);
+
+      const moduleSet = input.doCompile();
+
+      expect(moduleSet.modules.get("module")).toMatch({ errors: [] });
+    });
+
+    it("method with ? as stable id returns a parse error in strict mode", () => {
+      const input = new Input();
+      input.pathToCode.set("module", `method GetFoo(string): string = ?;`);
+
+      const moduleSet = input.doCompile();
+
+      expect(moduleSet.modules.get("module")).toMatch({
+        errors: [{ expected: "positive integer" }],
+      });
+    });
+  });
+
+  it("tokenization error is reported", () => {
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
+      `
+      struct Foo {
+        foo: bool;
+        é: string;
+      }
+      `,
+    );
+
+    const moduleSet = input.doCompile();
+
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
+      errors: [
+        {
+          token: { text: "é" },
+          message: "Invalid sequence of characters",
         },
       ],
     });

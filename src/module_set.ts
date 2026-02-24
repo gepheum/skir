@@ -55,13 +55,15 @@ export class ModuleSet {
   static compile(
     modulePathToContent: ReadonlyMap<string, string>,
     cache?: ModuleSet,
+    parseMode: "strict" | "lenient" = "strict",
   ): ModuleSet {
-    return new ModuleSet(modulePathToContent, cache);
+    return new ModuleSet(modulePathToContent, cache, parseMode);
   }
 
   constructor(
     private readonly modulePathToContent: ReadonlyMap<string, string>,
     cache: ModuleSet | undefined,
+    private readonly parseMode: "strict" | "lenient",
   ) {
     this.cache = cache
       ? new Cache(modulePathToContent, cache.moduleBundles)
@@ -123,7 +125,7 @@ export class ModuleSet {
     let module: MutableModule;
     const errors: SkirError[] = [];
     {
-      const parseResult = parseModule(moduleTokens.result, "strict");
+      const parseResult = parseModule(moduleTokens.result, this.parseMode);
       errors.push(...parseResult.errors);
       module = parseResult.result;
     }
@@ -1041,10 +1043,10 @@ export class ModuleSet {
 
     for (const [modulePath, moduleBundle] of this.moduleBundles) {
       const { module, tokens } = moduleBundle;
-      const moduleErrors = [...tokens.errors, ...module.errors];
+      const moduleErrors = tokens.errors.length ? tokens.errors : module.errors;
       modules.set(modulePath, {
         result: module.result,
-        errors: moduleErrors,
+        errors: [...moduleErrors],
       });
     }
 
