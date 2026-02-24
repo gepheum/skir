@@ -161,12 +161,6 @@ describe("definition finder", () => {
       docCommentModule,
     ];
 
-    const expectedDefPosition = positionOf(
-      definition.modulePath,
-      definition.lineNumber,
-      definition.colNumberStart,
-    );
-
     // Get the declaration token by navigating from the first reference.
     // findDefinition at a usage site returns the declaration.
     if (references.length === 0) {
@@ -198,28 +192,35 @@ describe("definition finder", () => {
     expect(refs).toMatch(expectedPositions.map((p) => ({ position: p })));
 
     // 2. findDefinition at each reference's start AND end col resolves back to
-    //    the definition.
+    //    the definition, and exposes the hovered token with its start position.
     for (const ref of references) {
       const refMod = moduleSet.modules.get(ref.modulePath)!.result;
+      const refStartPos = positionOf(
+        ref.modulePath,
+        ref.lineNumber,
+        ref.colNumberStart,
+      );
       for (const col of [ref.colNumberStart, ref.colNumberEnd]) {
         const refPos = positionOf(ref.modulePath, ref.lineNumber, col);
         const match = findDefinition(refMod, refPos);
         expect(match).toMatch({
           modulePath: definition.modulePath,
-          position: expectedDefPosition,
+          declaration: { name: { position: defToken.position } },
+          referenceToken: { position: refStartPos },
         });
       }
     }
   }
 
   it("resolves a module path import to the target module", () => {
-    // "./other/module" starts at line 1 col 31 of the main module.
-    expect(findDefinition(module, positionOf("path/to/module", 1, 31))).toMatch(
-      {
-        modulePath: "path/to/other/module",
-        position: 0,
-      },
-    );
+    // The '"./other/module"' string token starts at line 1 col 30 (the opening
+    // quote) of the main module.
+    const tokenPos = positionOf("path/to/module", 1, 30);
+    expect(findDefinition(module, tokenPos)).toMatch({
+      modulePath: "path/to/other/module",
+      declaration: undefined,
+      referenceToken: { position: tokenPos },
+    });
   });
 
   it("resolves the name token of a declaration to itself", () => {
@@ -227,7 +228,8 @@ describe("definition finder", () => {
     const barPosition = positionOf("path/to/module", 7, 7);
     expect(findDefinition(module, barPosition)).toMatch({
       modulePath: "path/to/module",
-      position: barPosition,
+      declaration: { name: { position: barPosition } },
+      referenceToken: { position: barPosition },
     });
   });
 

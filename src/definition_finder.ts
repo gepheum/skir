@@ -17,10 +17,12 @@ import {
 } from "skir-internal";
 
 export interface DefinitionMatch {
+  /** Module containing the definition. */
   modulePath: string;
-  position: number;
-  // Undefined if this definition match corresponds to a module path.
+  /** Position of the definition within the module. */
   declaration: Constant | Field | ImportAlias | Method | Record | undefined;
+  /** Token which got hovered. */
+  referenceToken: Token;
 }
 
 export function findDefinition(
@@ -61,7 +63,7 @@ function findDefinitionInDeclaration(
             if (tokenContains(namePart.token, position)) {
               const { declaration } = namePart;
               if (declaration) {
-                return declarationToMatch(declaration);
+                return declarationToMatch(declaration, namePart.token);
               } else {
                 return null;
               }
@@ -81,7 +83,7 @@ function findDefinitionInDeclaration(
     case "method":
     case "record": {
       if (tokenContains(declaration.name, position)) {
-        return declarationToMatch(declaration);
+        return declarationToMatch(declaration, declaration.name);
       }
       break;
     }
@@ -121,8 +123,8 @@ function findDefinitionInDeclaration(
       ) {
         return {
           modulePath: declaration.resolvedModulePath,
-          position: 0,
           declaration: undefined,
+          referenceToken: declaration.modulePath,
         };
       }
       return null;
@@ -171,7 +173,7 @@ function findDefinitionInResolvedType(
           if (tokenContains(item.name, position)) {
             const { declaration } = item;
             if (declaration) {
-              return declarationToMatch(declaration);
+              return declarationToMatch(declaration, item.name);
             }
           }
         }
@@ -187,7 +189,7 @@ function findDefinitionInResolvedType(
     case "record": {
       for (const namePart of type.nameParts) {
         if (tokenContains(namePart.token, position)) {
-          return declarationToMatch(namePart.declaration);
+          return declarationToMatch(namePart.declaration, namePart.token);
         }
       }
       return null;
@@ -219,7 +221,7 @@ function findDefinitionInValue(
           if (tokenContains(entry.name, position)) {
             const { fieldDeclaration } = entry;
             if (fieldDeclaration) {
-              return declarationToMatch(fieldDeclaration);
+              return declarationToMatch(fieldDeclaration, entry.name);
             } else {
               return null;
             }
@@ -234,7 +236,10 @@ function findDefinitionInValue(
             const variantDeclaration =
               value.record.nameToDeclaration[variantName];
             if (variantDeclaration?.kind === "field") {
-              return declarationToMatch(variantDeclaration);
+              return declarationToMatch(
+                variantDeclaration,
+                kindEntry.value.token,
+              );
             }
           } else {
             return null;
@@ -263,12 +268,13 @@ function tokenContains(token: Token, position: number): boolean {
 
 function declarationToMatch(
   declaration: Constant | Field | ImportAlias | Method | Record,
+  referenceToken: Token,
 ): DefinitionMatch {
   const { name } = declaration;
   return {
     modulePath: name.line.modulePath,
-    position: name.position,
     declaration: declaration,
+    referenceToken,
   };
 }
 
