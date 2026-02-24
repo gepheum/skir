@@ -2914,4 +2914,81 @@ describe("module set", () => {
       });
     });
   });
+
+  describe("module path suggestions", () => {
+    // All tests in this describe block share the same set of modules:
+    // The helper populates the module map with:
+    //   "aa.skir", "bb/cc/dd.skir", "bb/ee.skir", "ff.skir", "zz/other.skir"
+    // and uses "zz/origin" as the importing module (one level deep, a sibling
+    // of "zz/other.skir"). The origin is always in the map, so it may appear
+    // in suggestions when its directory or its own path matches the prefix.
+
+    function suggestionsFor(importPath: string): string[] {
+      const input = new Input();
+      input.pathToCode.set("aa.skir", "");
+      input.pathToCode.set("bb/cc/dd.skir", "");
+      input.pathToCode.set("bb/ee.skir", "");
+      input.pathToCode.set("ff.skir", "");
+      input.pathToCode.set("zz/other.skir", "");
+      input.pathToCode.set(
+        "zz/origin",
+        `import * as m from ${JSON.stringify(importPath)};`,
+      );
+      const moduleSet = input.doCompile();
+      const errors = moduleSet.modules.get("zz/origin")!.errors;
+      const notFound = errors.find((e) => e.message === "Module not found");
+      return (notFound?.expectedNames ?? []).map((e) => e.name).sort();
+    }
+
+    it("empty typed path suggests top-level directories and files", () => {
+      // "zz/" appears because both "zz/origin" and "zz/other.skir" are in the
+      // map.
+      expect(suggestionsFor("")).toMatch(["aa.skir", "bb/", "ff.skir", "zz/"]);
+    });
+
+    it("partial prefix narrows to matching files", () => {
+      expect(suggestionsFor("a")).toMatch(["aa.skir"]);
+    });
+
+    it("partial prefix matching only a directory collapses to that directory", () => {
+      expect(suggestionsFor("b")).toMatch(["bb/"]);
+    });
+
+    it("directory prefix lists the directory contents, collapsing nested dirs", () => {
+      expect(suggestionsFor("bb/")).toMatch(["bb/cc/", "bb/ee.skir"]);
+    });
+
+    it("directory prefix with partial filename filters within that directory", () => {
+      expect(suggestionsFor("bb/e")).toMatch(["bb/ee.skir"]);
+    });
+
+    it("unmatched prefix returns no suggestions", () => {
+      expect(suggestionsFor("xxx")).toMatch([]);
+    });
+
+    it("relative ./ suggests all files in the origin's own directory", () => {
+      // Both "zz/other.skir" and "zz/origin" (the origin itself) are siblings.
+      expect(suggestionsFor("./")).toMatch(["./origin", "./other.skir"]);
+    });
+
+    it("relative ../ suggests the contents of the parent directory", () => {
+      // From "zz/origin", going up reaches the root which contains aa.skir,
+      // bb/, ff.skir, and the "zz/" directory itself (shown as "./").
+      expect(suggestionsFor("../")).toMatch([
+        "../aa.skir",
+        "../bb/",
+        "../ff.skir",
+        "./",
+      ]);
+    });
+
+    it("relative path that escapes the root returns no suggestions", () => {
+      // "zz/origin" is one level deep; going up two levels escapes the root.
+      expect(suggestionsFor("../../")).toMatch([]);
+    });
+
+    it("relative ../ with a partial name filters to matching entries", () => {
+      expect(suggestionsFor("../a")).toMatch(["../aa.skir"]);
+    });
+  });
 });

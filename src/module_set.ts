@@ -60,7 +60,7 @@ export class ModuleSet {
   }
 
   constructor(
-    readonly modulePathToContent: ReadonlyMap<string, string>,
+    private readonly modulePathToContent: ReadonlyMap<string, string>,
     cache: ModuleSet | undefined,
   ) {
     this.cache = cache
@@ -176,6 +176,11 @@ export class ModuleSet {
         errors.push({
           token: declaration.modulePath,
           message: "Module not found",
+          expectedNames: suggestModulePaths(
+            unquoteAndUnescape(declaration.modulePath.text),
+            modulePath,
+            this.modulePathToContent,
+          ),
         });
       } else if (
         otherModule.tokens.errors.length !== 0 ||
@@ -1551,6 +1556,96 @@ function ensureAllImportsAreUsed(
       }
     }
   }
+}
+
+/**
+ * Returns suggested module paths for import auto-completion.
+ *
+ * Given the partial path the user has typed, returns suggestions from
+ * `modulePathToContent`. For paths where there is more after the matched
+ * segment, the suggestion is truncated at the next "/" and a trailing "/" is
+ * appended to signal that it is a directory, not a file.
+ *
+ * Handles both absolute paths (e.g. "bb/ee") and relative paths (e.g.
+ * "./other", "../sibling").
+ */
+function suggestModulePaths(
+  typedPath: string,
+  originModulePath: string,
+  modulePathToContent: ReadonlyMap<string, string>,
+): ReadonlyArray<{ readonly name: string }> {
+  const isRelative = typedPath.startsWith("./") || typedPath.startsWith("../");
+
+  // Compute the absolute path prefix to match against all module paths.
+  let absolutePrefix: string;
+  if (isRelative) {
+    // Split at the last "/" so that the directory component (fully typed) can
+    // be resolved cleanly, while the tail (partial filename/dir prefix) is
+    // appended afterwards.
+    const lastSlash = typedPath.lastIndexOf("/");
+    const dirComponent = typedPath.slice(0, lastSlash + 1);
+    const filePrefix = typedPath.slice(lastSlash + 1);
+    // Append a dummy filename so Paths.join/normalize treat the directory
+    // component as a file path (avoids trailing-slash edge-cases), then strip
+    // it off again.
+    const dummy = dirComponent + "__dummy__";
+    const resolvedDummy = Paths.join(
+      Paths.dirname(originModulePath),
+      dummy.startsWith("./") ? dummy.slice(2) : dummy,
+    ).replace(/\\/g, "/");
+    const absoluteDir = resolvedDummy.slice(
+      0,
+      resolvedDummy.length - "__dummy__".length,
+    );
+    absolutePrefix = absoluteDir + filePrefix;
+  } else if (originModulePath.startsWith("@") && !typedPath.startsWith("@")) {
+    // Mirror the package-prefix logic from resolveModulePath.
+    absolutePrefix = extractPackagePrefix(originModulePath) + typedPath;
+  } else {
+    absolutePrefix = typedPath;
+  }
+  absolutePrefix = absolutePrefix.replace(/\\/g, "/");
+  if (absolutePrefix.startsWith("../")) {
+    // Typed path escapes the root; no valid suggestions.
+    return [];
+  }
+
+  const originBaseDir = Paths.dirname(originModulePath).replace(/\\/g, "/");
+  const suggestions = new Set<string>();
+
+  for (const path of modulePathToContent.keys()) {
+    if (!path.startsWith(absolutePrefix)) continue;
+    const remaining = path.slice(absolutePrefix.length);
+    const slashIndex = remaining.indexOf("/");
+    // If there is a sub-path after the matched prefix, collapse to the next
+    // directory segment and append "/". Otherwise use the full path.
+    const absoluteSuggestion =
+      slashIndex >= 0
+        ? absolutePrefix + remaining.slice(0, slashIndex + 1)
+        : path;
+
+    if (isRelative) {
+      const isDir = absoluteSuggestion.endsWith("/");
+      const absPath = isDir
+        ? absoluteSuggestion.slice(0, -1)
+        : absoluteSuggestion;
+      let rel = Paths.relative(originBaseDir, absPath).replace(/\\/g, "/");
+      // Paths.relative returns "" when both paths are the same; normalise to
+      // "." so the subsequent prefix-check and directory-slash logic work
+      // correctly (avoids producing the invalid path ".//" for same-dir cases).
+      if (rel === "") {
+        rel = ".";
+      }
+      if (!rel.startsWith(".")) {
+        rel = "./" + rel;
+      }
+      suggestions.add(isDir ? rel + "/" : rel);
+    } else {
+      suggestions.add(absoluteSuggestion);
+    }
+  }
+
+  return [...suggestions].map((name) => ({ name }));
 }
 
 function resolveModulePath(
