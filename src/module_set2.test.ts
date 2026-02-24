@@ -1,4 +1,4 @@
-// TODO:test caching... test errors across modules... test errors on tokenization?;
+// TODO: test errors across modules... test errors on tokenization?
 
 import { expect } from "buckwheat";
 import { describe, it } from "node:test";
@@ -2650,6 +2650,265 @@ describe("module set", () => {
               text: "GetBar",
             },
             message: "Same number as GetFoo in @my-org/pkg-a/module",
+          },
+        ],
+      });
+    });
+  });
+
+  describe("caching", () => {
+    it("recompiling unchanged modules yields the correct result", () => {
+      const input = new Input();
+      input.pathToCode.set(
+        "mod/a",
+        `
+          struct Foo { x: int32; }
+          method GetFoo(Foo): Foo = 42;
+        `,
+      );
+      input.cache = input.doCompile();
+
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/a")).toMatch({
+        result: {
+          nameToDeclaration: {
+            Foo: {
+              kind: "record",
+              recordType: "struct",
+              fields: [
+                {
+                  name: { text: "x" },
+                  type: { kind: "primitive", primitive: "int32" },
+                },
+              ],
+            },
+            GetFoo: { kind: "method", number: 42 },
+          },
+        },
+        errors: [],
+      });
+      expect(second.errors).toMatch([]);
+    });
+
+    it("recompiling unchanged modules with imports yields the correct result", () => {
+      const input = new Input();
+      input.pathToCode.set("mod/dep", `struct Dep { a: string; }`);
+      input.pathToCode.set(
+        "mod/main",
+        `import Dep from "mod/dep"; struct Main { d: Dep; }`,
+      );
+      input.cache = input.doCompile();
+
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/dep")).toMatch({ errors: [] });
+      expect(second.modules.get("mod/main")).toMatch({
+        result: {
+          nameToDeclaration: {
+            Main: {
+              fields: [{ name: { text: "d" }, type: { kind: "record" } }],
+            },
+          },
+        },
+        errors: [],
+      });
+      expect(second.errors).toMatch([]);
+    });
+
+    it("a changed module is recompiled with the new content", () => {
+      const input = new Input();
+      input.pathToCode.set("mod/a", `struct Foo { x: int32; }`);
+      input.cache = input.doCompile();
+
+      input.pathToCode.set("mod/a", `struct Foo { x: string; y: bool; }`);
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/a")).toMatch({
+        result: {
+          nameToDeclaration: {
+            Foo: {
+              fields: [
+                {
+                  name: { text: "x" },
+                  type: { kind: "primitive", primitive: "string" },
+                },
+                {
+                  name: { text: "y" },
+                  type: { kind: "primitive", primitive: "bool" },
+                },
+              ],
+            },
+          },
+        },
+        errors: [],
+      });
+      expect(second.errors).toMatch([]);
+    });
+
+    it("changing a dependency causes the dependent module to be re-resolved", () => {
+      // First compilation: mod/dep has struct Dep with field `a: int32`.
+      // mod/main imports Dep and uses it.
+      const input = new Input();
+      input.pathToCode.set("mod/dep", `struct Dep { a: int32; }`);
+      input.pathToCode.set(
+        "mod/main",
+        `import Dep from "mod/dep"; struct Main { d: Dep; }`,
+      );
+      input.cache = input.doCompile();
+
+      // Second compilation: mod/dep changes, mod/main is unchanged.
+      // mod/main must be re-resolved against the new dep content.
+      input.pathToCode.set("mod/dep", `struct Dep { a: string; b: bool; }`);
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/dep")).toMatch({
+        result: {
+          nameToDeclaration: {
+            Dep: {
+              fields: [
+                {
+                  name: { text: "a" },
+                  type: { kind: "primitive", primitive: "string" },
+                },
+                {
+                  name: { text: "b" },
+                  type: { kind: "primitive", primitive: "bool" },
+                },
+              ],
+            },
+          },
+        },
+        errors: [],
+      });
+      expect(second.modules.get("mod/main")).toMatch({ errors: [] });
+      expect(second.errors).toMatch([]);
+    });
+
+    it("errors in an unchanged module are preserved", () => {
+      const input = new Input();
+      // Foo references a non-existent type.
+      input.pathToCode.set("mod/a", `struct Foo { x: NonExistent; }`);
+      input.cache = input.doCompile();
+
+      // Recompile with the exact same content.
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/a")).toMatch({
+        errors: [
+          {
+            token: { text: "NonExistent" },
+            message: "Cannot find name 'NonExistent'",
+          },
+        ],
+      });
+      expect(second.errors).toMatch([{}]);
+    });
+
+    it("a dependency that gains errors causes 'Imported module has errors' in the dependent", () => {
+      const input = new Input();
+      input.pathToCode.set("mod/dep", `struct Dep {}`);
+      input.pathToCode.set(
+        "mod/main",
+        `import Dep from "mod/dep"; struct Main { d: Dep; }`,
+      );
+      input.cache = input.doCompile();
+
+      // Break the dependency.
+      input.pathToCode.set("mod/dep", `struct Dep { x: NonExistent; }`);
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/dep")).toMatch({
+        errors: [{ message: "Cannot find name 'NonExistent'" }],
+      });
+      expect(second.modules.get("mod/main")).toMatch({
+        errors: [
+          {
+            token: { text: '"mod/dep"' },
+            message: "Imported module has errors",
+          },
+        ],
+      });
+    });
+
+    it("a dependency that had errors and is now fixed clears errors in the dependent", () => {
+      const input = new Input();
+      // First compilation: dep has an error.
+      input.pathToCode.set("mod/dep", `struct Dep { x: NonExistent; }`);
+      input.pathToCode.set(
+        "mod/main",
+        `import Dep from "mod/dep"; struct Main { d: Dep; }`,
+      );
+      input.cache = input.doCompile();
+
+      // Fix the dependency.
+      input.pathToCode.set("mod/dep", `struct Dep { x: int32; }`);
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/dep")).toMatch({ errors: [] });
+      expect(second.modules.get("mod/main")).toMatch({ errors: [] });
+      expect(second.errors).toMatch([]);
+    });
+
+    it("adding a new module not present in the cache compiles correctly", () => {
+      const input = new Input();
+      input.pathToCode.set("mod/a", `struct Foo {}`);
+      input.cache = input.doCompile();
+
+      input.pathToCode.set(
+        "mod/b",
+        `import Foo from "mod/a"; struct Bar { foo: Foo; }`,
+      );
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/a")).toMatch({ errors: [] });
+      expect(second.modules.get("mod/b")).toMatch({
+        result: {
+          nameToDeclaration: {
+            Bar: {
+              fields: [{ name: { text: "foo" }, type: { kind: "record" } }],
+            },
+          },
+        },
+        errors: [],
+      });
+      expect(second.errors).toMatch([]);
+    });
+
+    it("removing a module from the set leaves it absent from the result", () => {
+      const input = new Input();
+      input.pathToCode.set("mod/a", `struct Foo {}`);
+      input.pathToCode.set("mod/b", `struct Bar {}`);
+      input.cache = input.doCompile();
+
+      input.pathToCode.delete("mod/b");
+      const second = input.doCompile();
+
+      expect([...second.modules.keys()]).toMatch(["mod/a"]);
+      expect(second.errors).toMatch([]);
+    });
+
+    it("circular dependency errors are preserved when modules are unchanged", () => {
+      const input = new Input();
+      input.pathToCode.set("mod/a", `import * as b from "mod/b";`);
+      input.pathToCode.set("mod/b", `import * as a from "mod/a";`);
+      input.cache = input.doCompile();
+
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/a")).toMatch({
+        errors: [
+          {
+            token: { text: '"mod/b"' },
+            message: "Circular dependency between modules",
+          },
+        ],
+      });
+      expect(second.modules.get("mod/b")).toMatch({
+        errors: [
+          {
+            token: { text: '"mod/a"' },
+            message: "Circular dependency between modules",
           },
         ],
       });
