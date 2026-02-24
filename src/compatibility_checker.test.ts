@@ -670,10 +670,10 @@ function parseModuleSet(sourceCode: string): ModuleSet {
   const modulePath = "path/to/module";
   const modulePathToSourceCode = new Map<string, string>();
   modulePathToSourceCode.set(modulePath, sourceCode);
-  const moduleSet = ModuleSet.fromMap(modulePathToSourceCode);
-  const { errors } = moduleSet.parseAndResolve(modulePath);
-  if (errors.length > 0) {
-    const firstError = errors[0]!;
+  const moduleSet = ModuleSet.compile(modulePathToSourceCode);
+  const moduleResult = moduleSet.modules.get(modulePath)!;
+  if (moduleResult.errors.length > 0) {
+    const firstError = moduleResult.errors[0]!;
     const message = firstError.message ?? `expected: ${firstError.expected}`;
     throw new Error("Error while parsing module set: " + message);
   }

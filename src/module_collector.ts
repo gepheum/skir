@@ -11,9 +11,12 @@ import { ModuleSet } from "./module_set.js";
 export async function collectModules(
   srcDir: string,
   dependencies: ModuleSet,
+  cache?: ModuleSet,
 ): Promise<ModuleSet> {
-  const modules = ModuleSet.create(REAL_FILE_SYSTEM, srcDir);
-  modules.mergeFrom(dependencies);
+  const modulePathToContent = new Map<string, string>();
+  for (const [modulePath, module] of dependencies.modules) {
+    modulePathToContent.set(modulePath, module.result.sourceCode);
+  }
   const skirFiles = await glob(Paths.join(srcDir, "**/*.skir"), {
     stat: true,
     withFileTypes: true,
@@ -34,9 +37,15 @@ export async function collectModules(
       Paths.relative(srcDir, skirFile.fullpath()).replace(/\\/g, "/");
 
     validate(relativePath);
-    modules.parseAndResolve(relativePath);
+    const content = REAL_FILE_SYSTEM.readTextFile(skirFile.fullpath());
+    if (content === undefined) {
+      throw new ExitError(
+        "Cannot read " + rewritePathForRendering(skirFile.fullpath()),
+      );
+    }
+    modulePathToContent.set(relativePath, content);
   }
-  return modules;
+  return ModuleSet.compile(modulePathToContent, cache ?? dependencies);
 }
 
 function validate(relativePath: string): void {

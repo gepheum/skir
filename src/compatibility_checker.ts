@@ -106,7 +106,8 @@ class CompatibilityChecker {
   constructor(private readonly moduleSet: BeforeAfter<ModuleSet>) {}
 
   check(): readonly BreakingChange[] {
-    for (const moduleBefore of this.moduleSet.before.resolvedModules) {
+    for (const [, moduleBeforeResult] of this.moduleSet.before.modules) {
+      const moduleBefore = moduleBeforeResult.result;
       for (const methodBefore of moduleBefore.methods) {
         const { number } = methodBefore;
         const methodAfter = this.moduleSet.after.findMethodByNumber(number);

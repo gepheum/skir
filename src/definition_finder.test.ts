@@ -1,16 +1,115 @@
 import { expect } from "buckwheat";
 import { describe, it } from "mocha";
 import { findDefinition, findReferences } from "./definition_finder.js";
-import type { FileReader } from "./io.js";
 import { ModuleSet } from "./module_set.js";
 
-class FakeFileReader implements FileReader {
-  readTextFile(modulePath: string): string | undefined {
-    return this.pathToCode.get(modulePath);
-  }
+const pathToCode = new Map<string, string>();
 
-  pathToCode = new Map<string, string>();
-}
+// line 0:  (empty)
+// line 1:  import * as other_module from "./other/module";
+// line 2:  (empty)
+// line 3:  struct Outer {
+// line 4:    struct Foo {}
+// line 5:  }
+// line 6:  (empty)
+// line 7:  struct Bar {
+// line 8:    foo: Outer.Foo;
+// line 9:    foo2: .Outer.Foo;
+// line 10: (empty)
+// line 11:   struct Inner {}
+// line 12:   inner: Inner;
+// line 13:   zoo: other_module.Outer.Zoo;
+// line 14: }
+// line 15: (empty)
+// line 16: method GetBar(Outer.Foo): Bar = 101;
+// line 17: method GetBar2(Outer.Foo): Bar = 100;
+// line 18: (empty)
+// line 19: const FOO: Outer.Foo = {};
+pathToCode.set(
+  "path/to/module",
+  [
+    "",
+    'import * as other_module from "./other/module";',
+    "",
+    "struct Outer {",
+    "  struct Foo {}",
+    "}",
+    "",
+    "struct Bar {",
+    "  foo: Outer.Foo;",
+    "  foo2: .Outer.Foo;",
+    "",
+    "  struct Inner {}",
+    "  inner: Inner;",
+    "  zoo: other_module.Outer.Zoo;",
+    "}",
+    "",
+    "method GetBar(Outer.Foo): Bar = 101;",
+    "method GetBar2(Outer.Foo): Bar = 100;",
+    "",
+    "const FOO: Outer.Foo = {};",
+    "",
+  ].join("\n"),
+);
+pathToCode.set(
+  "path/to/other/module",
+  ["", "struct Outer {", "  struct Zoo {}", "}", ""].join("\n"),
+);
+pathToCode.set(
+  "path/to/keyed-array-module",
+  [
+    "",
+    "struct Foo {",
+    "  struct Bar {",
+    "    id: int32;",
+    "  }",
+    "  bar: Bar;",
+    "}",
+    "",
+    "struct Zoo {",
+    "  foos: [Foo|bar.id];",
+    "}",
+    "",
+  ].join("\n"),
+);
+pathToCode.set(
+  "path/to/constant-value-module",
+  [
+    "",
+    "struct Foo {",
+    "  enum Bar {",
+    "    zoo: int32;",
+    "  }",
+    "  foo: int32;",
+    "  bar: Bar;",
+    "}",
+    "",
+    "const FOOS: [Foo] = [",
+    "  {",
+    "    foo: 10,",
+    "    bar: {",
+    '      kind: "zoo",',
+    "      value: 10,",
+    "    },",
+    "  },",
+    "];",
+    "",
+  ].join("\n"),
+);
+pathToCode.set(
+  "path/to/doc-comment-module",
+  [
+    "",
+    "struct Foobar {",
+    "  /// [bar]",
+    "  foo: int32;",
+    "  /// [Foobar.foo]",
+    "  bar: int32;",
+    "}",
+    "",
+  ].join("\n"),
+);
+const moduleSet = ModuleSet.compile(pathToCode);
 
 interface Range {
   modulePath: string;
@@ -20,135 +119,16 @@ interface Range {
 }
 
 describe("definition finder", () => {
-  const fakeFileReader = new FakeFileReader();
-
-  // line 0:  (empty)
-  // line 1:  import * as other_module from "./other/module";
-  // line 2:  (empty)
-  // line 3:  struct Outer {
-  // line 4:    struct Foo {}
-  // line 5:  }
-  // line 6:  (empty)
-  // line 7:  struct Bar {
-  // line 8:    foo: Outer.Foo;
-  // line 9:    foo2: .Outer.Foo;
-  // line 10: (empty)
-  // line 11:   struct Inner {}
-  // line 12:   inner: Inner;
-  // line 13:   zoo: other_module.Outer.Zoo;
-  // line 14: }
-  // line 15: (empty)
-  // line 16: method GetBar(Outer.Foo): Bar = 101;
-  // line 17: method GetBar2(Outer.Foo): Bar = 100;
-  // line 18: (empty)
-  // line 19: const FOO: Outer.Foo = {};
-  fakeFileReader.pathToCode.set(
-    "path/to/root/path/to/module",
-    [
-      "",
-      'import * as other_module from "./other/module";',
-      "",
-      "struct Outer {",
-      "  struct Foo {}",
-      "}",
-      "",
-      "struct Bar {",
-      "  foo: Outer.Foo;",
-      "  foo2: .Outer.Foo;",
-      "",
-      "  struct Inner {}",
-      "  inner: Inner;",
-      "  zoo: other_module.Outer.Zoo;",
-      "}",
-      "",
-      "method GetBar(Outer.Foo): Bar = 101;",
-      "method GetBar2(Outer.Foo): Bar = 100;",
-      "",
-      "const FOO: Outer.Foo = {};",
-      "",
-    ].join("\n"),
-  );
-  fakeFileReader.pathToCode.set(
-    "path/to/root/path/to/other/module",
-    ["", "struct Outer {", "  struct Zoo {}", "}", ""].join("\n"),
-  );
-  fakeFileReader.pathToCode.set(
-    "path/to/root/path/to/keyed-array-module",
-    [
-      "",
-      "struct Foo {",
-      "  struct Bar {",
-      "    id: int32;",
-      "  }",
-      "  bar: Bar;",
-      "}",
-      "",
-      "struct Zoo {",
-      "  foos: [Foo|bar.id];",
-      "}",
-      "",
-    ].join("\n"),
-  );
-  fakeFileReader.pathToCode.set(
-    "path/to/root/path/to/constant-value-module",
-    [
-      "",
-      "struct Foo {",
-      "  enum Bar {",
-      "    zoo: int32;",
-      "  }",
-      "  foo: int32;",
-      "  bar: Bar;",
-      "}",
-      "",
-      "const FOOS: [Foo] = [",
-      "  {",
-      "    foo: 10,",
-      "    bar: {",
-      '      kind: "zoo",',
-      "      value: 10,",
-      "    },",
-      "  },",
-      "];",
-      "",
-    ].join("\n"),
-  );
-  fakeFileReader.pathToCode.set(
-    "path/to/root/path/to/doc-comment-module",
-    [
-      "",
-      "struct Foobar {",
-      "  /// [bar]",
-      "  foo: int32;",
-      "  /// [Foobar.foo]",
-      "  bar: int32;",
-      "}",
-      "",
-    ].join("\n"),
-  );
-  const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-  const module = moduleSet.parseAndResolve("path/to/module").result;
-  if (module === null) {
-    return Error("Failed to parse module");
-  }
-  const keyedArrayModule = moduleSet.parseAndResolve(
+  const module = moduleSet.modules.get("path/to/module")!.result;
+  const keyedArrayModule = moduleSet.modules.get(
     "path/to/keyed-array-module",
-  ).result;
-  if (keyedArrayModule === null) {
-    return Error("Failed to parse keyed-array module");
-  }
-  const constantValueModule = moduleSet.parseAndResolve(
+  )!.result;
+  const constantValueModule = moduleSet.modules.get(
     "path/to/constant-value-module",
-  ).result;
-  if (constantValueModule === null) {
-    return Error("Failed to parse constant-value module");
-  }
-  const docCommentModule = moduleSet.parseAndResolve(
+  )!.result;
+  const docCommentModule = moduleSet.modules.get(
     "path/to/doc-comment-module",
-  ).result;
-  if (docCommentModule === null) {
-    return Error("Failed to parse doc-comment module");
-  }
+  )!.result;
 
   // Converts a (modulePath, lineNumber, colNumber) triple to a flat character
   // position in the source string, so tests can be written in terms of
@@ -158,7 +138,7 @@ describe("definition finder", () => {
     lineNumber: number,
     colNumber: number,
   ): number {
-    const source = fakeFileReader.pathToCode.get(`path/to/root/${modulePath}`)!;
+    const source = pathToCode.get(modulePath)!;
     let pos = 0;
     for (let i = 0; i < lineNumber; i++) {
       pos = source.indexOf("\n", pos) + 1;
@@ -175,10 +155,10 @@ describe("definition finder", () => {
     references: readonly Range[],
   ): void {
     const allModules = [
-      module!,
-      keyedArrayModule!,
-      constantValueModule!,
-      docCommentModule!,
+      module,
+      keyedArrayModule,
+      constantValueModule,
+      docCommentModule,
     ];
 
     const expectedDefPosition = positionOf(
@@ -194,8 +174,8 @@ describe("definition finder", () => {
         "checkDefinitionAndReferences requires at least one reference",
       );
     }
-    const firstRef = references[0];
-    const firstRefMod = moduleSet.parseAndResolve(firstRef.modulePath).result!;
+    const firstRef = references[0]!;
+    const firstRefMod = moduleSet.modules.get(firstRef.modulePath)!.result;
     const firstRefPos = positionOf(
       firstRef.modulePath,
       firstRef.lineNumber,
@@ -220,7 +200,7 @@ describe("definition finder", () => {
     // 2. findDefinition at each reference's start AND end col resolves back to
     //    the definition.
     for (const ref of references) {
-      const refMod = moduleSet.parseAndResolve(ref.modulePath).result!;
+      const refMod = moduleSet.modules.get(ref.modulePath)!.result;
       for (const col of [ref.colNumberStart, ref.colNumberEnd]) {
         const refPos = positionOf(ref.modulePath, ref.lineNumber, col);
         const match = findDefinition(refMod, refPos);

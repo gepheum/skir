@@ -112,7 +112,7 @@ async function readLastSnapshot(
     const isNotFoundError =
       error instanceof Error && "code" in error && error.code === "ENOENT";
     if (isNotFoundError) {
-      return ModuleSet.fromMap(new Map<string, string>());
+      return ModuleSet.compile(new Map<string, string>());
     } else {
       // Rethrow I/O error
       throw error;
@@ -149,7 +149,7 @@ export function snapshotFileContentToModuleSet(
       error: error,
     };
   }
-  const moduleSet = ModuleSet.fromMap(pathToSourceCode);
+  const moduleSet = ModuleSet.compile(pathToSourceCode);
   if (moduleSet.errors.length) {
     const firstError = formatError(moduleSet.errors[0]!);
     return {
@@ -199,8 +199,10 @@ export async function viewSnapshot(args: { rootDir: string }): Promise<void> {
 
 function makeSnapshot(moduleSet: ModuleSet, now: Date): Snapshot {
   const modules: { [path: string]: string } = {};
-  for (const module of moduleSet.resolvedModules) {
-    modules[module.path] = module.sourceCode;
+  for (const [path, moduleResult] of moduleSet.modules) {
+    if (moduleResult.errors.length === 0) {
+      modules[path] = moduleResult.result.sourceCode;
+    }
   }
   const trackedRecordIds = collectTrackedRecords(moduleSet);
   return {

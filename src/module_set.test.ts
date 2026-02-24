@@ -1,21 +1,23 @@
+// TODO: test errors across modules... test errors on tokenization?
+
 import { expect } from "buckwheat";
 import { describe, it } from "node:test";
-import type { FileReader } from "./io.js";
 import { ModuleSet } from "./module_set.js";
 
-class FakeFileReader implements FileReader {
-  readTextFile(modulePath: string): string | undefined {
-    return this.pathToCode.get(modulePath);
-  }
+class Input {
+  readonly pathToCode = new Map<string, string>();
+  cache?: ModuleSet;
 
-  pathToCode = new Map<string, string>();
+  doCompile(): ModuleSet {
+    return ModuleSet.compile(this.pathToCode, this.cache);
+  }
 }
 
 describe("module set", () => {
   it("works", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         import * as other_module from "./other/module";
 
@@ -39,18 +41,17 @@ describe("module set", () => {
         method Search(enum {}): struct {} = 456;
       `,
     );
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/other/module",
+    input.pathToCode.set(
+      "path/to/other/module",
       `
         struct Outer {
           struct Zoo {}
         }
       `,
     );
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
+    const moduleSet = input.doCompile();
 
-    expect(actual).toMatch({
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
       result: {
         nameToDeclaration: {
           other_module: {
@@ -175,12 +176,13 @@ describe("module set", () => {
       },
       errors: [],
     });
+    expect(moduleSet.errors).toMatch([]);
   });
 
   it("recursivity works", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         struct A { s: string; }
         struct B { b: B; }
@@ -193,10 +195,9 @@ describe("module set", () => {
         enum I { h: H; }
       `,
     );
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
+    const moduleSet = input.doCompile();
 
-    expect(actual).toMatch({
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
       result: {
         nameToDeclaration: {
           A: {
@@ -233,23 +234,22 @@ describe("module set", () => {
   });
 
   it("circular dependency between modules", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         import * as other_module from "./other/module";
       `,
     );
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/other/module",
+    input.pathToCode.set(
+      "path/to/other/module",
       `
         import * as module from "path/to/module";
       `,
     );
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
+    const moduleSet = input.doCompile();
 
-    expect(actual).toMatch({
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
       errors: [
         {
           token: {
@@ -259,7 +259,7 @@ describe("module set", () => {
         },
       ],
     });
-    expect(moduleSet.parseAndResolve("path/to/other/module")).toMatch({
+    expect(moduleSet.modules.get("path/to/other/module")).toMatch({
       errors: [
         {
           token: {
@@ -272,18 +272,17 @@ describe("module set", () => {
   });
 
   it("module not found", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         import * as other_module from "./other/module";
       `,
     );
 
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
+    const moduleSet = input.doCompile();
 
-    expect(actual).toMatch({
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
       errors: [
         {
           token: {
@@ -293,28 +292,29 @@ describe("module set", () => {
         },
       ],
     });
+    expect([...moduleSet.modules.keys()]).toMatch(["path/to/module"]);
+    expect(moduleSet.errors).toMatch([{}]);
   });
 
   it("module already imported with an alias", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         import * as other_module from "./other/module";
         import Foo from "./other/module";
       `,
     );
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/other/module",
+    input.pathToCode.set(
+      "path/to/other/module",
       `
         struct Foo {}
       `,
     );
 
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
+    const moduleSet = input.doCompile();
 
-    expect(actual).toMatch({
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
       errors: [
         {
           token: {
@@ -327,20 +327,18 @@ describe("module set", () => {
   });
 
   it("module already imported with a different alias", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         import * as foo from "./other/module";
         import * as bar from "./other/module";
       `,
     );
-    fakeFileReader.pathToCode.set("path/to/root/path/to/other/module", "");
+    input.pathToCode.set("path/to/other/module", "");
+    const moduleSet = input.doCompile();
 
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
-
-    expect(actual).toMatch({
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
       errors: [
         {
           token: {
@@ -353,9 +351,9 @@ describe("module set", () => {
   });
 
   it("multiple import declarations from same module", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         import Foo from "./other/module";
         import Bar from "./other/module";
@@ -366,26 +364,25 @@ describe("module set", () => {
         }
       `,
     );
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/other/module",
+    input.pathToCode.set(
+      "path/to/other/module",
       `
         struct Foo {}
         struct Bar {}
       `,
     );
 
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
+    const moduleSet = input.doCompile();
 
-    expect(actual).toMatch({
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
       errors: [],
     });
   });
 
   it("multiple imports from same module", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         import Foo, Bar from "./other/module";
 
@@ -395,36 +392,34 @@ describe("module set", () => {
         }
       `,
     );
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/other/module",
+    input.pathToCode.set(
+      "path/to/other/module",
       `
         struct Foo {}
         struct Bar {}
       `,
     );
 
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
+    const moduleSet = input.doCompile();
 
-    expect(actual).toMatch({
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
       errors: [],
     });
   });
 
   it("module path cannot contain backslash", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         import * as foo from ".\\\\module";
       `,
     );
-    fakeFileReader.pathToCode.set("path/to/root/path/to/other/module", "");
+    input.pathToCode.set("path/to/other/module", "");
 
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
+    const moduleSet = input.doCompile();
 
-    expect(actual).toMatch({
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
       errors: [
         {
           token: {
@@ -437,9 +432,9 @@ describe("module set", () => {
   });
 
   it("field numbering constraint satisfied", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         struct Foo {}
         struct Bar { bar: int32 = 0; }
@@ -447,17 +442,16 @@ describe("module set", () => {
       `,
     );
 
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
+    const moduleSet = input.doCompile();
 
-    expect(actual).toMatch({ errors: [] });
+    expect(moduleSet.modules.get("path/to/module")).toMatch({ errors: [] });
   });
 
   describe("keyed arrays", () => {
     it("works", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           struct Outer {
             struct User {
@@ -482,10 +476,9 @@ describe("module set", () => {
         `,
       );
 
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           nameToDeclaration: {
             Foo: {
@@ -564,9 +557,9 @@ describe("module set", () => {
     });
 
     it("field not found in struct", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           struct User { b: bool; c: bool; }
           struct Foo {
@@ -575,10 +568,9 @@ describe("module set", () => {
         `,
       );
 
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [
           {
             token: {
@@ -594,9 +586,9 @@ describe("module set", () => {
     it("item must have struct type", () => {
       // This is actually verified at parsing time.
 
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           struct Foo {
             users: [string|key];
@@ -604,10 +596,9 @@ describe("module set", () => {
         `,
       );
 
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [
           {
             token: {
@@ -620,9 +611,9 @@ describe("module set", () => {
     });
 
     it("must have struct type", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           struct User {
             key: string;
@@ -633,10 +624,9 @@ describe("module set", () => {
         `,
       );
 
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [
           {
             token: {
@@ -649,9 +639,9 @@ describe("module set", () => {
     });
 
     it("if enum then expects kind", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           enum Enum { MONDAY; }
           struct Foo {
@@ -660,10 +650,9 @@ describe("module set", () => {
         `,
       );
 
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [
           {
             token: {
@@ -676,9 +665,9 @@ describe("module set", () => {
     });
 
     it("all fields but the last must have struct type", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           struct User { key: string; }
           struct Foo {
@@ -687,10 +676,9 @@ describe("module set", () => {
         `,
       );
 
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [
           {
             token: {
@@ -703,9 +691,9 @@ describe("module set", () => {
     });
 
     it("key must have primitive or enum type", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           struct Bar {}
           struct User { key: Bar; }
@@ -715,10 +703,9 @@ describe("module set", () => {
         `,
       );
 
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [
           {
             token: {
@@ -729,12 +716,13 @@ describe("module set", () => {
         ],
       });
     });
+  });
 
-    it("method and constant types are validated", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
-        `
+  it("method and constant types are validated", () => {
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
+      `
           struct Foo { foo: bool; struct Bar{} }
 
           method Pa([Foo|a]): string = 1;
@@ -742,44 +730,42 @@ describe("module set", () => {
           const FOO: [Foo|c] = [];
           const PI: float32 = -3.14;
         `,
-      );
+    );
 
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+    const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
-        errors: [
-          {
-            token: {
-              text: "a",
-            },
-            message: "Field not found in struct Foo",
-            expectedNames: [{ name: "foo" }],
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
+      errors: [
+        {
+          token: {
+            text: "a",
           },
-          {
-            token: {
-              text: "b",
-            },
-            message: "Field not found in struct Foo",
-            expectedNames: [{ name: "foo" }],
+          message: "Field not found in struct Foo",
+          expectedNames: [{ name: "foo" }],
+        },
+        {
+          token: {
+            text: "b",
           },
-          {
-            token: {
-              text: "c",
-            },
-            message: "Field not found in struct Foo",
-            expectedNames: [{ name: "foo" }],
+          message: "Field not found in struct Foo",
+          expectedNames: [{ name: "foo" }],
+        },
+        {
+          token: {
+            text: "c",
           },
-        ],
-      });
+          message: "Field not found in struct Foo",
+          expectedNames: [{ name: "foo" }],
+        },
+      ],
     });
   });
 
   describe("type resolver", () => {
     it("cannot find name", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           struct Foo {
             bar: Bar;
@@ -792,17 +778,16 @@ describe("module set", () => {
           import * as other_module from "./other/module";
         `,
       );
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/other/module",
+      input.pathToCode.set(
+        "path/to/other/module",
         `
           struct O {}
         `,
       );
 
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [
           {
             token: {
@@ -821,32 +806,31 @@ describe("module set", () => {
 
     describe("cannot reimport imported name", () => {
       it("no alias / no alias", () => {
-        const fakeFileReader = new FakeFileReader();
-        fakeFileReader.pathToCode.set(
-          "path/to/root/path/to/foo",
+        const input = new Input();
+        input.pathToCode.set(
+          "path/to/foo",
           `
           struct Foo {}
         `,
         );
-        fakeFileReader.pathToCode.set(
-          "path/to/root/path/to/bar",
+        input.pathToCode.set(
+          "path/to/bar",
           `
           import Foo from "./foo";
           struct Bar { foo: Foo; }
         `,
         );
-        fakeFileReader.pathToCode.set(
-          "path/to/root/path/to/module",
+        input.pathToCode.set(
+          "path/to/module",
           `
           import Foo from "./bar";
           struct Zoo { foo: Foo; }
         `,
         );
 
-        const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-        const actual = moduleSet.parseAndResolve("path/to/module");
+        const moduleSet = input.doCompile();
 
-        expect(actual).toMatch({
+        expect(moduleSet.modules.get("path/to/module")).toMatch({
           errors: [
             {
               token: {
@@ -860,32 +844,31 @@ describe("module set", () => {
       });
 
       it("no alias / alias", () => {
-        const fakeFileReader = new FakeFileReader();
-        fakeFileReader.pathToCode.set(
-          "path/to/root/path/to/foo",
+        const input = new Input();
+        input.pathToCode.set(
+          "path/to/foo",
           `
           struct Foo {}
         `,
         );
-        fakeFileReader.pathToCode.set(
-          "path/to/root/path/to/bar",
+        input.pathToCode.set(
+          "path/to/bar",
           `
           import * as foo from "./foo";
           struct Bar { foo: foo.Foo; }
         `,
         );
-        fakeFileReader.pathToCode.set(
-          "path/to/root/path/to/module",
+        input.pathToCode.set(
+          "path/to/module",
           `
           import foo, DoesNotExist from "./bar";
           struct Zoo { foo: foo.Foo; }
         `,
         );
 
-        const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-        const actual = moduleSet.parseAndResolve("path/to/module");
+        const moduleSet = input.doCompile();
 
-        expect(actual).toMatch({
+        expect(moduleSet.modules.get("path/to/module")).toMatch({
           errors: [
             {
               token: {
@@ -905,32 +888,31 @@ describe("module set", () => {
       });
 
       it("alias / no alias", () => {
-        const fakeFileReader = new FakeFileReader();
-        fakeFileReader.pathToCode.set(
-          "path/to/root/path/to/foo",
+        const input = new Input();
+        input.pathToCode.set(
+          "path/to/foo",
           `
           struct Foo {}
         `,
         );
-        fakeFileReader.pathToCode.set(
-          "path/to/root/path/to/bar",
+        input.pathToCode.set(
+          "path/to/bar",
           `
           import Foo from "./foo";
           struct Bar { foo: Foo; }
         `,
         );
-        fakeFileReader.pathToCode.set(
-          "path/to/root/path/to/module",
+        input.pathToCode.set(
+          "path/to/module",
           `
           import * as bar from "./bar";
           struct Zoo { foo: bar.Foo; }
         `,
         );
 
-        const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-        const actual = moduleSet.parseAndResolve("path/to/module");
+        const moduleSet = input.doCompile();
 
-        expect(actual).toMatch({
+        expect(moduleSet.modules.get("path/to/module")).toMatch({
           errors: [
             {
               token: {
@@ -943,32 +925,31 @@ describe("module set", () => {
       });
 
       it("alias / alias", () => {
-        const fakeFileReader = new FakeFileReader();
-        fakeFileReader.pathToCode.set(
-          "path/to/root/path/to/foo",
+        const input = new Input();
+        input.pathToCode.set(
+          "path/to/foo",
           `
           struct Foo {}
         `,
         );
-        fakeFileReader.pathToCode.set(
-          "path/to/root/path/to/bar",
+        input.pathToCode.set(
+          "path/to/bar",
           `
           import * as foo from "./foo";
           struct Bar { foo: foo.Foo; }
         `,
         );
-        fakeFileReader.pathToCode.set(
-          "path/to/root/path/to/module",
+        input.pathToCode.set(
+          "path/to/module",
           `
           import * as bar from "./bar";
           struct Zoo { foo: bar.foo.Foo; }
         `,
         );
 
-        const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-        const actual = moduleSet.parseAndResolve("path/to/module");
+        const moduleSet = input.doCompile();
 
-        expect(actual).toMatch({
+        expect(moduleSet.modules.get("path/to/module")).toMatch({
           errors: [
             {
               token: {
@@ -983,9 +964,9 @@ describe("module set", () => {
   });
 
   it("import module with absolute path", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         import Bar from "path/to_other_module";
 
@@ -994,25 +975,24 @@ describe("module set", () => {
         }
       `,
     );
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to_other_module",
+    input.pathToCode.set(
+      "path/to_other_module",
       `
         struct Bar {}
       `,
     );
 
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
+    const moduleSet = input.doCompile();
 
-    expect(actual).toMatch({
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
       errors: [],
     });
   });
 
   it("normalize module path", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         import Bar from "../foo/../to_other_module";
 
@@ -1021,25 +1001,24 @@ describe("module set", () => {
         }
       `,
     );
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to_other_module",
+    input.pathToCode.set(
+      "path/to_other_module",
       `
         struct Bar {}
       `,
     );
 
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
+    const moduleSet = input.doCompile();
 
-    expect(actual).toMatch({
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
       errors: [],
     });
   });
 
   it("module path must point to a file within root", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         import Bar from "../../../other_module";
 
@@ -1048,17 +1027,16 @@ describe("module set", () => {
         }
       `,
     );
-    fakeFileReader.pathToCode.set(
+    input.pathToCode.set(
       "path/to/other_module",
       `
         struct Bar {}
       `,
     );
 
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
+    const moduleSet = input.doCompile();
 
-    expect(actual).toMatch({
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
       errors: [
         {
           token: {
@@ -1071,9 +1049,9 @@ describe("module set", () => {
   });
 
   it("all imports must be used", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         import Bar, Zoo from "./other_module";
 
@@ -1082,18 +1060,17 @@ describe("module set", () => {
         }
       `,
     );
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/other_module",
+    input.pathToCode.set(
+      "path/to/other_module",
       `
         struct Bar {}
         struct Zoo {}
       `,
     );
 
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
+    const moduleSet = input.doCompile();
 
-    expect(actual).toMatch({
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
       errors: [
         {
           token: {
@@ -1106,56 +1083,63 @@ describe("module set", () => {
   });
 
   it("all stable ids must be distinct", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         struct Foo(100) {}
       `,
     );
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/other_module",
+    input.pathToCode.set(
+      "path/to/other_module",
       `
         struct Bar(100) {}
       `,
     );
 
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    {
-      const actual = moduleSet.parseAndResolve("path/to/module");
-      expect(actual).toMatch({
-        errors: [],
-      });
-    }
-    {
-      const actual = moduleSet.parseAndResolve("path/to/other_module");
-      expect(actual).toMatch({
-        errors: [
-          {
-            token: {
-              text: "Bar",
-            },
-            message: "Same number as Foo in path/to/module",
+    const moduleSet = input.doCompile();
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
+      errors: [
+        {
+          token: {
+            text: "Foo",
           },
-        ],
-      });
-    }
+          message: "Same number as Bar in path/to/other_module",
+        },
+      ],
+    });
+    expect(moduleSet.modules.get("path/to/other_module")).toMatch({
+      errors: [
+        {
+          token: {
+            text: "Bar",
+          },
+          message: "Same number as Foo in path/to/module",
+        },
+      ],
+    });
   });
 
   it("all method numbers must be distinct", () => {
-    const fakeFileReader = new FakeFileReader();
-    fakeFileReader.pathToCode.set(
-      "path/to/root/path/to/module",
+    const input = new Input();
+    input.pathToCode.set(
+      "path/to/module",
       `
         method GetFoo(string): string = 2103196129;
         method GetBar(string): string = 2103196129;
       `,
     );
 
-    const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-    const actual = moduleSet.parseAndResolve("path/to/module");
-    expect(actual).toMatch({
+    const moduleSet = input.doCompile();
+
+    expect(moduleSet.modules.get("path/to/module")).toMatch({
       errors: [
+        {
+          token: {
+            text: "GetFoo",
+          },
+          message: "Same number as GetBar in path/to/module",
+        },
         {
           token: {
             text: "GetBar",
@@ -1168,9 +1152,9 @@ describe("module set", () => {
 
   describe("constants", () => {
     it("works", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
         struct Color {
           r: int32;
@@ -1212,10 +1196,9 @@ describe("module set", () => {
         const NULL_SHAPE: Shape? = null;
       `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           nameToDeclaration: {
             MY_SHAPE: {
@@ -1339,9 +1322,9 @@ describe("module set", () => {
     });
 
     it("honors default values", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
         struct Struct {
           opt_a: int32?;
@@ -1362,10 +1345,9 @@ describe("module set", () => {
         };
       `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           nameToDeclaration: {
             S: {
@@ -1382,9 +1364,9 @@ describe("module set", () => {
     });
 
     it("with keyed array", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
         enum Enum {
           A;
@@ -1428,25 +1410,24 @@ describe("module set", () => {
         };
       `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [],
       });
     });
 
     it("type error", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           struct Color {
             r: int32;
             g: int32;
             b: int32;
           }
-  
+
           const BLUE: Color = {
             r: 0,
             g: 0,
@@ -1454,10 +1435,9 @@ describe("module set", () => {
           };
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [
           {
             token: {
@@ -1470,9 +1450,9 @@ describe("module set", () => {
     });
 
     it("key missing from keyed array", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
         enum Enum {
           A;
@@ -1496,10 +1476,9 @@ describe("module set", () => {
         };
       `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [
           {
             token: {
@@ -1512,9 +1491,9 @@ describe("module set", () => {
     });
 
     it("duplicate key in keyed array", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
         enum Enum {
           A;
@@ -1539,10 +1518,9 @@ describe("module set", () => {
         };
       `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [
           {
             token: {
@@ -1561,9 +1539,9 @@ describe("module set", () => {
     });
 
     it("struct field not found", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
         struct Point {
           x: int32;
@@ -1576,10 +1554,9 @@ describe("module set", () => {
         |};
       `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [
           {
             token: {
@@ -1601,9 +1578,9 @@ describe("module set", () => {
     });
 
     it("wrapper variant not found", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
         enum Enum {
           foo: int32;
@@ -1616,10 +1593,9 @@ describe("module set", () => {
         };
       `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [
           {
             token: {
@@ -1633,9 +1609,9 @@ describe("module set", () => {
     });
 
     it("constant variant not found", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
         enum Enum {
           foo: int32;
@@ -1645,10 +1621,9 @@ describe("module set", () => {
         const ENUM: Enum = "Z";
       `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [
           {
             token: {
@@ -1662,9 +1637,9 @@ describe("module set", () => {
     });
 
     it("missing struct field", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
         struct Point {
           x: int32;
@@ -1676,10 +1651,9 @@ describe("module set", () => {
         };
       `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         errors: [
           {
             token: {
@@ -1692,9 +1666,9 @@ describe("module set", () => {
     });
 
     it("missing struct field okay if partial", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/path/to/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
         struct Point {
           x: int32;
@@ -1706,10 +1680,9 @@ describe("module set", () => {
         |};
       `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("path/to/module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           constants: [
             {
@@ -1727,9 +1700,9 @@ describe("module set", () => {
 
   describe("doc comment references", () => {
     it("resolves reference to enum field", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           /// Hello [Bar.OK]
           struct Foo {
@@ -1739,10 +1712,9 @@ describe("module set", () => {
           enum Bar { OK; }
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           nameToDeclaration: {
             Foo: {
@@ -1778,9 +1750,9 @@ describe("module set", () => {
     });
 
     it("resolves reference to sibling field", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           struct Foo {
             x: int32;
@@ -1789,10 +1761,9 @@ describe("module set", () => {
           }
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           records: [
             {
@@ -1834,9 +1805,9 @@ describe("module set", () => {
     });
 
     it("resolves reference to record", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           /// See [Bar] for details
           struct Foo {
@@ -1846,10 +1817,9 @@ describe("module set", () => {
           struct Bar {}
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           nameToDeclaration: {
             Foo: {
@@ -1878,9 +1848,9 @@ describe("module set", () => {
     });
 
     it("resolves reference to nested record", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           /// Uses [Outer.Inner]
           struct Foo {
@@ -1892,10 +1862,9 @@ describe("module set", () => {
           }
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           nameToDeclaration: {
             Foo: {
@@ -1933,9 +1902,9 @@ describe("module set", () => {
     });
 
     it("resolves absolute reference", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           struct Outer {
             /// Reference to [.Bar]
@@ -1946,10 +1915,9 @@ describe("module set", () => {
           struct Bar {}
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           nameToDeclaration: {
             Outer: {
@@ -1992,9 +1960,9 @@ describe("module set", () => {
     });
 
     it("resolves reference to method", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           /// Calls [GetData]
           struct Foo {}
@@ -2002,10 +1970,9 @@ describe("module set", () => {
           method GetData(Foo): Foo = 123;
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           records: [
             {
@@ -2038,9 +2005,9 @@ describe("module set", () => {
     });
 
     it("resolves reference to constant", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           /// Default is [DEFAULT_VALUE]
           struct Foo {
@@ -2050,10 +2017,9 @@ describe("module set", () => {
           const DEFAULT_VALUE: int32 = 42;
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           records: [
             {
@@ -2089,9 +2055,9 @@ describe("module set", () => {
     });
 
     it("resolves reference from field type scope", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           struct Foo {
             /// Uses [OK] from the Bar enum
@@ -2101,10 +2067,9 @@ describe("module set", () => {
           enum Bar { OK; }
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           nameToDeclaration: {
             Foo: {
@@ -2145,9 +2110,9 @@ describe("module set", () => {
     });
 
     it("resolves reference from method request type scope", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           struct Request {
             x: int32;
@@ -2159,10 +2124,9 @@ describe("module set", () => {
           method DoWork(Request): Response = 123;
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           methods: [
             {
@@ -2195,9 +2159,9 @@ describe("module set", () => {
     });
 
     it("resolves reference from constant type scope", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           enum Status { OK; }
 
@@ -2205,10 +2169,9 @@ describe("module set", () => {
           const DEFAULT_STATUS: Status = "OK";
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           constants: [
             {
@@ -2240,9 +2203,9 @@ describe("module set", () => {
     });
 
     it("resolves multiple references in same doc comment", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           /// Compare [Foo] and [Bar]
           struct Baz {}
@@ -2251,10 +2214,9 @@ describe("module set", () => {
           struct Bar {}
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           nameToDeclaration: {
             Baz: {
@@ -2293,9 +2255,9 @@ describe("module set", () => {
     });
 
     it("resolves reference through import alias", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           import * as other from "./other";
 
@@ -2303,16 +2265,15 @@ describe("module set", () => {
           struct Bar {}
         `,
       );
-      fakeFileReader.pathToCode.set(
-        "path/to/root/other",
+      input.pathToCode.set(
+        "path/to/other",
         `
           struct Foo {}
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           nameToDeclaration: {
             Bar: {
@@ -2347,9 +2308,9 @@ describe("module set", () => {
     });
 
     it("resolves reference through import", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           import * as other from "./other";
 
@@ -2357,16 +2318,15 @@ describe("module set", () => {
           struct Bar {}
         `,
       );
-      fakeFileReader.pathToCode.set(
-        "path/to/root/other",
+      input.pathToCode.set(
+        "path/to/other",
         `
           struct Foo {}
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           nameToDeclaration: {
             Bar: {
@@ -2401,18 +2361,17 @@ describe("module set", () => {
     });
 
     it("reports error for unresolved reference", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           /// See [NonExistent]
           struct Foo {}
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {},
         errors: [
           {
@@ -2424,9 +2383,9 @@ describe("module set", () => {
     });
 
     it("reports error for unresolved nested reference", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           /// See [Bar.NonExistent]
           struct Foo {}
@@ -2434,10 +2393,9 @@ describe("module set", () => {
           struct Bar {}
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {},
         errors: [
           {
@@ -2449,9 +2407,9 @@ describe("module set", () => {
     });
 
     it("prioritizes nested scope over module scope", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
         `
           struct Outer {
             struct Inner {
@@ -2464,10 +2422,9 @@ describe("module set", () => {
           struct Foo {}
         `,
       );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("module");
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
         result: {
           nameToDeclaration: {
             Outer: {
@@ -2518,15 +2475,11 @@ describe("module set", () => {
 
   describe("package prefixes", () => {
     it("package prefix extraction works", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/@my-org/my-package/bar",
-        `struct Bar {}`,
-      );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("@my-org/my-package/bar");
+      const input = new Input();
+      input.pathToCode.set("@my-org/my-package/bar", `struct Bar {}`);
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("@my-org/my-package/bar")).toMatch({
         result: {
           nameToDeclaration: {
             Bar: {
@@ -2539,51 +2492,28 @@ describe("module set", () => {
     });
 
     it("resolves absolute imports within same package", () => {
-      const fakeFileReader = new FakeFileReader();
+      const input = new Input();
       const barCode = `struct Bar {}`;
-      fakeFileReader.pathToCode.set(
-        "path/to/root/@my-org/my-package/foo",
-        `import Bar from "bar";
+      input.pathToCode.set(
+        "@my-org/my-package/foo",
+        `
+          import Bar from "bar";
 
-struct Foo {
-  bar: Bar;
-}`,
+          struct Foo {
+            bar: Bar;
+          }`,
       );
-      fakeFileReader.pathToCode.set(
-        "path/to/root/@my-org/my-package/bar",
-        barCode,
-      );
+      input.pathToCode.set("@my-org/my-package/bar", barCode);
 
-      // Verify the bar code is what we expect
-      const readBarCode = fakeFileReader.readTextFile(
-        "path/to/root/@my-org/my-package/bar",
-      );
-      if (readBarCode !== barCode) {
-        throw new Error(
-          `Bar code mismatch: expected ${JSON.stringify(barCode)}, got ${JSON.stringify(readBarCode)}`,
-        );
-      }
-
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("@my-org/my-package/foo");
+      const moduleSet = input.doCompile();
 
       // First check that the import resolved correctly
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("@my-org/my-package/foo")).toMatch({
         result: {
           nameToDeclaration: {
             Bar: {
               kind: "import",
               resolvedModulePath: "@my-org/my-package/bar",
-            },
-          },
-        },
-      });
-
-      expect(actual).toMatch({
-        result: {
-          nameToDeclaration: {
-            Bar: {
-              kind: "import",
             },
             Foo: {
               kind: "record",
@@ -2604,20 +2534,19 @@ struct Foo {
     });
 
     it("does not apply package prefix to non-package modules", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/regular/module",
+      const input = new Input();
+      input.pathToCode.set(
+        "regular/module",
         `import Bar from "bar";
 
-struct Foo {
-  bar: Bar;
-}`,
+        struct Foo {
+          bar: Bar;
+        }`,
       );
-      fakeFileReader.pathToCode.set("path/to/root/bar", `struct Bar {}`);
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("regular/module");
+      input.pathToCode.set("bar", `struct Bar {}`);
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("regular/module")).toMatch({
         result: {
           nameToDeclaration: {
             Bar: {
@@ -2642,23 +2571,19 @@ struct Foo {
     });
 
     it("does not apply package prefix when import starts with @", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/@my-org/my-package/foo",
+      const input = new Input();
+      input.pathToCode.set(
+        "@my-org/my-package/foo",
         `import Bar from "@other-org/other-package/bar";
 
-struct Foo {
-  bar: Bar;
-}`,
+        struct Foo {
+          bar: Bar;
+        }`,
       );
-      fakeFileReader.pathToCode.set(
-        "path/to/root/@other-org/other-package/bar",
-        `struct Bar {}`,
-      );
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      const actual = moduleSet.parseAndResolve("@my-org/my-package/foo");
+      input.pathToCode.set("@other-org/other-package/bar", `struct Bar {}`);
+      const moduleSet = input.doCompile();
 
-      expect(actual).toMatch({
+      expect(moduleSet.modules.get("@my-org/my-package/foo")).toMatch({
         result: {
           nameToDeclaration: {
             Bar: {
@@ -2683,107 +2608,309 @@ struct Foo {
     });
 
     it("allows duplicate record numbers across packages", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/@my-org/pkg-a/module",
-        `struct Foo(100) {}`,
-      );
-      fakeFileReader.pathToCode.set(
-        "path/to/root/@my-org/pkg-b/module",
-        `struct Bar(100) {}`,
-      );
+      const input = new Input();
+      input.pathToCode.set("@my-org/pkg-a/module", `struct Foo(100) {}`);
+      input.pathToCode.set("@my-org/pkg-b/module", `struct Bar(100) {}`);
 
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      {
-        const actual = moduleSet.parseAndResolve("@my-org/pkg-a/module");
-        expect(actual).toMatch({
-          errors: [],
-        });
-      }
-      {
-        const actual = moduleSet.parseAndResolve("@my-org/pkg-b/module");
-        expect(actual).toMatch({
-          errors: [],
-        });
-      }
+      const moduleSet = input.doCompile();
+      expect(moduleSet.modules.get("@my-org/pkg-a/module")).toMatch({
+        errors: [],
+      });
+      expect(moduleSet.modules.get("@my-org/pkg-b/module")).toMatch({
+        errors: [],
+      });
     });
 
-    it("allows duplicate method numbers across packages", () => {
-      const fakeFileReader = new FakeFileReader();
-      fakeFileReader.pathToCode.set(
-        "path/to/root/@my-org/pkg-a/module",
+    it("does not allow duplicate method numbers across packages", () => {
+      const input = new Input();
+      input.pathToCode.set(
+        "@my-org/pkg-a/module",
         `method GetFoo(string): string = 123;`,
       );
-      fakeFileReader.pathToCode.set(
-        "path/to/root/@my-org/pkg-b/module",
+      input.pathToCode.set(
+        "@my-org/pkg-b/module",
         `method GetBar(string): string = 123;`,
       );
 
-      const moduleSet = ModuleSet.create(fakeFileReader, "path/to/root");
-      {
-        const actual = moduleSet.parseAndResolve("@my-org/pkg-a/module");
-        expect(actual).toMatch({
-          errors: [],
-        });
-      }
-      {
-        const actual = moduleSet.parseAndResolve("@my-org/pkg-b/module");
-        expect(actual).toMatch({
-          errors: [],
-        });
-      }
+      const moduleSet = input.doCompile();
+      expect(moduleSet.modules.get("@my-org/pkg-a/module")).toMatch({
+        errors: [
+          {
+            token: {
+              text: "GetFoo",
+            },
+            message: "Same number as GetBar in @my-org/pkg-b/module",
+          },
+        ],
+      });
+      expect(moduleSet.modules.get("@my-org/pkg-b/module")).toMatch({
+        errors: [
+          {
+            token: {
+              text: "GetBar",
+            },
+            message: "Same number as GetFoo in @my-org/pkg-a/module",
+          },
+        ],
+      });
     });
   });
 
-  describe("mergeFrom", () => {
-    it("merges resolved modules list", () => {
-      const moduleMap1 = new Map<string, string>();
-      moduleMap1.set("module1", `struct Foo {}`);
+  describe("caching", () => {
+    it("recompiling unchanged modules yields the correct result", () => {
+      const input = new Input();
+      input.pathToCode.set(
+        "mod/a",
+        `
+          struct Foo { x: int32; }
+          method GetFoo(Foo): Foo = 42;
+        `,
+      );
+      input.cache = input.doCompile();
 
-      const moduleMap2 = new Map<string, string>();
-      moduleMap2.set("module2", `struct Bar {}`);
+      const second = input.doCompile();
 
-      const moduleSet1 = ModuleSet.fromMap(moduleMap1);
-      const moduleSet2 = ModuleSet.fromMap(moduleMap2);
-
-      expect(moduleSet1.resolvedModules.length).toMatch(1);
-      expect(moduleSet2.resolvedModules.length).toMatch(1);
-
-      moduleSet1.mergeFrom(moduleSet2);
-
-      expect(moduleSet1.resolvedModules.length).toMatch(2);
-      expect(moduleSet1.resolvedModules[0]!.nameToDeclaration).toMatch({
-        Foo: { kind: "record" },
+      expect(second.modules.get("mod/a")).toMatch({
+        result: {
+          nameToDeclaration: {
+            Foo: {
+              kind: "record",
+              recordType: "struct",
+              fields: [
+                {
+                  name: { text: "x" },
+                  type: { kind: "primitive", primitive: "int32" },
+                },
+              ],
+            },
+            GetFoo: { kind: "method", number: 42 },
+          },
+        },
+        errors: [],
       });
-      expect(moduleSet1.resolvedModules[1]!.nameToDeclaration).toMatch({
-        Bar: { kind: "record" },
+      expect(second.errors).toMatch([]);
+    });
+
+    it("recompiling unchanged modules with imports yields the correct result", () => {
+      const input = new Input();
+      input.pathToCode.set("mod/dep", `struct Dep { a: string; }`);
+      input.pathToCode.set(
+        "mod/main",
+        `import Dep from "mod/dep"; struct Main { d: Dep; }`,
+      );
+      input.cache = input.doCompile();
+
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/dep")).toMatch({ errors: [] });
+      expect(second.modules.get("mod/main")).toMatch({
+        result: {
+          nameToDeclaration: {
+            Main: {
+              fields: [{ name: { text: "d" }, type: { kind: "record" } }],
+            },
+          },
+        },
+        errors: [],
+      });
+      expect(second.errors).toMatch([]);
+    });
+
+    it("a changed module is recompiled with the new content", () => {
+      const input = new Input();
+      input.pathToCode.set("mod/a", `struct Foo { x: int32; }`);
+      input.cache = input.doCompile();
+
+      input.pathToCode.set("mod/a", `struct Foo { x: string; y: bool; }`);
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/a")).toMatch({
+        result: {
+          nameToDeclaration: {
+            Foo: {
+              fields: [
+                {
+                  name: { text: "x" },
+                  type: { kind: "primitive", primitive: "string" },
+                },
+                {
+                  name: { text: "y" },
+                  type: { kind: "primitive", primitive: "bool" },
+                },
+              ],
+            },
+          },
+        },
+        errors: [],
+      });
+      expect(second.errors).toMatch([]);
+    });
+
+    it("changing a dependency causes the dependent module to be re-resolved", () => {
+      // First compilation: mod/dep has struct Dep with field `a: int32`.
+      // mod/main imports Dep and uses it.
+      const input = new Input();
+      input.pathToCode.set("mod/dep", `struct Dep { a: int32; }`);
+      input.pathToCode.set(
+        "mod/main",
+        `import Dep from "mod/dep"; struct Main { d: Dep; }`,
+      );
+      input.cache = input.doCompile();
+
+      // Second compilation: mod/dep changes, mod/main is unchanged.
+      // mod/main must be re-resolved against the new dep content.
+      input.pathToCode.set("mod/dep", `struct Dep { a: string; b: bool; }`);
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/dep")).toMatch({
+        result: {
+          nameToDeclaration: {
+            Dep: {
+              fields: [
+                {
+                  name: { text: "a" },
+                  type: { kind: "primitive", primitive: "string" },
+                },
+                {
+                  name: { text: "b" },
+                  type: { kind: "primitive", primitive: "bool" },
+                },
+              ],
+            },
+          },
+        },
+        errors: [],
+      });
+      expect(second.modules.get("mod/main")).toMatch({ errors: [] });
+      expect(second.errors).toMatch([]);
+    });
+
+    it("errors in an unchanged module are preserved", () => {
+      const input = new Input();
+      // Foo references a non-existent type.
+      input.pathToCode.set("mod/a", `struct Foo { x: NonExistent; }`);
+      input.cache = input.doCompile();
+
+      // Recompile with the exact same content.
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/a")).toMatch({
+        errors: [
+          {
+            token: { text: "NonExistent" },
+            message: "Cannot find name 'NonExistent'",
+          },
+        ],
+      });
+      expect(second.errors).toMatch([{}]);
+    });
+
+    it("a dependency that gains errors causes 'Imported module has errors' in the dependent", () => {
+      const input = new Input();
+      input.pathToCode.set("mod/dep", `struct Dep {}`);
+      input.pathToCode.set(
+        "mod/main",
+        `import Dep from "mod/dep"; struct Main { d: Dep; }`,
+      );
+      input.cache = input.doCompile();
+
+      // Break the dependency.
+      input.pathToCode.set("mod/dep", `struct Dep { x: NonExistent; }`);
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/dep")).toMatch({
+        errors: [{ message: "Cannot find name 'NonExistent'" }],
+      });
+      expect(second.modules.get("mod/main")).toMatch({
+        errors: [
+          {
+            token: { text: '"mod/dep"' },
+            message: "Imported module has errors",
+          },
+        ],
       });
     });
 
-    it("preserves record map after merge", () => {
-      const moduleMap1 = new Map<string, string>();
-      moduleMap1.set("module1", `struct Foo {}`);
+    it("a dependency that had errors and is now fixed clears errors in the dependent", () => {
+      const input = new Input();
+      // First compilation: dep has an error.
+      input.pathToCode.set("mod/dep", `struct Dep { x: NonExistent; }`);
+      input.pathToCode.set(
+        "mod/main",
+        `import Dep from "mod/dep"; struct Main { d: Dep; }`,
+      );
+      input.cache = input.doCompile();
 
-      const moduleMap2 = new Map<string, string>();
-      moduleMap2.set("module2", `struct Bar {}`);
+      // Fix the dependency.
+      input.pathToCode.set("mod/dep", `struct Dep { x: int32; }`);
+      const second = input.doCompile();
 
-      const moduleSet1 = ModuleSet.fromMap(moduleMap1);
-      const moduleSet2 = ModuleSet.fromMap(moduleMap2);
+      expect(second.modules.get("mod/dep")).toMatch({ errors: [] });
+      expect(second.modules.get("mod/main")).toMatch({ errors: [] });
+      expect(second.errors).toMatch([]);
+    });
 
-      moduleSet1.mergeFrom(moduleSet2);
+    it("adding a new module not present in the cache compiles correctly", () => {
+      const input = new Input();
+      input.pathToCode.set("mod/a", `struct Foo {}`);
+      input.cache = input.doCompile();
 
-      const fooRecord = moduleSet1.recordMap.get("module1:7");
-      expect(fooRecord).toMatch({
-        record: {
-          name: { text: "Foo" },
+      input.pathToCode.set(
+        "mod/b",
+        `import Foo from "mod/a"; struct Bar { foo: Foo; }`,
+      );
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/a")).toMatch({ errors: [] });
+      expect(second.modules.get("mod/b")).toMatch({
+        result: {
+          nameToDeclaration: {
+            Bar: {
+              fields: [{ name: { text: "foo" }, type: { kind: "record" } }],
+            },
+          },
         },
+        errors: [],
       });
+      expect(second.errors).toMatch([]);
+    });
 
-      const barRecord = moduleSet1.recordMap.get("module2:7");
-      expect(barRecord).toMatch({
-        record: {
-          name: { text: "Bar" },
-        },
+    it("removing a module from the set leaves it absent from the result", () => {
+      const input = new Input();
+      input.pathToCode.set("mod/a", `struct Foo {}`);
+      input.pathToCode.set("mod/b", `struct Bar {}`);
+      input.cache = input.doCompile();
+
+      input.pathToCode.delete("mod/b");
+      const second = input.doCompile();
+
+      expect([...second.modules.keys()]).toMatch(["mod/a"]);
+      expect(second.errors).toMatch([]);
+    });
+
+    it("circular dependency errors are preserved when modules are unchanged", () => {
+      const input = new Input();
+      input.pathToCode.set("mod/a", `import * as b from "mod/b";`);
+      input.pathToCode.set("mod/b", `import * as a from "mod/a";`);
+      input.cache = input.doCompile();
+
+      const second = input.doCompile();
+
+      expect(second.modules.get("mod/a")).toMatch({
+        errors: [
+          {
+            token: { text: '"mod/b"' },
+            message: "Circular dependency between modules",
+          },
+        ],
+      });
+      expect(second.modules.get("mod/b")).toMatch({
+        errors: [
+          {
+            token: { text: '"mod/a"' },
+            message: "Circular dependency between modules",
+          },
+        ],
       });
     });
   });

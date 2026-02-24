@@ -131,7 +131,12 @@ class WatchModeMainLoop {
     try {
       let moduleSet: ModuleSet;
       try {
-        moduleSet = await collectModules(this.srcDir, this.dependencies);
+        moduleSet = await collectModules(
+          this.srcDir,
+          this.dependencies,
+          this.previousModuleSet,
+        );
+        this.previousModuleSet = moduleSet;
       } catch (e) {
         if (this.mode === "watch" && e instanceof Error) {
           console.error(makeRed(e.message));
@@ -168,6 +173,10 @@ class WatchModeMainLoop {
   }
 
   private async doGenerate(moduleSet: ModuleSet): Promise<void> {
+    if (moduleSet.errors.length) {
+      throw new Error();
+    }
+
     const { skiroutDirs } = this;
     const preExistingAbsolutePaths = new Set<string>();
     for (const skiroutDir of skiroutDirs) {
@@ -183,7 +192,7 @@ class WatchModeMainLoop {
     const pathToGenerator = new Map<string, GeneratorBundle>();
     for (const generator of this.generatorBundles) {
       const files = generator.generator.generateCode({
-        modules: moduleSet.resolvedModules,
+        modules: [...moduleSet.modules.values()].map((r) => r.result),
         recordMap: moduleSet.recordMap,
         config: generator.config,
       }).files;
@@ -257,6 +266,7 @@ class WatchModeMainLoop {
   private timeoutId?: NodeJS.Timeout;
   private generating = false;
   private mustRegenerate = false;
+  private previousModuleSet: ModuleSet | undefined;
   private lastWriteBatch: WriteBatch = {
     pathToFile: new Map(),
     writeTime: new Date(0),
@@ -381,12 +391,13 @@ async function getDependencies(
         moduleMap.set(modulePath, content);
       }
     }
-    const moduleSet = ModuleSet.fromMap(moduleMap);
-    if (moduleSet.errors.length) {
-      renderErrors(moduleSet.errors);
+    // Validate: compile the dependencies to check for errors.
+    const depModuleSet = ModuleSet.compile(moduleMap);
+    if (depModuleSet.errors.length) {
+      renderErrors(depModuleSet.errors);
       process.exit(1);
     }
-    return moduleSet;
+    return depModuleSet;
   } else {
     console.error(makeRed(result.message));
     process.exit(1);
