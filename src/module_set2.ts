@@ -1,0 +1,1626 @@
+import * as Paths from "path";
+import {
+  Declaration,
+  Doc,
+  MutableDocReferenceName,
+  Removed,
+  unquoteAndUnescape,
+  type DenseJson,
+  type ErrorSink,
+  type FieldPath,
+  type Import,
+  type ImportAlias,
+  type Method,
+  type Module,
+  type MutableArrayType,
+  type MutableConstant,
+  type MutableDoc,
+  type MutableDocReference,
+  type MutableMethod,
+  type MutableModule,
+  type MutableRecord,
+  type MutableRecordField,
+  type MutableRecordLocation,
+  type MutableResolvedType,
+  type MutableValue,
+  type Record,
+  type RecordKey,
+  type RecordLocation,
+  type ResolvedRecordRef,
+  type ResolvedType,
+  type Result,
+  type SkirError,
+  type Token,
+  type UnresolvedRecordRef,
+  type UnresolvedType,
+  type Value,
+} from "skir-internal";
+import {
+  isStringLiteral,
+  literalValueToDenseJson,
+  literalValueToIdentity,
+  valueHasPrimitiveType,
+} from "./literals.js";
+import { parseModule } from "./parser.js";
+import { ModuleTokens, tokenizeModule } from "./tokenizer.js";
+
+/**
+ * Result of compiling a set of modules. Immutable.
+ *
+ * Support incremental compilation by accepting an optional cache of the previous
+ * module set. This cache can be used to avoid re-parsing and re-resolving
+ * modules that haven't changed since the last compilation.
+ */
+export class ModuleSet2 {
+  static compile(
+    modulePathToContent: ReadonlyMap<string, string>,
+    cache?: ModuleSet2,
+  ): ModuleSet2 {
+    return new ModuleSet2(modulePathToContent, cache);
+  }
+
+  constructor(
+    private readonly modulePathToContent: ReadonlyMap<string, string>,
+    cache: ModuleSet2 | undefined,
+  ) {
+    this.cache = cache
+      ? new Cache(modulePathToContent, cache.moduleBundles)
+      : undefined;
+    for (const modulePath of modulePathToContent.keys()) {
+      this.parseAndResolve(modulePath, new Set<string>());
+    }
+    this.finalizationResult = this.finalize();
+    // So it can be garbage collected.
+    this.cache = undefined;
+  }
+
+  private parseAndResolve(
+    modulePath: string,
+    inProgressSet: Set<string>,
+  ): ModuleBundle | null {
+    const inMap = this.moduleBundles.get(modulePath);
+    if (inMap !== undefined) {
+      return inMap;
+    }
+    const result = this.doParseAndResolve(modulePath, inProgressSet);
+    if (result) {
+      this.moduleBundles.set(modulePath, result);
+    }
+    return result;
+  }
+
+  /** Called by `parseAndResolve` when the module is not in the map already. */
+  private doParseAndResolve(
+    modulePath: string,
+    inProgressSet: Set<string>,
+  ): ModuleBundle | null {
+    const moduleContent = this.modulePathToContent.get(modulePath);
+    if (moduleContent === undefined) {
+      return null;
+    }
+
+    let moduleTokens: Result<ModuleTokens>;
+    {
+      const moduleCacheResult = this.cache?.getModuleCacheResult(
+        modulePath,
+      ) ?? { kind: "no-cache" };
+      switch (moduleCacheResult.kind) {
+        case "no-cache": {
+          moduleTokens = tokenizeModule(moduleContent, modulePath);
+          break;
+        }
+        case "module-tokens": {
+          moduleTokens = moduleCacheResult.tokens;
+          break;
+        }
+        case "module-bundle": {
+          this.registry.mergeFrom(moduleCacheResult.bundle.registry);
+          return moduleCacheResult.bundle;
+        }
+      }
+    }
+
+    let module: MutableModule;
+    const errors: SkirError[] = [];
+    {
+      const parseResult = parseModule(moduleTokens.result, "strict");
+      errors.push(...parseResult.errors);
+      module = parseResult.result;
+    }
+
+    const moduleBundle = new ModuleBundle(moduleTokens, {
+      result: module,
+      errors: errors,
+    });
+
+    // Process all imports.
+    const pathToImports = new Map<string, Array<Import | ImportAlias>>();
+    for (const declaration of module.declarations) {
+      if (
+        declaration.kind !== "import" &&
+        declaration.kind !== "import-alias"
+      ) {
+        continue;
+      }
+      const otherModulePath = resolveModulePath(
+        declaration.modulePath,
+        modulePath,
+        errors,
+      );
+      declaration.resolvedModulePath = otherModulePath;
+      if (otherModulePath === undefined) {
+        // An error was already registered.
+        continue;
+      }
+      let imports = pathToImports.get(otherModulePath);
+      if (!imports) {
+        imports = [];
+        pathToImports.set(otherModulePath, imports);
+      }
+      imports.push(declaration);
+
+      // Add the imported module to the module set.
+      const circularDependencyMessage = "Circular dependency between modules";
+      if (inProgressSet.has(modulePath)) {
+        errors.push({
+          token: declaration.modulePath,
+          message: circularDependencyMessage,
+        });
+        continue;
+      }
+      inProgressSet.add(modulePath);
+      const otherModule = this.parseAndResolve(otherModulePath, inProgressSet);
+      inProgressSet.delete(modulePath);
+
+      if (otherModule === null) {
+        errors.push({
+          token: declaration.modulePath,
+          message: "Module not found",
+        });
+      } else if (
+        otherModule.tokens.errors.length !== 0 ||
+        otherModule.module.errors.length !== 0
+      ) {
+        const hasCircularDependency = otherModule.module.errors.some(
+          (e) => e.message === circularDependencyMessage,
+        );
+        if (hasCircularDependency) {
+          errors.push({
+            token: declaration.modulePath,
+            message: circularDependencyMessage,
+          });
+        } else {
+          errors.push({
+            token: declaration.modulePath,
+            message: "Imported module has errors",
+            errorIsInOtherModule: true,
+          });
+        }
+      } else if (declaration.kind === "import") {
+        // Make sure that the symbols we are importing exist in the imported
+        // module and are not imported symbols themselves.
+        for (const importedName of declaration.importedNames) {
+          const importedDeclaration =
+            otherModule.module.result.nameToDeclaration[importedName.text];
+          if (importedDeclaration === undefined) {
+            errors.push({
+              token: importedName,
+              message: "Not found",
+              expectedNames: declarationsToExpectedNames(
+                otherModule.module.result.nameToDeclaration,
+                (d) => d.kind === "record",
+              ),
+            });
+          } else if (importedDeclaration.kind === "import") {
+            errors.push({
+              token: importedName,
+              message: "Cannot reimport imported record",
+            });
+          } else if (importedDeclaration.kind !== "record") {
+            errors.push({
+              token: importedName,
+              message: "Not a record",
+            });
+          }
+        }
+      }
+    }
+
+    const pathToImportedNames = module.pathToImportedNames;
+    for (const [path, imports] of pathToImports.entries()) {
+      const importsNoAlias = imports.filter(
+        (i): i is Import => i.kind === "import",
+      );
+      const importsWithAlias = imports.filter(
+        (i): i is ImportAlias => i.kind === "import-alias",
+      );
+
+      if (importsNoAlias.length && importsWithAlias.length) {
+        for (const importNoAlias of importsNoAlias) {
+          errors.push({
+            token: importNoAlias.modulePath,
+            message: "Module already imported with an alias",
+          });
+        }
+        continue;
+      }
+      if (importsWithAlias.length >= 2) {
+        for (const importWithAlias of importsWithAlias.slice(1)) {
+          errors.push({
+            token: importWithAlias.modulePath,
+            message: "Module already imported with a different alias",
+          });
+        }
+        continue;
+      }
+
+      if (importsNoAlias.length) {
+        const names = new Set<string>();
+        for (const importNoAlias of importsNoAlias) {
+          for (const importedName of importNoAlias.importedNames) {
+            names.add(importedName.text);
+          }
+        }
+        pathToImportedNames[path] = {
+          kind: "some",
+          names: names,
+        };
+      } else {
+        const alias = importsWithAlias[0]!.name.text;
+        pathToImportedNames[path] = {
+          kind: "all",
+          alias: alias,
+        };
+      }
+    }
+
+    if (errors.length) {
+      return moduleBundle;
+    }
+
+    // We can't merge these 3 loops into a single one, each operation must run
+    // after the last operation ran on the whole map.
+
+    // Loop 1: merge the module records map into the cross-module record map.
+    for (const record of module.records) {
+      const { key } = record.record;
+      this.registry.recordMap.set(key, record);
+      moduleBundle.registry.recordMap.set(key, record);
+      const { recordNumber } = record.record;
+      if (recordNumber != null && !modulePath.startsWith("@")) {
+        moduleBundle.registry.pushNumberRecord(recordNumber, key);
+      }
+    }
+
+    // Loop 2: resolve every field type of every record in the module.
+    // Store the result in the Field object.
+    const usedImports = new Set<string>();
+    const typeResolver = new TypeResolver(
+      module,
+      this.moduleBundles,
+      usedImports,
+      errors,
+    );
+    for (const record of module.records) {
+      this.storeResolvedFieldTypes(record, typeResolver);
+    }
+
+    // Loop 3: once all the types of record fields have been resolved.
+    for (const moduleRecord of module.records) {
+      const { record } = moduleRecord;
+      // For every field, determine if the field is recursive, i.e. the field
+      // type depends on the record where the field is defined.
+      // Store the result in the Field object.
+      this.storeFieldRecursivity(record);
+      // Verify that the `key` field of every array type is valid.
+      for (const field of record.fields) {
+        const { type } = field;
+        if (type) {
+          this.validateArrayKeys(type, errors);
+        }
+        // Resolve the references in the doc comments of the field.
+        this.resolveDocReferences(
+          {
+            kind: "field",
+            field: field,
+            record: record,
+          },
+          module,
+          errors,
+        );
+      }
+      // Resolve the references in the doc comments of the record.
+      this.resolveDocReferences(record, module, errors);
+    }
+    // Resolve every request/response type of every method in the module.
+    // Store the result in the Method object.
+    for (const method of module.methods) {
+      {
+        const request = method.unresolvedRequestType;
+        const requestType = typeResolver.resolve(request, "top-level");
+        method.requestType = requestType;
+        if (requestType) {
+          this.validateArrayKeys(requestType, errors);
+        }
+      }
+      {
+        const response = method.unresolvedResponseType;
+        const responseType = typeResolver.resolve(response, "top-level");
+        method.responseType = responseType;
+        if (responseType) {
+          this.validateArrayKeys(responseType, errors);
+        }
+      }
+      const { number } = method;
+      moduleBundle.registry.pushNumberMethod(number, method);
+      // Resolve the references in the doc comments of the method.
+      this.resolveDocReferences(method, module, errors);
+    }
+    // Resolve every constant type. Store the result in the constant object.
+    for (const constant of module.constants) {
+      const { unresolvedType } = constant;
+      const type = typeResolver.resolve(unresolvedType, "top-level");
+      constant.type = type;
+      if (type) {
+        this.validateArrayKeys(type, errors);
+        constant.valueAsDenseJson = //
+          this.valueToDenseJson(constant.value, type, errors);
+      }
+      // Resolve the references in the doc comments of the constant.
+      this.resolveDocReferences(constant, module, errors);
+    }
+
+    ensureAllImportsAreUsed(module, usedImports, errors);
+
+    this.registry.mergeFrom(moduleBundle.registry);
+
+    return moduleBundle;
+  }
+
+  private storeResolvedFieldTypes(
+    record: MutableRecordLocation,
+    typeResolver: TypeResolver,
+  ): void {
+    for (const field of record.record.fields) {
+      if (field.unresolvedType === undefined) {
+        // A constant enum field.
+        continue;
+      }
+      field.type = typeResolver.resolve(field.unresolvedType, record);
+    }
+  }
+
+  private storeFieldRecursivity(record: MutableRecord): void {
+    for (const field of record.fields) {
+      if (!field.type) continue;
+      const modes: ReadonlyArray<"soft" | "hard"> =
+        record.recordType === "struct" ? ["hard", "soft"] : ["soft"];
+      for (const mode of modes) {
+        const deps = new Set<RecordKey>();
+        this.collectTypeDeps(field.type, mode, deps);
+        if (deps.has(record.key)) {
+          field.isRecursive = mode;
+          break;
+        }
+      }
+    }
+  }
+
+  private collectTypeDeps(
+    input: ResolvedType,
+    mode: "soft" | "hard",
+    out: Set<RecordKey>,
+  ): void {
+    switch (input.kind) {
+      case "record": {
+        const { key } = input;
+        if (out.has(key)) return;
+        out.add(key);
+        // Recursively add deps of all fields of the record.
+        const record = this.recordMap.get(key)!.record;
+        if (mode === "hard" && record.recordType === "enum") {
+          return;
+        }
+        for (const field of record.fields) {
+          if (field.type === undefined) continue;
+          this.collectTypeDeps(field.type, mode, out);
+        }
+        break;
+      }
+      case "array": {
+        if (mode === "hard") break;
+        this.collectTypeDeps(input.item, mode, out);
+        break;
+      }
+      case "optional": {
+        if (mode === "hard") break;
+        this.collectTypeDeps(input.other, mode, out);
+        break;
+      }
+    }
+  }
+
+  /**
+   * Verifies that the `key` field of every array type found in `topLevelType`
+   * is valid. Populates the `keyType` field of every field path.
+   */
+  private validateArrayKeys(
+    topLevelType: MutableResolvedType,
+    errors: ErrorSink,
+  ): void {
+    const validate = (type: MutableArrayType): void => {
+      const { key, item } = type;
+      if (!key) {
+        return;
+      }
+      const { path } = key;
+      // Iterate the fields in the sequence.
+      let currentType = item;
+      let enumRef: ResolvedRecordRef | undefined;
+      for (let i = 0; i < path.length; ++i) {
+        const pathItem = path[i]!;
+        const fieldName = pathItem.name;
+        if (currentType.kind !== "record") {
+          if (i === 0) {
+            errors.push({
+              token: key.pipeToken,
+              message: "Item must have struct type",
+            });
+          } else {
+            const previousFieldName = path[i - 1]!.name;
+            errors.push({
+              token: previousFieldName,
+              message: "Must have struct type",
+            });
+          }
+          return;
+        }
+        const record = this.recordMap.get(currentType.key)!.record;
+        if (record.recordType === "struct") {
+          const field = record.nameToDeclaration[fieldName.text];
+          if (field?.kind !== "field") {
+            errors.push({
+              token: fieldName,
+              message: `Field not found in struct ${record.name.text}`,
+              expectedNames: declarationsToExpectedNames(
+                record.nameToDeclaration,
+                (d) => d.kind === "field",
+              ),
+            });
+            return undefined;
+          }
+          pathItem.declaration = field;
+          if (!field.type) {
+            // An error was already registered.
+            return;
+          }
+          currentType = field.type;
+        } else {
+          // An enum.
+          if (fieldName.text !== "kind") {
+            errors.push({
+              token: fieldName,
+              expected: "'kind'",
+              expectedNames: [{ name: "kind" }],
+            });
+            return undefined;
+          }
+          enumRef = currentType;
+          currentType = {
+            kind: "primitive",
+            primitive: "string",
+          };
+        }
+      }
+      if (currentType.kind !== "primitive") {
+        errors.push({
+          token: path.at(-1)!.name,
+          message: "Does not have primitive type",
+        });
+        return;
+      }
+      // If the last field name of the `kind` field of an enum, we store a
+      // reference to the enum in the `keyType` field of the array type.
+      key.keyType = enumRef || currentType;
+    };
+
+    const traverseType = (type: MutableResolvedType): void => {
+      switch (type.kind) {
+        case "array":
+          validate(type);
+          return traverseType(type.item);
+        case "optional":
+          return traverseType(type.other);
+      }
+    };
+
+    traverseType(topLevelType);
+  }
+
+  private valueToDenseJson(
+    value: MutableValue,
+    expectedType: ResolvedType,
+    errors: ErrorSink,
+  ): DenseJson | undefined {
+    switch (expectedType.kind) {
+      case "optional": {
+        if (value.kind === "literal" && value.token.text === "null") {
+          value.type = { kind: "null" };
+          return null;
+        }
+        return this.valueToDenseJson(value, expectedType.other, errors);
+      }
+      case "array": {
+        if (value.kind !== "array") {
+          errors.push({
+            token: value.token,
+            expected: "array",
+          });
+          return undefined;
+        }
+        const json: DenseJson[] = [];
+        let allGood = true;
+        for (const item of value.items) {
+          const itemJson = //
+            this.valueToDenseJson(item, expectedType.item, errors);
+          if (itemJson !== undefined) {
+            json.push(itemJson);
+          } else {
+            // Even if we could return now, better to verify the type of the
+            // other items.
+            allGood = false;
+          }
+        }
+        if (!allGood) {
+          return undefined;
+        }
+        const { key } = expectedType;
+        value.key = key;
+        if (key) {
+          validateKeyedItems(value.items, key, errors);
+        }
+        return json;
+      }
+      case "record": {
+        const record = this.recordMap.get(expectedType.key);
+        if (!record) {
+          // An error was already registered.
+          return undefined;
+        }
+        return record.record.recordType === "struct"
+          ? this.structValueToDenseJson(value, record.record, errors)
+          : this.enumValueToDenseJson(value, record.record, errors);
+      }
+      case "primitive": {
+        const { token } = value;
+        const { primitive } = expectedType;
+        if (
+          value.kind !== "literal" ||
+          !valueHasPrimitiveType(token.text, primitive)
+        ) {
+          errors.push({
+            token: value.token,
+            expected: primitive,
+          });
+          return undefined;
+        }
+        value.type = expectedType;
+        return literalValueToDenseJson(token.text, expectedType.primitive);
+      }
+    }
+  }
+
+  private structValueToDenseJson(
+    value: MutableValue,
+    expectedStruct: Record,
+    errors: ErrorSink,
+  ): DenseJson | undefined {
+    const { token } = value;
+    if (value.kind !== "object") {
+      errors.push({
+        token: token,
+        expected: "object",
+      });
+      return undefined;
+    }
+    const json: DenseJson[] = Array<DenseJson>(
+      expectedStruct.numSlotsInclRemovedNumbers,
+    ).fill(0);
+    let allGood = true;
+    for (const [fieldName, fieldEntry] of Object.entries(value.entries)) {
+      const field = expectedStruct.nameToDeclaration[fieldName];
+      if (field?.kind !== "field") {
+        errors.push({
+          token: fieldEntry.name,
+          message: `Field not found in struct ${expectedStruct.name.text}`,
+          expectedNames: declarationsToExpectedNames(
+            expectedStruct.nameToDeclaration,
+            (d) => d.kind === "field",
+          ),
+        });
+        allGood = false;
+        continue;
+      }
+    }
+    let arrayLen = 0;
+    for (const field of expectedStruct.fields) {
+      const { type } = field;
+      if (!type) {
+        allGood = false;
+        continue;
+      }
+      const fieldEntry = value.entries[field.name.text];
+      let valueJson: DenseJson | undefined;
+      if (fieldEntry) {
+        fieldEntry.fieldDeclaration = field;
+        valueJson = this.valueToDenseJson(fieldEntry.value, type, errors);
+      } else {
+        // Unless the object is declared partial, all fields are required.
+        if (value.partial) {
+          valueJson = this.getDefaultJson(type);
+        } else {
+          errors.push({
+            token: token,
+            message: `Missing entry: ${field.name.text}`,
+          });
+        }
+      }
+      if (valueJson === undefined) {
+        allGood = false;
+        continue;
+      }
+      json[field.number] = valueJson;
+      const hasDefaultValue =
+        type.kind === "optional"
+          ? valueJson === null
+          : !valueJson ||
+            (Array.isArray(valueJson) && !valueJson.length) ||
+            (type.kind === "primitive" &&
+              (type.primitive === "int64" || type.primitive === "hash64") &&
+              valueJson === "0");
+      if (!hasDefaultValue) {
+        arrayLen = Math.max(arrayLen, field.number + 1);
+      }
+    }
+    if (!allGood) {
+      return undefined;
+    }
+    value.record = expectedStruct;
+    return json.slice(0, arrayLen);
+  }
+
+  private enumValueToDenseJson(
+    value: MutableValue,
+    expectedEnum: Record,
+    errors: ErrorSink,
+  ): DenseJson | undefined {
+    const { token } = value;
+    if (value.kind === "literal" && isStringLiteral(token.text)) {
+      // The value is a string.
+      // It must match the name of one of the constants defined in the enum.
+      const fieldName = unquoteAndUnescape(token.text);
+      if (fieldName === "UNKNOWN") {
+        // Present on every enum.
+        return 0;
+      }
+      const field = expectedEnum.nameToDeclaration[fieldName];
+      if (field?.kind !== "field") {
+        errors.push({
+          token: token,
+          message: `Variant not found in enum ${expectedEnum.name.text}`,
+          expectedNames: [{ name: "UNKNOWN" }].concat(
+            declarationsToExpectedNames(
+              expectedEnum.nameToDeclaration,
+              (d) => d.kind === "field" && !d.type,
+            ),
+          ),
+        });
+        return undefined;
+      }
+      if (field.type) {
+        errors.push({
+          token: token,
+          message: "Refers to a wrapper variant",
+        });
+        return undefined;
+      }
+      value.type = {
+        kind: "enum",
+        key: expectedEnum.key,
+      };
+      return field.number;
+    } else if (value.kind === "object") {
+      // The value is an object. It must have exactly two entries:
+      //   · 'kind' must match the name of one of the wrapper variants defined in
+      //     the enum
+      //   · 'value' must match the type of the wrapper variant
+      const entries = { ...value.entries };
+      const kindEntry = entries.kind;
+      if (!kindEntry) {
+        errors.push({
+          token: token,
+          message: "Missing entry: kind",
+        });
+        return undefined;
+      }
+      delete entries.kind;
+      const kindValueToken = kindEntry.value.token;
+      if (
+        kindEntry.value.kind !== "literal" ||
+        !isStringLiteral(kindValueToken.text)
+      ) {
+        errors.push({
+          token: kindValueToken,
+          expected: "string",
+        });
+        return undefined;
+      }
+      const fieldName = unquoteAndUnescape(kindValueToken.text);
+      const field = expectedEnum.nameToDeclaration[fieldName];
+      if (field?.kind !== "field") {
+        errors.push({
+          token: kindValueToken,
+          message: `Variant not found in enum ${expectedEnum.name.text}`,
+          expectedNames: declarationsToExpectedNames(
+            expectedEnum.nameToDeclaration,
+            (d) => d.kind === "field" && !!d.type,
+          ),
+        });
+        return undefined;
+      }
+      if (!field.type) {
+        errors.push({
+          token: kindValueToken,
+          message: "Refers to a constant field",
+        });
+        return undefined;
+      }
+      const enumValue = entries.value;
+      if (!enumValue) {
+        errors.push({
+          token: token,
+          message: "Missing entry: value",
+        });
+        return undefined;
+      }
+      delete entries.value;
+      const valueJson = //
+        this.valueToDenseJson(enumValue.value, field.type, errors);
+      if (valueJson === undefined) {
+        return undefined;
+      }
+      const extraEntries = Object.values(entries);
+      if (extraEntries.length !== 0) {
+        const extraEntry = extraEntries[0]!;
+        errors.push({
+          token: extraEntry.name,
+          message: "Extraneous entry",
+        });
+        return undefined;
+      }
+      value.record = expectedEnum;
+      // Return an array of length 2.
+      return [field.number, valueJson];
+    } else {
+      // The value is neither a string nor an object. It can't be of enum type.
+      errors.push({
+        token: token,
+        expected: "string or object",
+      });
+      return undefined;
+    }
+  }
+
+  private getDefaultJson(type: ResolvedType): DenseJson {
+    switch (type.kind) {
+      case "primitive": {
+        switch (type.primitive) {
+          case "bool":
+          case "int32":
+          case "int64":
+          case "hash64":
+          case "float32":
+          case "float64":
+          case "timestamp":
+            return 0;
+          case "string":
+          case "bytes":
+            return "";
+          default: {
+            const _: never = type.primitive;
+            throw new TypeError(_);
+          }
+        }
+      }
+      case "array":
+        return [];
+      case "optional":
+        return null;
+      case "record": {
+        const record = this.recordMap.get(type.key)!;
+        switch (record.record.recordType) {
+          case "struct":
+            return [];
+          case "enum":
+            return 0;
+        }
+      }
+    }
+  }
+
+  /** Resolve the references in the doc comments of the given declaration. */
+  private resolveDocReferences(
+    documentee:
+      | MutableConstant
+      | MutableMethod
+      | MutableRecord
+      | MutableRecordField,
+    module: Module,
+    errors: ErrorSink,
+  ): void {
+    const doc: MutableDoc =
+      documentee.kind === "field" ? documentee.field.doc : documentee.doc;
+
+    const docReferences = doc.pieces.filter(
+      (p): p is MutableDocReference => p.kind === "reference",
+    );
+    if (docReferences.length <= 0) {
+      return;
+    }
+
+    // Try to resolve a reference by looking it up in the given scope.
+    // Returns true if resolved, false otherwise.
+    const tryResolveReference = (
+      ref: MutableDocReference,
+      nameParts: readonly MutableDocReferenceName[],
+      scope: Record | Module,
+    ): boolean => {
+      if (ref.absolute && scope !== module) {
+        return false;
+      }
+      const firstName = nameParts[0]!;
+      const match = scope.nameToDeclaration[firstName.token.text];
+      if (!match) {
+        return false;
+      }
+      if (nameParts.length === 1) {
+        // Single name: must refer to a declaration.
+        switch (match.kind) {
+          case "constant":
+          case "method":
+          case "record": {
+            firstName.declaration = match;
+            ref.referee = match;
+            return true;
+          }
+          case "field": {
+            if (scope.kind !== "record") {
+              throw new TypeError(scope.kind);
+            }
+            firstName.declaration = match;
+            ref.referee = {
+              kind: "field",
+              field: match,
+              record: scope,
+            };
+            return true;
+          }
+          case "import-alias": {
+            firstName.declaration = match;
+            return false;
+          }
+          case "import":
+          case "removed":
+            return false;
+        }
+      } else {
+        // Multi-part name: first part must be a naming scope.
+        switch (match.kind) {
+          case "record": {
+            firstName.declaration = match;
+            return tryResolveReference(ref, nameParts.slice(1), match);
+          }
+          case "import":
+          case "import-alias": {
+            if (scope !== module) {
+              // Cannot refer to other module's imports.
+              return false;
+            }
+            const { resolvedModulePath } = match;
+            if (!resolvedModulePath) {
+              return false;
+            }
+            const importedModule = this.moduleBundles.get(resolvedModulePath!);
+            if (!importedModule) {
+              return false;
+            }
+            let newNameChain: readonly MutableDocReferenceName[];
+            if (match.kind === "import") {
+              newNameChain = nameParts;
+            } else {
+              firstName.declaration = match;
+              newNameChain = nameParts.slice(1);
+            }
+            return tryResolveReference(
+              ref,
+              newNameChain,
+              importedModule.module.result,
+            );
+          }
+          case "constant":
+          case "field":
+          case "method": {
+            firstName.declaration = match;
+            return false;
+          }
+          case "removed":
+            return false;
+        }
+      }
+    };
+
+    const { recordMap } = this.registry;
+    // Build list of naming scopes to search, in order of priority.
+    const scopes: Array<Record | Module> = [];
+    const pushRecordAncestorsToScopes = (record: Record): void => {
+      const { key } = record;
+      const location = recordMap.get(key)!;
+      const ancestors = [...location.recordAncestors].reverse();
+      for (const ancestor of ancestors) {
+        scopes.push(ancestor);
+      }
+    };
+    const pushTypeToScopes = (type: ResolvedType | undefined): void => {
+      if (type) {
+        const recordKey = tryFindRecordForType(type);
+        if (recordKey) {
+          const { record } = recordMap.get(recordKey)!;
+          scopes.push(record);
+        }
+      }
+    };
+    switch (documentee.kind) {
+      case "constant": {
+        scopes.push(module);
+        pushTypeToScopes(documentee.type);
+        break;
+      }
+      case "field": {
+        const { field, record } = documentee;
+        pushRecordAncestorsToScopes(record);
+        scopes.push(module);
+        pushTypeToScopes(field.type);
+        break;
+      }
+      case "method": {
+        scopes.push(module);
+        pushTypeToScopes(documentee.requestType);
+        pushTypeToScopes(documentee.responseType);
+        break;
+      }
+      case "record": {
+        pushRecordAncestorsToScopes(documentee);
+        scopes.push(module);
+        break;
+      }
+    }
+
+    // Resolve each reference by searching through scopes in priority order.
+    for (const reference of docReferences) {
+      const { nameParts } = reference;
+      if (nameParts.length <= 0) {
+        continue;
+      }
+      let resolved = false;
+      for (const scope of scopes) {
+        if (tryResolveReference(reference, nameParts, scope)) {
+          resolved = true;
+          break;
+        }
+      }
+      if (!resolved) {
+        errors.push({
+          token: reference.referenceRange,
+          message: "Cannot resolve reference",
+        });
+      }
+    }
+  }
+
+  finalize(): FinalizationResult {
+    type MutableModuleResult = {
+      result: Module;
+      errors: SkirError[];
+    };
+    const modules = new Map<string, MutableModuleResult>();
+
+    for (const [modulePath, moduleBundle] of this.moduleBundles.entries()) {
+      const { module, tokens } = moduleBundle;
+      const moduleErrors = [...tokens.errors, ...module.errors];
+      modules.set(modulePath, {
+        result: module.result,
+        errors: moduleErrors,
+      });
+    }
+
+    // Look for duplicate method numbers.
+    for (const methods of this.registry.numberToMethods.values()) {
+      if (methods.length <= 1) {
+        continue;
+      }
+      const pushError = (method: Method, other: Method): void => {
+        const modulePath = method.name.line.modulePath;
+        const moduleResult = modules.get(modulePath)!;
+        const otherMethodName = other.name.text;
+        const otherModulePath = other.name.line.modulePath;
+        moduleResult.errors.push({
+          token: method.name,
+          message: `Same number as ${otherMethodName} in ${otherModulePath}`,
+        });
+      };
+      pushError(methods[0]!, methods[1]!);
+      for (let i = 1; i < methods.length; ++i) {
+        pushError(methods[i]!, methods[0]!);
+      }
+    }
+
+    // Look for duplicate record numbers.
+    for (const records of this.registry.numberToRecords.values()) {
+      if (records.length <= 1) {
+        continue;
+      }
+      const pushError = (recordKey: RecordKey, otherKey: RecordKey): void => {
+        const record = this.registry.recordMap.get(recordKey)!;
+        const other = this.registry.recordMap.get(otherKey)!;
+
+        const modulePath = record.record.name.line.modulePath;
+        const moduleResult = modules.get(modulePath)!;
+        const otherRecordName = other.record.name.text;
+        const otherModulePath = other.modulePath;
+        moduleResult.errors.push({
+          token: record.record.name,
+          message: `Same number as ${otherRecordName} in ${otherModulePath}`,
+        });
+      };
+      pushError(records[0]!, records[1]!);
+      for (let i = 1; i < records.length; ++i) {
+        pushError(records[i]!, records[0]!);
+      }
+    }
+
+    // Aggregate errors across all modules.
+    const errors: SkirError[] = [];
+    for (const moduleBundle of modules.values()) {
+      errors.push(...moduleBundle.errors);
+    }
+    return {
+      modules: modules,
+      errors: errors,
+    };
+  }
+
+  // BEGIN PROPERTIES
+  private cache: Cache | undefined;
+  private readonly moduleBundles = new Map<string, ModuleBundle>();
+  private readonly registry = new DeclarationRegistry();
+  private readonly finalizationResult: FinalizationResult;
+  // END PROPERTIES
+
+  findRecordByNumber(recordNumber: number): RecordLocation | undefined {
+    const { numberToRecords, recordMap } = this.registry;
+    const recordKeys = numberToRecords.get(recordNumber);
+    return recordKeys?.length === 1 ? recordMap.get(recordKeys[0]!) : undefined;
+  }
+
+  findMethodByNumber(methodNumber: number): Method | undefined {
+    const { numberToMethods } = this.registry;
+    const methods = numberToMethods.get(methodNumber);
+    return methods?.length === 1 ? methods[0]! : undefined;
+  }
+
+  get recordMap(): ReadonlyMap<RecordKey, RecordLocation> {
+    return this.registry.recordMap;
+  }
+
+  get errors(): readonly SkirError[] {
+    return this.finalizationResult.errors;
+  }
+
+  get modules(): ReadonlyMap<string, Result<Module>> {
+    return this.finalizationResult.modules;
+  }
+}
+
+/**
+ * If the array type is keyed, the array value must satisfy two conditions.
+ * First: the key field of every item must be set.
+ * Second: not two items can have the same key.
+ */
+function validateKeyedItems(
+  items: readonly Value[],
+  fieldPath: FieldPath,
+  errors: ErrorSink,
+): void {
+  const { keyType, path } = fieldPath;
+  const tryExtractKeyFromItem = (item: Value): Value | undefined => {
+    let value = item;
+    for (const pathItem of path) {
+      const fieldName = pathItem.name;
+      if (value.kind === "literal" && fieldName.text === "kind") {
+        // An enum constant.
+        return value;
+      }
+      if (value.kind !== "object") {
+        // An error was already registered.
+        return undefined;
+      }
+      const entry = value.entries[fieldName.text];
+      if (!entry) {
+        errors.push({
+          token: value.token,
+          message: `Missing entry: ${fieldName.text}`,
+        });
+        return;
+      }
+      value = entry.value;
+    }
+    return value;
+  };
+
+  const keyIdentityToKeys = new Map<string, Value[]>();
+  for (const item of items) {
+    const key = tryExtractKeyFromItem(item);
+    if (!key) {
+      return;
+    }
+    if (key.kind !== "literal") {
+      // Cannot happen.
+      return;
+    }
+    let keyIdentity: string;
+    const keyToken = key.token.text;
+    if (keyType.kind === "primitive") {
+      const { primitive } = keyType;
+      if (!valueHasPrimitiveType(keyToken, primitive)) {
+        continue;
+      }
+      keyIdentity = literalValueToIdentity(keyToken, primitive);
+    } else {
+      // The key is an enum, use the enum field name as the key identity.
+      if (!isStringLiteral(keyToken)) {
+        continue;
+      }
+      keyIdentity = unquoteAndUnescape(keyToken);
+    }
+    if (keyIdentityToKeys.has(keyIdentity)) {
+      keyIdentityToKeys.get(keyIdentity)!.push(key);
+    } else {
+      keyIdentityToKeys.set(keyIdentity, [key]);
+    }
+  }
+
+  // Verify that every key in `keyIdentityToItems` has a single value.
+  for (const duplicateKeys of keyIdentityToKeys.values()) {
+    if (duplicateKeys.length <= 1) {
+      continue;
+    }
+    for (const key of duplicateKeys) {
+      errors.push({
+        token: key.token,
+        message: "Duplicate key",
+      });
+    }
+  }
+}
+
+class TypeResolver {
+  constructor(
+    private readonly module: Module,
+    private readonly moduleBundles: Map<string, ModuleBundle>,
+    private readonly usedImports: Set<string>,
+    private readonly errors: ErrorSink,
+  ) {}
+
+  resolve(
+    input: UnresolvedType,
+    recordOrigin: RecordLocation | "top-level",
+  ): MutableResolvedType | undefined {
+    switch (input.kind) {
+      case "primitive":
+        return input;
+      case "array": {
+        const item = this.resolve(input.item, recordOrigin);
+        if (!item) {
+          return undefined;
+        }
+        return { kind: "array", item: item, key: input.key };
+      }
+      case "optional": {
+        const value = this.resolve(input.other, recordOrigin);
+        if (!value) {
+          return undefined;
+        }
+        return { kind: "optional", other: value };
+      }
+      case "record": {
+        return this.resolveRecordRef(input, recordOrigin);
+      }
+    }
+  }
+
+  /**
+   * Finds the definition of the actual record referenced from a value type.
+   * This is where we implement the name resolution algorithm.
+   */
+  private resolveRecordRef(
+    recordRef: UnresolvedRecordRef,
+    recordOrigin: RecordLocation | "top-level",
+  ): ResolvedRecordRef | undefined {
+    const firstNamePart = recordRef.nameParts[0]!;
+
+    // The most nested record/module which contains the first name in the record
+    // reference, or the module if the record reference is absolute (starts with
+    // a dot).
+    let start: Record | Module | undefined;
+    const { errors, module, moduleBundles: modules, usedImports } = this;
+    if (recordOrigin !== "top-level") {
+      if (!recordRef.absolute) {
+        // Traverse the chain of ancestors from most nested to top-level.
+        for (const fromRecord of [...recordOrigin.recordAncestors].reverse()) {
+          const matchMaybe = fromRecord.nameToDeclaration[firstNamePart.text];
+          if (matchMaybe && matchMaybe.kind === "record") {
+            start = fromRecord;
+            break;
+          }
+        }
+      }
+      if (!start) {
+        start = module;
+      }
+    } else {
+      start = module;
+    }
+
+    const makeNotARecordError = (name: Token): SkirError => ({
+      token: name,
+      message: "Does not refer to a struct or an enum",
+    });
+    const makeCannotFindNameError = (
+      name: Token,
+      expectedNames: ReadonlyArray<{
+        readonly name: string;
+        readonly doc?: Doc;
+      }>,
+    ): SkirError => ({
+      token: name,
+      message: `Cannot find name '${name.text}'`,
+      expectedNames: expectedNames,
+    });
+
+    let it: Module | Record = start;
+    const nameParts: Array<{
+      token: Token;
+      declaration: Record | ImportAlias;
+    }> = [];
+    for (let i = 0; i < recordRef.nameParts.length; ++i) {
+      const namePart = recordRef.nameParts[i]!;
+      const name = namePart.text;
+      let newIt = it.nameToDeclaration[name];
+      if (newIt === undefined) {
+        errors.push(
+          makeCannotFindNameError(
+            namePart,
+            declarationsToExpectedNames(
+              it.nameToDeclaration,
+              (d) =>
+                d.kind === "record" || (i === 0 && d.kind === "import-alias"),
+            ),
+          ),
+        );
+        return undefined;
+      } else if (newIt.kind === "record") {
+        it = newIt;
+      } else if (newIt.kind === "import" || newIt.kind === "import-alias") {
+        const transitiveImportError = (): SkirError => ({
+          token: namePart,
+          message: "Cannot refer to imports of imported module",
+        });
+        if (i !== 0) {
+          errors.push(transitiveImportError());
+          return undefined;
+        }
+        usedImports.add(name);
+        const newModulePath = newIt.resolvedModulePath;
+        if (newModulePath === undefined) {
+          return undefined;
+        }
+        const newModuleResult = modules.get(newModulePath);
+        if (!newModuleResult) {
+          // The module was not found or has errors: an error was already
+          // registered, no need to register a new one.
+          return undefined;
+        }
+        const newModule = newModuleResult.module.result;
+        if (newIt.kind === "import") {
+          newIt = newModule.nameToDeclaration[name];
+          if (!newIt) {
+            errors.push(
+              makeCannotFindNameError(
+                namePart,
+                declarationsToExpectedNames(
+                  newModule.nameToDeclaration,
+                  (d) => d.kind === "record",
+                ),
+              ),
+            );
+            return undefined;
+          }
+          if (newIt.kind !== "record") {
+            this.errors.push(
+              newIt.kind === "import" || newIt.kind === "import-alias"
+                ? transitiveImportError()
+                : makeNotARecordError(namePart),
+            );
+            return undefined;
+          }
+          it = newIt;
+        } else {
+          it = newModule;
+        }
+      } else {
+        this.errors.push(makeNotARecordError(namePart));
+        return undefined;
+      }
+      nameParts.push({ token: namePart, declaration: newIt });
+    }
+    if (it.kind !== "record") {
+      const name = recordRef.nameParts[0]!;
+      this.errors.push(makeNotARecordError(name));
+      return undefined;
+    }
+    return {
+      kind: "record",
+      key: it.key,
+      recordType: it.recordType,
+      nameParts: nameParts,
+      refToken: recordRef.nameParts.at(-1)!,
+    };
+  }
+}
+
+type ModuleCacheResult =
+  | {
+      kind: "no-cache";
+    }
+  | {
+      kind: "module-tokens";
+      tokens: Result<ModuleTokens>;
+    }
+  | {
+      kind: "module-bundle";
+      bundle: ModuleBundle;
+    };
+
+class Cache {
+  private readonly modulePathToCacheResult = new Map<
+    string,
+    ModuleCacheResult
+  >();
+
+  constructor(
+    modulePathToNewContent: ReadonlyMap<string, string>,
+    private readonly modulePathToOldBundle: ReadonlyMap<string, ModuleBundle>,
+  ) {
+    const unchangedModulePaths = new Set<string>();
+    for (const [modulePath, newContent] of modulePathToNewContent) {
+      const oldBundle = modulePathToOldBundle.get(modulePath);
+      if (oldBundle?.tokens.result.sourceCode === newContent) {
+        unchangedModulePaths.add(modulePath);
+      }
+    }
+    const classify = (modulePath: string): ModuleCacheResult => {
+      const oldBundle = modulePathToOldBundle.get(modulePath);
+      if (!oldBundle) {
+        return { kind: "no-cache" };
+      }
+      {
+        const inMap = this.modulePathToCacheResult.get(modulePath);
+        if (inMap) {
+          return inMap;
+        }
+      }
+      let result: ModuleCacheResult;
+      const newContent = modulePathToNewContent.get(modulePath);
+      if (newContent === oldBundle.tokens.result.sourceCode) {
+        // Assume best case, may downgrade later.
+        this.modulePathToCacheResult.set(modulePath, {
+          kind: "module-bundle",
+          bundle: oldBundle,
+        });
+        const directDependencies = Object.keys(
+          oldBundle.module.result?.pathToImportedNames,
+        );
+        result = directDependencies.every(
+          (dep) => classify(dep).kind === "module-bundle",
+        )
+          ? { kind: "module-bundle", bundle: oldBundle }
+          : { kind: "module-tokens", tokens: oldBundle.tokens };
+      } else {
+        result = { kind: "no-cache" };
+      }
+      this.modulePathToCacheResult.set(modulePath, result);
+      return result;
+    };
+    for (const modulePath of modulePathToOldBundle.keys()) {
+      classify(modulePath);
+    }
+  }
+
+  getModuleCacheResult(modulePath: string): ModuleCacheResult {
+    return this.modulePathToCacheResult.get(modulePath) ?? { kind: "no-cache" };
+  }
+}
+
+/** Registry of declarations possibly across multiple modules. */
+class DeclarationRegistry {
+  readonly recordMap = new Map<RecordKey, RecordLocation>();
+  readonly numberToRecords = new Map<number, RecordKey[]>();
+  readonly numberToMethods = new Map<number, Method[]>();
+
+  mergeFrom(other: DeclarationRegistry): void {
+    for (const [key, value] of other.recordMap) {
+      this.recordMap.set(key, value);
+    }
+    for (const [number, value] of other.numberToRecords) {
+      let existing = this.numberToRecords.get(number);
+      if (!existing) {
+        existing = [];
+        this.numberToRecords.set(number, existing);
+      }
+      existing.push(...value);
+    }
+    for (const [number, value] of other.numberToMethods) {
+      let existing = this.numberToMethods.get(number);
+      if (!existing) {
+        existing = [];
+        this.numberToMethods.set(number, existing);
+      }
+      existing.push(...value);
+    }
+  }
+
+  pushNumberRecord(number: number, record: RecordKey): void {
+    let value = this.numberToRecords.get(number);
+    if (!value) {
+      value = [];
+      this.numberToRecords.set(number, value);
+    }
+    value.push(record);
+  }
+
+  pushNumberMethod(number: number, method: Method): void {
+    let value = this.numberToMethods.get(number);
+    if (!value) {
+      value = [];
+      this.numberToMethods.set(number, value);
+    }
+    value.push(method);
+  }
+}
+
+class ModuleBundle {
+  constructor(
+    readonly tokens: Result<ModuleTokens>,
+    readonly module: Result<Module>,
+  ) {}
+
+  /**
+   * Registry of declarations found in this module only.
+   * Will be merged into the "global" registry.
+   */
+  readonly registry = new DeclarationRegistry();
+}
+
+interface FinalizationResult {
+  readonly modules: ReadonlyMap<string, Result<Module>>;
+  /** Errors aggregated across all modules. */
+  readonly errors: readonly SkirError[];
+}
+
+function ensureAllImportsAreUsed(
+  module: Module,
+  usedImports: Set<string>,
+  errors: ErrorSink,
+): void {
+  for (const declaration of module.declarations) {
+    if (declaration.kind === "import") {
+      for (const importedName of declaration.importedNames) {
+        if (!usedImports.has(importedName.text)) {
+          errors.push({
+            token: importedName,
+            message: "Unused import",
+          });
+        }
+      }
+    } else if (declaration.kind === "import-alias") {
+      if (!usedImports.has(declaration.name.text)) {
+        errors.push({
+          token: declaration.name,
+          message: "Unused import alias",
+        });
+      }
+    }
+  }
+}
+
+function resolveModulePath(
+  pathToken: Token,
+  originModulePath: string,
+  errors: ErrorSink,
+): string | undefined {
+  let modulePath = unquoteAndUnescape(pathToken.text);
+  if (/\\/.test(modulePath)) {
+    errors.push({
+      token: pathToken,
+      message: "Replace backslash with slash",
+    });
+    return undefined;
+  }
+  if (modulePath.startsWith("./") || modulePath.startsWith("../")) {
+    // This is a relative path from the module. Let's transform it into a
+    // relative path from root.
+    modulePath = Paths.join(originModulePath, "..", modulePath);
+  } else if (originModulePath.startsWith("@") && !modulePath.startsWith("@")) {
+    const packagePrefix = extractPackagePrefix(originModulePath);
+    modulePath = packagePrefix + modulePath;
+  }
+  // "a/./b/../c" => "a/c"
+  // Note that `paths.normalize` will use backslashes on Windows.
+  // We don't want that.
+  modulePath = Paths.normalize(modulePath).replace(/\\/g, "/");
+  if (modulePath.startsWith(`../`)) {
+    errors.push({
+      token: pathToken,
+      message: "Module path must point to a file within root",
+    });
+    return undefined;
+  }
+  return modulePath;
+}
+
+function tryFindRecordForType(type: ResolvedType): RecordKey | null {
+  switch (type.kind) {
+    case "array":
+      return tryFindRecordForType(type.item);
+    case "optional":
+      return tryFindRecordForType(type.other);
+    case "record":
+      return type.key;
+    case "primitive":
+      return null;
+  }
+}
+
+/** Extracts the "@{...}/{...}/" package prefix from a module path. */
+function extractPackagePrefix(modulePath: string): string {
+  const match = modulePath.match(/^(@[^/]+\/[^/]+\/)/);
+  return match?.at(1) ?? "";
+}
+
+function declarationsToExpectedNames(
+  nameToDeclaration: { [name: string]: Declaration },
+  predicate: (value: Exclude<Declaration, Removed>) => boolean,
+): ReadonlyArray<{ readonly name: string; readonly doc?: Doc }> {
+  const result: Array<{ readonly name: string; readonly doc?: Doc }> = [];
+  for (const [name, declaration] of Object.entries(nameToDeclaration)) {
+    if (declaration.kind === "removed" || !predicate(declaration)) {
+      continue;
+    }
+    const doc =
+      declaration.kind !== "import" && declaration.kind !== "import-alias"
+        ? declaration.doc
+        : undefined;
+    result.push({ name, doc });
+  }
+  return result;
+}
