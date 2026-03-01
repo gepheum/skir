@@ -165,6 +165,22 @@ describe("completion_helper", () => {
     });
   });
 
+  it("suggests types on broken constant", () => {
+    const input = new Input();
+    input.moduleContent = [
+      'import Triangle from "./other/module.skir";',
+      "",
+      "const TRIANGLE: ",
+    ];
+    input.lineNumber = 2;
+    input.columnNumber = 16;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 61,
+      placeholderEndPos: 61,
+      items: [{ name: "Triangle" }],
+    });
+  });
+
   it("suggests array keys", () => {
     const input = new Input();
     input.moduleContent = [
