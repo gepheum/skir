@@ -132,7 +132,7 @@ describe("completion_helper", () => {
     });
   });
 
-  it("suggests types on method request", () => {
+  it("suggests types on broken method request", () => {
     const input = new Input();
     input.moduleContent = [
       'import Triangle from "./other/module.skir";',
@@ -146,6 +146,54 @@ describe("completion_helper", () => {
       placeholderStartPos: 59,
       placeholderEndPos: 59,
       items: [{ name: "Triangle" }, { name: "Foo" }],
+    });
+  });
+
+  it("suggests types on broken method response", () => {
+    const input = new Input();
+    input.moduleContent = [
+      'import Triangle from "./other/module.skir";',
+      "",
+      "method GetFoo(string): ",
+    ];
+    input.lineNumber = 2;
+    input.columnNumber = 23;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 68,
+      placeholderEndPos: 68,
+      items: [{ name: "Triangle" }],
+    });
+  });
+
+  it("suggests array keys", () => {
+    const input = new Input();
+    input.moduleContent = [
+      'import Triangle from "./other/module.skir";',
+      "",
+      "method GetFoo([Triangle|]): string = 100;",
+    ];
+    input.lineNumber = 2;
+    input.columnNumber = 24;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 69,
+      placeholderEndPos: 69,
+      items: [{ name: "a" }, { name: "b" }, { name: "c" }],
+    });
+  });
+
+  it("suggests array keys after dot", () => {
+    const input = new Input();
+    input.moduleContent = [
+      'import Triangle from "./other/module.skir";',
+      "",
+      "method GetFoo([Triangle|a.]): string = 100;",
+    ];
+    input.lineNumber = 2;
+    input.columnNumber = 26;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 71,
+      placeholderEndPos: 71,
+      items: [{ name: "x" }, { name: "y" }],
     });
   });
 });
