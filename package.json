@@ -1,6 +1,6 @@
 {
   "name": "skir",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "",
   "homepage": "https://skir.sh/",
   "bugs": {
@@ -44,7 +44,7 @@
     "glob": "^13.0.6",
     "skir-cc-gen": "^1.0.7",
     "skir-dart-gen": "^1.0.4",
-    "skir-internal": "^0.2.4",
+    "skir-internal": "^0.2.5",
     "skir-java-gen": "^1.0.5",
     "skir-kotlin-gen": "^1.0.6",
     "skir-python-gen": "^1.0.4",
@@ -67,8 +67,11 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.2.2",
-    "typescript-eslint": "^8.56.0"  },
+    "typescript-eslint": "^8.56.0"
+  },
   "overrides": {
     "minimatch": "^10.2.1",
-    "diff": "^8.0.0"  }
+    "diff": "^8.0.0",
+    "serialize-javascript": "^7.0.3"
+  }
 }

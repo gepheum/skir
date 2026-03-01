@@ -1,11 +1,9 @@
 import * as Paths from "path";
 import {
-  Declaration,
-  Doc,
-  MutableDocReferenceName,
-  Removed,
   unquoteAndUnescape,
+  type Declaration,
   type DenseJson,
+  type Doc,
   type ErrorSink,
   type FieldPath,
   type Import,
@@ -16,6 +14,7 @@ import {
   type MutableConstant,
   type MutableDoc,
   type MutableDocReference,
+  type MutableDocReferenceName,
   type MutableMethod,
   type MutableModule,
   type MutableRecord,
@@ -26,6 +25,7 @@ import {
   type Record,
   type RecordKey,
   type RecordLocation,
+  type Removed,
   type ResolvedRecordRef,
   type ResolvedType,
   type Result,
@@ -60,15 +60,40 @@ export class ModuleSet {
     return new ModuleSet(modulePathToContent, cache, parseMode);
   }
 
+  static compileForCompletion(
+    currentModulePath: string,
+    currentPosition: number,
+    modulePathToContent: ReadonlyMap<string, string>,
+    cache?: ModuleSet,
+  ): Result<Module> {
+    if (!modulePathToContent.has(currentModulePath)) {
+      throw new Error(`Not found: ${currentModulePath}`);
+    }
+    const moduleSet = new ModuleSet(modulePathToContent, cache, "lenient", {
+      modulePath: currentModulePath,
+      position: currentPosition,
+    });
+    return moduleSet.modules.get(currentModulePath)!;
+  }
+
   constructor(
     private readonly modulePathToContent: ReadonlyMap<string, string>,
     cache: ModuleSet | undefined,
     private readonly parseMode: "strict" | "lenient",
+    private readonly completionMode?: {
+      readonly modulePath: string;
+      readonly position: number;
+    },
   ) {
     this.cache = cache
       ? new Cache(modulePathToContent, cache.moduleBundles)
       : undefined;
-    for (const modulePath of modulePathToContent.keys()) {
+    // In completion mode, no need to recompile modules which are not dependencies of
+    // the current module.
+    const modulePaths = completionMode
+      ? [completionMode.modulePath]
+      : modulePathToContent.keys();
+    for (const modulePath of modulePaths) {
       this.parseAndResolve(modulePath, new Set<string>());
     }
     this.finalizationResult = this.finalize();
@@ -108,7 +133,11 @@ export class ModuleSet {
       ) ?? { kind: "no-cache" };
       switch (moduleCacheResult.kind) {
         case "no-cache": {
-          moduleTokens = tokenizeModule(moduleContent, modulePath);
+          moduleTokens = tokenizeModule(
+            moduleContent,
+            modulePath,
+            this.completionMode,
+          );
           break;
         }
         case "module-tokens": {
@@ -181,7 +210,7 @@ export class ModuleSet {
           expectedNames: suggestModulePaths(
             unquoteAndUnescape(declaration.modulePath.text),
             modulePath,
-            this.modulePathToContent,
+            this.modulePathToContent.keys(),
           ),
         });
       } else if (
@@ -281,7 +310,7 @@ export class ModuleSet {
       }
     }
 
-    if (errors.length) {
+    if (errors.length && !this.completionMode) {
       return moduleBundle;
     }
 
@@ -339,9 +368,11 @@ export class ModuleSet {
       // Resolve the references in the doc comments of the record.
       this.resolveDocReferences(record, module, errors);
     }
+
     // Resolve every request/response type of every method in the module.
     // Store the result in the Method object.
     for (const method of module.methods) {
+      // Resolve request type.
       {
         const request = method.unresolvedRequestType;
         const requestType = typeResolver.resolve(request, "top-level");
@@ -350,6 +381,7 @@ export class ModuleSet {
           this.validateArrayKeys(requestType, errors);
         }
       }
+      // Resolve response type.
       {
         const response = method.unresolvedResponseType;
         const responseType = typeResolver.resolve(response, "top-level");
@@ -363,6 +395,16 @@ export class ModuleSet {
       // Resolve the references in the doc comments of the method.
       this.resolveDocReferences(method, module, errors);
     }
+    for (const method of module.brokenMethods) {
+      // Resolve request type.
+      typeResolver.resolve(method.unresolvedRequestType, "top-level");
+      // Resolve response type.
+      const response = method.unresolvedResponseType;
+      if (response) {
+        typeResolver.resolve(response, "top-level");
+      }
+    }
+
     // Resolve every constant type. Store the result in the constant object.
     for (const constant of module.constants) {
       const { unresolvedType } = constant;
@@ -375,6 +417,10 @@ export class ModuleSet {
       }
       // Resolve the references in the doc comments of the constant.
       this.resolveDocReferences(constant, module, errors);
+    }
+    for (const constant of module.brokenConstants) {
+      const { unresolvedType } = constant;
+      typeResolver.resolve(unresolvedType, "top-level");
     }
 
     ensureAllImportsAreUsed(module, usedImports, errors);
@@ -1320,7 +1366,9 @@ class TypeResolver {
             declarationsToExpectedNames(
               it.nameToDeclaration,
               (d) =>
-                d.kind === "record" || (i === 0 && d.kind === "import-alias"),
+                d.kind === "record" ||
+                (i === 0 && d.kind === "import-alias") ||
+                (i === 0 && d.kind === "import"),
             ),
           ),
         );
@@ -1415,8 +1463,8 @@ class Cache {
   >();
 
   constructor(
-    modulePathToNewContent: ReadonlyMap<string, string>,
-    private readonly modulePathToOldBundle: ReadonlyMap<string, ModuleBundle>,
+    modulePathToNewContent: ReadonlyMap<string, string | ModuleTokens>,
+    modulePathToOldBundle: ReadonlyMap<string, ModuleBundle>,
   ) {
     const unchangedModulePaths = new Set<string>();
     for (const [modulePath, newContent] of modulePathToNewContent) {
@@ -1574,7 +1622,7 @@ function ensureAllImportsAreUsed(
 function suggestModulePaths(
   typedPath: string,
   originModulePath: string,
-  modulePathToContent: ReadonlyMap<string, string>,
+  modulePathToContent: MapIterator<string>,
 ): ReadonlyArray<{ readonly name: string }> {
   const isRelative = typedPath.startsWith("./") || typedPath.startsWith("../");
 
@@ -1615,7 +1663,7 @@ function suggestModulePaths(
   const originBaseDir = Paths.dirname(originModulePath).replace(/\\/g, "/");
   const suggestions = new Set<string>();
 
-  for (const path of modulePathToContent.keys()) {
+  for (const path of modulePathToContent) {
     if (!path.startsWith(absolutePrefix)) continue;
     const remaining = path.slice(absolutePrefix.length);
     const slashIndex = remaining.indexOf("/");

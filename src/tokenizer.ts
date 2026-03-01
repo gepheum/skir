@@ -26,6 +26,9 @@ export interface ModuleTokens {
 export function tokenizeModule(
   sourceCode: string,
   modulePath: string,
+  comletionMode?: {
+    position: number;
+  },
 ): Result<ModuleTokens> {
   const tokens: Token[] = [];
   const errors: SkirError[] = [];
@@ -136,6 +139,39 @@ export function tokenizeModule(
       // The end of the string has been reached.
       // The last token we added is an empty string.
       break;
+    }
+  }
+
+  if (comletionMode !== undefined) {
+    const { position } = comletionMode;
+    const existingToken = tokens.find((t) => {
+      const start = t.position;
+      const end = t.position + t.text.length;
+      if (/^\w/.test(t.text)) {
+        // Word token: inclusive comparisons.
+        return position >= start && position <= end;
+      } else {
+        // Non-word token: exclusive comparisons.
+        return position > start && position < end;
+      }
+    });
+    if (existingToken === undefined) {
+      const fakeLines = new Lines(sourceCode, modulePath);
+      const line = fakeLines.advancePosition(position);
+      const colNumber = position - line.position;
+      const fakeToken: Token = {
+        text: "...",
+        originalText: "...",
+        position: position,
+        line: line,
+        colNumber: colNumber,
+      };
+      const insertIndex = tokens.findIndex((t) => t.position >= position);
+      if (insertIndex === -1) {
+        tokens.push(fakeToken);
+      } else {
+        tokens.splice(insertIndex, 0, fakeToken);
+      }
     }
   }
 

@@ -1,4 +1,6 @@
 import type {
+  BrokenConstant,
+  BrokenMethod,
   Declaration,
   Doc,
   ErrorSink,
@@ -17,6 +19,7 @@ import type {
   MutableRecordLevelDeclaration,
   MutableRecordLocation,
   MutableValue,
+  ObjectValue,
   Primitive,
   Record,
   Removed,
@@ -40,7 +43,17 @@ export function parseModule(
   const { modulePath, sourceCode } = moduleTokens;
   const errors: SkirError[] = [];
   const it = new TokenIterator(moduleTokens, mode, errors);
-  const declarations = parseDeclarations(it, "module");
+  const maybeBrokenDeclarations = parseDeclarations(it, "module");
+  const brokenConstants: BrokenConstant[] = maybeBrokenDeclarations.filter(
+    (d) => d.kind === "broken-constant",
+  );
+  const brokenMethods: BrokenMethod[] = maybeBrokenDeclarations.filter(
+    (d) => d.kind === "broken-method",
+  );
+  const declarations = maybeBrokenDeclarations.filter(
+    (d): d is MutableModuleLevelDeclaration =>
+      d.kind !== "broken-constant" && d.kind !== "broken-method",
+  );
   it.expectThenNext([""]);
   // Create a mappinng from names to declarations, and check for duplicates.
   const nameToDeclaration: { [name: string]: MutableModuleLevelDeclaration } =
@@ -81,7 +94,9 @@ export function parseModule(
       records: collectModuleRecords(declarations),
       pathToImportedNames: {},
       methods: methods,
+      brokenMethods: brokenMethods,
       constants: constants,
+      brokenConstants: brokenConstants,
     },
     errors: errors,
   };
@@ -90,7 +105,7 @@ export function parseModule(
 function parseDeclarations(
   it: TokenIterator,
   parentNode: "module",
-): MutableModuleLevelDeclaration[];
+): ReadonlyArray<MutableModuleLevelDeclaration | BrokenConstant | BrokenMethod>;
 
 function parseDeclarations(
   it: TokenIterator,
@@ -100,8 +115,8 @@ function parseDeclarations(
 function parseDeclarations(
   it: TokenIterator,
   parentNode: "module" | "struct" | "enum",
-): MutableDeclaration[] {
-  const result: MutableDeclaration[] = [];
+): ReadonlyArray<MutableDeclaration | BrokenConstant | BrokenMethod> {
+  const result: Array<MutableDeclaration | BrokenConstant | BrokenMethod> = [];
   // Returns true on a next token if it indicates that the statement is over.
   const isEndToken = (t: string): boolean =>
     t === "" || (parentNode !== "module" && t === "}");
@@ -112,7 +127,10 @@ function parseDeclarations(
     const declaration = parseDeclaration(it, parentNode);
     if (declaration !== null) {
       result.push(declaration);
-      if (declaration.kind === "method") {
+      if (
+        declaration.kind === "method" ||
+        declaration.kind === "broken-method"
+      ) {
         if (declaration.inlineRequestRecord) {
           result.push(declaration.inlineRequestRecord);
         }
@@ -120,39 +138,39 @@ function parseDeclarations(
           result.push(declaration.inlineResponseRecord);
         }
       }
-      continue;
-    }
-    // We have an invalid statement. An error was already registered. Perhaps
-    // the statement was parsed entirely but was incorrect (`removed 1, 1;`), or
-    // zero tokens were consumed (`a`), or a few tokens were consumed but did
-    // not form a statement. We want to recover from whichever scenario to avoid
-    // showing unhelpful extra error messages.
-    const noTokenWasConsumed = it.index === startIndex;
-    if (noTokenWasConsumed) {
-      it.next();
-      if (isLastToken(it.previous)) {
-        // For example: two semicolons in a row.
-        continue;
-      }
-    }
-    if (
-      noTokenWasConsumed ||
-      (it.current !== "" && !isLastToken(it.previous))
-    ) {
-      let nestedLevel = 0;
-      while (true) {
-        const token = it.current;
-        if (token === "") {
-          break;
-        }
+    } else {
+      // We have an invalid statement. An error was already registered. Perhaps
+      // the statement was parsed entirely but was incorrect (`removed 1, 1;`), or
+      // zero tokens were consumed (`a`), or a few tokens were consumed but did
+      // not form a statement. We want to recover from whichever scenario to avoid
+      // showing unhelpful extra error messages.
+      const noTokenWasConsumed = it.index === startIndex;
+      if (noTokenWasConsumed) {
         it.next();
-        if (token === "{") {
-          ++nestedLevel;
-        } else if (token === "}") {
-          --nestedLevel;
+        if (isLastToken(it.previous)) {
+          // For example: two semicolons in a row.
+          continue;
         }
-        if (nestedLevel <= 0 && isLastToken(token)) {
-          break;
+      }
+      if (
+        noTokenWasConsumed ||
+        (it.current !== "" && !isLastToken(it.previous))
+      ) {
+        let nestedLevel = 0;
+        while (true) {
+          const token = it.current;
+          if (token === "") {
+            break;
+          }
+          it.next();
+          if (token === "{") {
+            ++nestedLevel;
+          } else if (token === "}") {
+            --nestedLevel;
+          }
+          if (nestedLevel <= 0 && isLastToken(token)) {
+            break;
+          }
         }
       }
     }
@@ -163,7 +181,7 @@ function parseDeclarations(
 function parseDeclaration(
   it: TokenIterator,
   parentNode: "module" | "struct" | "enum",
-): MutableDeclaration | null {
+): MutableDeclaration | BrokenConstant | BrokenMethod | null {
   const doc = collectDoc(it);
   let recordType: "struct" | "enum" = "enum";
   const parentIsRoot = parentNode === "module";
@@ -451,6 +469,20 @@ function parseField(
   let type: UnresolvedType | undefined;
   let inlineRecord: MutableRecord | undefined;
   let number = -1;
+  const makeField = (): MutableField => {
+    return {
+      kind: "field",
+      name: name,
+      number: number,
+      doc: doc,
+      unresolvedType: type,
+      // Will be populated at a later stage.
+      type: undefined,
+      // Will be populated at a later stage.
+      isRecursive: false,
+      inlineRecord: inlineRecord,
+    };
+  };
   while (true) {
     const typeAllowed = type === undefined && number < 0;
     const endAllowed = type !== undefined || recordType === "enum";
@@ -490,23 +522,16 @@ function parseField(
             token: name,
             message: `Cannot name field of enum: UNKNOWN`,
           });
+        }
+        return makeField();
+      }
+      case -1: {
+        if (endAllowed) {
+          return makeField();
+        } else {
           return null;
         }
-        return {
-          kind: "field",
-          name: name,
-          number: number,
-          doc: doc,
-          unresolvedType: type,
-          // Will be populated at a later stage.
-          type: undefined,
-          // Will be populated at a later stage.
-          isRecursive: false,
-          inlineRecord: inlineRecord,
-        };
       }
-      case -1:
-        return null;
     }
   }
 }
@@ -714,12 +739,13 @@ function parseRemoved(it: TokenIterator, removedToken: Token): Removed | null {
   let expect: "?" | "," | ".." | "0" | "1" = "?";
   let lowerBound: number | undefined;
   loop: while (true) {
+    const endAllowed = expect === "?" || expect === "," || expect === "..";
     const expected: Array<string | TokenPredicate | null> = [
       /*0:*/ expect === "," || expect === ".." ? "," : null,
       /*1:*/ expect === "?" || expect === "0" || expect === "1"
         ? TOKEN_IS_POSITIVE_INT
         : null,
-      /*2:*/ expect === "?" || expect === "," || expect === ".." ? ";" : null,
+      /*2:*/ endAllowed ? ";" : null,
       /*3:*/ expect === ".." ? ".." : null,
     ];
     const match = it.expectThenNext(expected);
@@ -761,7 +787,11 @@ function parseRemoved(it: TokenIterator, removedToken: Token): Removed | null {
         break;
       }
       case -1:
-        return null;
+        if (endAllowed) {
+          break loop;
+        } else {
+          return null;
+        }
     }
   }
   // Make sure we don't have a duplicate number.
@@ -844,7 +874,10 @@ function parseImportGivenNames(
   };
 }
 
-function parseMethod(it: TokenIterator, doc: Doc): MutableMethod | null {
+function parseMethod(
+  it: TokenIterator,
+  doc: Doc,
+): MutableMethod | BrokenMethod | null {
   const nameMatch = it.expectThenNext([TOKEN_IS_IDENTIFIER]);
   if (nameMatch.case < 0) {
     return null;
@@ -862,8 +895,17 @@ function parseMethod(it: TokenIterator, doc: Doc): MutableMethod | null {
   if (!requestType) {
     return null;
   }
-  if (it.expectThenNext([")"]).case < 0 || it.expectThenNext([":"]).case < 0) {
+  if (it.expectThenNext([")"]).case < 0) {
     return null;
+  }
+  if (it.expectThenNext([":"]).case < 0) {
+    return {
+      kind: "broken-method",
+      unresolvedRequestType: requestType,
+      inlineRequestRecord: requestTypeOrInlineRecord.inlineRecord,
+      unresolvedResponseType: undefined,
+      inlineResponseRecord: undefined,
+    };
   }
   const responseTypeOrInlineRecord = parseTypeOrInlineRecord(it, {
     context: "method-response",
@@ -875,7 +917,13 @@ function parseMethod(it: TokenIterator, doc: Doc): MutableMethod | null {
   }
 
   if (it.expectThenNext(["="]).case < 0) {
-    return null;
+    return {
+      kind: "broken-method",
+      unresolvedRequestType: requestType,
+      inlineRequestRecord: requestTypeOrInlineRecord.inlineRecord,
+      unresolvedResponseType: responseType,
+      inlineResponseRecord: responseTypeOrInlineRecord.inlineRecord,
+    };
   }
   const number = parseUint32(it, "?");
   if (number === -2) {
@@ -899,7 +947,10 @@ function parseMethod(it: TokenIterator, doc: Doc): MutableMethod | null {
   };
 }
 
-function parseConstant(it: TokenIterator, doc: Doc): MutableConstant | null {
+function parseConstant(
+  it: TokenIterator,
+  doc: Doc,
+): MutableConstant | BrokenConstant | null {
   const nameMatch = it.expectThenNext([TOKEN_IS_IDENTIFIER]);
   if (nameMatch.case < 0) {
     return null;
@@ -913,7 +964,10 @@ function parseConstant(it: TokenIterator, doc: Doc): MutableConstant | null {
     return null;
   }
   if (it.expectThenNext(["="]).case < 0) {
-    return null;
+    return {
+      kind: "broken-constant",
+      unresolvedType: type,
+    };
   }
   const value = parseValue(it);
   if (value === null) {
@@ -947,16 +1001,7 @@ function parseValue(it: TokenIterator): MutableValue | null {
     case 0:
     case 1: {
       const partial = match.case === 1;
-      const entries = parseObjectValue(it, partial);
-      if (entries === null) {
-        return null;
-      }
-      return {
-        kind: "object",
-        token: match.token,
-        entries: entries,
-        partial: partial,
-      };
+      return parseObjectValue(match.token, it, partial);
     }
     case 2: {
       const items = parseArrayValue(it);
@@ -984,15 +1029,24 @@ function parseValue(it: TokenIterator): MutableValue | null {
 }
 
 function parseObjectValue(
+  objectToken: Token,
   it: TokenIterator,
   partial: boolean,
-): { [f: string]: MutableObjectEntry } | null {
+): ObjectValue | null {
   const closingToken = partial ? "|}" : "}";
   const entries: { [f: string]: MutableObjectEntry } = {};
+  const orphanNames: Token[] = [];
+  const makeObjectValue = (): ObjectValue => ({
+    kind: "object",
+    token: objectToken,
+    entries: entries,
+    orphanNames: orphanNames,
+    partial: partial,
+  });
   while (true) {
     if (it.current === closingToken) {
       it.next();
-      return entries;
+      return makeObjectValue();
     }
     const fieldNameMatch = it.expectThenNext([TOKEN_IS_IDENTIFIER]);
     if (fieldNameMatch.case < 0) {
@@ -1001,7 +1055,8 @@ function parseObjectValue(
     const fieldNameToken = fieldNameMatch.token;
     const fieldName = fieldNameMatch.token.text;
     if (it.expectThenNext([":"]).case < 0) {
-      return null;
+      orphanNames.push(fieldNameToken);
+      continue;
     }
     const value = parseValue(it);
     if (value === null) {
@@ -1022,7 +1077,7 @@ function parseObjectValue(
       return null;
     }
     if (endMatch.token.text === closingToken) {
-      return entries;
+      return makeObjectValue();
     }
   }
 }
@@ -1077,7 +1132,8 @@ abstract class TokenPredicate {
 
 class TokenIsIdentifier extends TokenPredicate {
   override matches(token: string): boolean {
-    return /^\w/.test(token);
+    // "..." is the autocompletion placeholder
+    return /^\w/.test(token) || token === "...";
   }
 
   override what(): string {
