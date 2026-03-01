@@ -228,4 +228,99 @@ describe("completion_helper", () => {
       items: [{ name: "y" }],
     });
   });
+
+  it("suggests enum constant variant name", () => {
+    const input = new Input();
+    input.moduleContent = [
+      "enum Status {",
+      "  OK;",
+      "  error: string;",
+      "}",
+      "",
+      "const STATUS: Status = ''",
+    ];
+    input.lineNumber = 5;
+    input.columnNumber = 24;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 64,
+      placeholderEndPos: 64,
+      items: [{ name: "UNKNOWN" }, { name: "OK" }],
+    });
+  });
+
+  it("suggests enum constant variant name at end of string", () => {
+    const input = new Input();
+    input.moduleContent = [
+      "enum Status {",
+      "  OK;",
+      "  error: string;",
+      "}",
+      "",
+      "const STATUS: Status = 'foo'",
+    ];
+    input.lineNumber = 5;
+    input.columnNumber = 27;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 64,
+      placeholderEndPos: 67,
+      items: [{ name: "UNKNOWN" }, { name: "OK" }],
+    });
+  });
+
+  it("suggests enum wrapper variant name", () => {
+    const input = new Input();
+    input.moduleContent = [
+      "enum Status {",
+      "  OK;",
+      "  error: string;",
+      "}",
+      "",
+      "const STATUS: Status = {kind: ''}",
+    ];
+    input.lineNumber = 5;
+    input.columnNumber = 31;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 71,
+      placeholderEndPos: 71,
+      items: [{ name: "error" }],
+    });
+  });
+
+  it("suggests value field on enum variant", () => {
+    const input = new Input();
+    input.moduleContent = [
+      "enum Status {",
+      "  OK;",
+      "  error: string;",
+      "}",
+      "",
+      "const STATUS: Status = {kind: 'error', }",
+    ];
+    input.lineNumber = 5;
+    input.columnNumber = 39;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 79,
+      placeholderEndPos: 79,
+      items: [{ name: "value" }],
+    });
+  });
+
+  it("suggests kind field on enum variant", () => {
+    const input = new Input();
+    input.moduleContent = [
+      "enum Status {",
+      "  OK;",
+      "  error: string;",
+      "}",
+      "",
+      "const STATUS: Status = {value: {}, }",
+    ];
+    input.lineNumber = 5;
+    input.columnNumber = 35;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 75,
+      placeholderEndPos: 75,
+      items: [{ name: "kind" }],
+    });
+  });
 });

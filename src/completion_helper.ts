@@ -31,9 +31,16 @@ export function provideCompletionItems(
 
   for (const error of moduleResult.errors) {
     const { token } = error;
-    const startPosition = token.position;
-    const endPosition =
-      token.position + (token.text === "..." ? 0 : token.originalText.length);
+    let startPosition: number;
+    let endPosition: number;
+    if (token.text.startsWith('"') || token.text.startsWith("'")) {
+      startPosition = token.position + 1;
+      endPosition = token.position + token.originalText.length - 1;
+    } else {
+      startPosition = token.position;
+      endPosition =
+        token.position + (token.text === "..." ? 0 : token.originalText.length);
+    }
     if (
       startPosition <= position &&
       position <= endPosition &&

@@ -793,8 +793,28 @@ export class ModuleSet {
       //   · 'kind' must match the name of one of the wrapper variants defined in
       //     the enum
       //   · 'value' must match the type of the wrapper variant
-      const entries = { ...value.entries };
+      const { entries } = value;
       const kindEntry = entries.kind;
+      const enumValue = entries.value;
+
+      const nameTokens = Object.values(entries)
+        .map((e) => e.name)
+        .concat(value.orphanNames);
+      for (const nameToken of nameTokens) {
+        if (nameToken.text === "kind" || nameToken.text === "value") {
+          continue;
+        }
+        const expectedNames = (kindEntry ? [] : [{ name: "kind" }]).concat(
+          enumValue ? [] : [{ name: "value" }],
+        );
+        errors.push({
+          token: nameToken,
+          message: "Extraneous entry",
+          expectedNames: expectedNames,
+        });
+        return undefined;
+      }
+
       if (!kindEntry) {
         errors.push({
           token: token,
@@ -802,7 +822,6 @@ export class ModuleSet {
         });
         return undefined;
       }
-      delete entries.kind;
       const kindValueToken = kindEntry.value.token;
       if (
         kindEntry.value.kind !== "literal" ||
@@ -814,9 +833,9 @@ export class ModuleSet {
         });
         return undefined;
       }
-      const fieldName = unquoteAndUnescape(kindValueToken.text);
-      const field = expectedEnum.nameToDeclaration[fieldName];
-      if (field?.kind !== "field") {
+      const variantName = unquoteAndUnescape(kindValueToken.text);
+      const variant = expectedEnum.nameToDeclaration[variantName];
+      if (variant?.kind !== "field") {
         errors.push({
           token: kindValueToken,
           message: `Variant not found in enum ${expectedEnum.name.text}`,
@@ -827,14 +846,13 @@ export class ModuleSet {
         });
         return undefined;
       }
-      if (!field.type) {
+      if (!variant.type) {
         errors.push({
           token: kindValueToken,
-          message: "Refers to a constant field",
+          message: "Refers to a constant variant",
         });
         return undefined;
       }
-      const enumValue = entries.value;
       if (!enumValue) {
         errors.push({
           token: token,
@@ -842,24 +860,14 @@ export class ModuleSet {
         });
         return undefined;
       }
-      delete entries.value;
       const valueJson = //
-        this.valueToDenseJson(enumValue.value, field.type, errors);
+        this.valueToDenseJson(enumValue.value, variant.type, errors);
       if (valueJson === undefined) {
-        return undefined;
-      }
-      const extraEntries = Object.values(entries);
-      if (extraEntries.length !== 0) {
-        const extraEntry = extraEntries[0]!;
-        errors.push({
-          token: extraEntry.name,
-          message: "Extraneous entry",
-        });
         return undefined;
       }
       value.record = expectedEnum;
       // Return an array of length 2.
-      return [field.number, valueJson];
+      return [variant.number, valueJson];
     } else {
       // The value is neither a string nor an object. It can't be of enum type.
       errors.push({
