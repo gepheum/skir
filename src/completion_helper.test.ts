@@ -212,4 +212,20 @@ describe("completion_helper", () => {
       items: [{ name: "x" }, { name: "y" }],
     });
   });
+
+  it("suggests struct fields in constant", () => {
+    const input = new Input();
+    input.moduleContent = [
+      'import Triangle from "./other/module.skir";',
+      "",
+      "const TRIANGLE: Triangle = { a: {x: 10, } }",
+    ];
+    input.lineNumber = 2;
+    input.columnNumber = 40;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 85,
+      placeholderEndPos: 85,
+      items: [{ name: "y" }],
+    });
+  });
 });

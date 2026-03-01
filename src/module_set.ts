@@ -680,15 +680,21 @@ export class ModuleSet {
       expectedStruct.numSlotsInclRemovedNumbers,
     ).fill(0);
     let allGood = true;
-    for (const [fieldName, fieldEntry] of Object.entries(value.entries)) {
-      const field = expectedStruct.nameToDeclaration[fieldName];
+    const fieldNameTokens = Object.values(value.entries)
+      .map((e) => e.name)
+      .concat(value.orphanNames);
+    const fieldNames: ReadonlySet<string> = new Set(
+      fieldNameTokens.map((t) => t.text),
+    );
+    for (const fieldName of fieldNameTokens) {
+      const field = expectedStruct.nameToDeclaration[fieldName.text];
       if (field?.kind !== "field") {
         errors.push({
-          token: fieldEntry.name,
+          token: fieldName,
           message: `Field not found in struct ${expectedStruct.name.text}`,
           expectedNames: declarationsToExpectedNames(
             expectedStruct.nameToDeclaration,
-            (d) => d.kind === "field",
+            (d) => d.kind === "field" && !fieldNames.has(d.name.text),
           ),
         });
         allGood = false;

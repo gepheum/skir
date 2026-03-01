@@ -1058,15 +1058,15 @@ function parseObjectValue(
       orphanNames.push(fieldNameToken);
       continue;
     }
-    const value = parseValue(it);
-    if (value === null) {
-      return null;
-    }
     if (fieldName in entries) {
       it.errors.push({
         token: fieldNameMatch.token,
         message: "Duplicate field",
       });
+    }
+    const value = parseValue(it);
+    if (value === null) {
+      return null;
     }
     entries[fieldName] = {
       name: fieldNameToken,
