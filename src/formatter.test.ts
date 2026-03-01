@@ -417,4 +417,61 @@ describe("formatModule", () => {
       ],
     });
   });
+
+  it("does not add trailing comma after semicolon followed by comment", () => {
+    // Regression test: when a scalar const declaration's semicolon is followed
+    // by a comment, the "in-value" context was not being reset, causing
+    // spurious trailing commas in the next enum/struct.
+    const input = [
+      'const FOO: string = "bar";',
+      "",
+      "// Comment before enum",
+      "enum E {",
+      "  A = 1;",
+      "  B = 2;",
+      "}",
+      "",
+    ].join("\n");
+    const expected = [
+      'const FOO: string = "bar";',
+      "",
+      "// Comment before enum",
+      "enum E {",
+      "  A = 1;",
+      "  B = 2;",
+      "}",
+      "",
+    ].join("\n");
+    const tokens = tokenizeModule(input, "test.skir");
+    expect(tokens.errors).toMatch([]);
+    const formatted = formatModule(tokens.result, () => 0.5);
+    expect(formatted.newSourceCode).toMatch(expected);
+  });
+
+  it("does not add trailing comma in struct after const with comment", () => {
+    const input = [
+      'const REGEX: string = "foo";',
+      "",
+      "// Section",
+      "",
+      "struct Request {",
+      "  id: string;",
+      "}",
+      "",
+    ].join("\n");
+    const expected = [
+      'const REGEX: string = "foo";',
+      "",
+      "// Section",
+      "",
+      "struct Request {",
+      "  id: string;",
+      "}",
+      "",
+    ].join("\n");
+    const tokens = tokenizeModule(input, "test.skir");
+    expect(tokens.errors).toMatch([]);
+    const formatted = formatModule(tokens.result, () => 0.5);
+    expect(formatted.newSourceCode).toMatch(expected);
+  });
 });

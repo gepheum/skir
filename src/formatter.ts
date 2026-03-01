@@ -169,6 +169,14 @@ function getWhitespaceAfterToken(
     context.indentStack.pop();
   }
 
+  // Reset context when we encounter a semicolon, even if the next token is a
+  // comment. Without this, the "in-value" context from a const declaration
+  // leaks past comments and into subsequent declarations, causing spurious
+  // trailing commas.
+  if (token.text === ";") {
+    context.context = null;
+  }
+
   if (isComment(token)) {
     return oneOrTwoLineBreaks(token, next);
   } else if (
@@ -200,7 +208,6 @@ function getWhitespaceAfterToken(
   } else if (token.text === ")") {
     return next.text === "{" ? " " : "";
   } else if (token.text === ";") {
-    context.context = null;
     return oneOrTwoLineBreaks(token, next);
   } else if (token.text === "}") {
     return [",", ";"].includes(next.text)
