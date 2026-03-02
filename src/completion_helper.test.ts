@@ -326,6 +326,25 @@ describe("completion_helper", () => {
     });
   });
 
+  it("suggests kind after pipe on keyed array of enums", () => {
+    const input = new Input();
+    input.moduleContent = [
+      "enum Status {",
+      "  OK;",
+      "  error: string;",
+      "}",
+      "",
+      "const STATUSES: [Status|] = [];",
+    ];
+    input.lineNumber = 5;
+    input.columnNumber = 24;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 64,
+      placeholderEndPos: 64,
+      items: [{ name: "kind" }],
+    });
+  });
+
   it("suggests module paths #0", () => {
     const input = new Input();
     input.moduleContent = ["import * as foo from '';"];
