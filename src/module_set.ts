@@ -369,49 +369,48 @@ export class ModuleSet {
       this.resolveDocReferences(record, module, errors);
     }
 
+    const resolveTopLevelTypeAndValidate = (
+      type: UnresolvedType,
+    ): ResolvedType | undefined => {
+      const resolvedType = typeResolver.resolve(type, "top-level");
+      if (resolvedType) {
+        this.validateArrayKeys(resolvedType, errors);
+      }
+      return resolvedType;
+    };
+
     // Resolve every request/response type of every method in the module.
     // Store the result in the Method object.
     for (const method of module.methods) {
+      const { unresolvedRequestType, unresolvedResponseType } = method;
       // Resolve request type.
-      {
-        const request = method.unresolvedRequestType;
-        const requestType = typeResolver.resolve(request, "top-level");
-        method.requestType = requestType;
-        if (requestType) {
-          this.validateArrayKeys(requestType, errors);
-        }
-      }
+      method.requestType = resolveTopLevelTypeAndValidate(
+        unresolvedRequestType,
+      );
       // Resolve response type.
-      {
-        const response = method.unresolvedResponseType;
-        const responseType = typeResolver.resolve(response, "top-level");
-        method.responseType = responseType;
-        if (responseType) {
-          this.validateArrayKeys(responseType, errors);
-        }
-      }
+      method.responseType = resolveTopLevelTypeAndValidate(
+        unresolvedResponseType,
+      );
+
       const { number } = method;
       moduleBundle.registry.pushNumberMethod(number, method);
       // Resolve the references in the doc comments of the method.
       this.resolveDocReferences(method, module, errors);
     }
     for (const method of module.brokenMethods) {
-      // Resolve request type.
-      typeResolver.resolve(method.unresolvedRequestType, "top-level");
-      // Resolve response type.
-      const response = method.unresolvedResponseType;
-      if (response) {
-        typeResolver.resolve(response, "top-level");
+      const { unresolvedRequestType, unresolvedResponseType } = method;
+      resolveTopLevelTypeAndValidate(unresolvedRequestType);
+      if (unresolvedResponseType) {
+        resolveTopLevelTypeAndValidate(unresolvedResponseType);
       }
     }
 
     // Resolve every constant type. Store the result in the constant object.
     for (const constant of module.constants) {
       const { unresolvedType } = constant;
-      const type = typeResolver.resolve(unresolvedType, "top-level");
+      const type = resolveTopLevelTypeAndValidate(unresolvedType);
       constant.type = type;
       if (type) {
-        this.validateArrayKeys(type, errors);
         constant.valueAsDenseJson = //
           this.valueToDenseJson(constant.value, type, errors);
       }
@@ -420,7 +419,7 @@ export class ModuleSet {
     }
     for (const constant of module.brokenConstants) {
       const { unresolvedType } = constant;
-      typeResolver.resolve(unresolvedType, "top-level");
+      resolveTopLevelTypeAndValidate(unresolvedType);
     }
 
     ensureAllImportsAreUsed(module, usedImports, errors);

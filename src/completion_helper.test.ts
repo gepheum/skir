@@ -183,7 +183,7 @@ describe("completion_helper", () => {
     });
   });
 
-  it("suggests array keys", () => {
+  it("suggests array key", () => {
     const input = new Input();
     input.moduleContent = [
       'import Triangle from "./other/module.skir";',
@@ -199,7 +199,7 @@ describe("completion_helper", () => {
     });
   });
 
-  it("suggests array keys after dot", () => {
+  it("suggests array key after dot", () => {
     const input = new Input();
     input.moduleContent = [
       'import Triangle from "./other/module.skir";',
@@ -211,6 +211,54 @@ describe("completion_helper", () => {
     expect(input.doProvide()).toMatch({
       placeholderStartPos: 71,
       placeholderEndPos: 71,
+      items: [{ name: "x" }, { name: "y" }],
+    });
+  });
+
+  it("suggests array key in broken statement #0", () => {
+    const input = new Input();
+    input.moduleContent = [
+      'import Triangle from "./other/module.skir";',
+      "",
+      "method GetFoo([Triangle|a.])",
+    ];
+    input.lineNumber = 2;
+    input.columnNumber = 26;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 71,
+      placeholderEndPos: 71,
+      items: [{ name: "x" }, { name: "y" }],
+    });
+  });
+
+  it("suggests array key in broken statement #1", () => {
+    const input = new Input();
+    input.moduleContent = [
+      'import Triangle from "./other/module.skir";',
+      "",
+      "method GetFoo(Triangle): [Triangle|]",
+    ];
+    input.lineNumber = 2;
+    input.columnNumber = 35;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 80,
+      placeholderEndPos: 80,
+      items: [{ name: "a" }, { name: "b" }, { name: "c" }],
+    });
+  });
+
+  it("suggests array key in broken statement #2", () => {
+    const input = new Input();
+    input.moduleContent = [
+      'import Triangle from "./other/module.skir";',
+      "",
+      "const TRIANGLES: [Triangle|a.]",
+    ];
+    input.lineNumber = 2;
+    input.columnNumber = 29;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 74,
+      placeholderEndPos: 74,
       items: [{ name: "x" }, { name: "y" }],
     });
   });
@@ -435,5 +483,21 @@ describe("completion_helper", () => {
       placeholderEndPos: 25,
       items: [{ name: "../to_bar.skir" }],
     });
+  });
+
+  it("returns null", () => {
+    const input = new Input();
+    input.moduleContent = [
+      'import * as other from "./other/module.skir";',
+      "",
+      "struct TriangleHolder {",
+      "  triangle: ",
+      "}",
+      "",
+      "struct Foo {}",
+    ];
+    input.lineNumber = 3;
+    input.columnNumber = 10;
+    expect(input.doProvide()).toMatch(null);
   });
 });

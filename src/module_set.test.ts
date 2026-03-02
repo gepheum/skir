@@ -555,6 +555,56 @@ describe("module set", () => {
       });
     });
 
+    it("works with recursive type", () => {
+      const input = new Input();
+      input.pathToCode.set(
+        "path/to/module",
+        `
+          struct Foo {
+            foos: [Foo|foo.x];
+            foo: Foo;
+            x: int32;
+          }
+        `,
+      );
+
+      const moduleSet = input.doCompile();
+
+      expect(moduleSet.modules.get("path/to/module")).toMatch({
+        result: {
+          nameToDeclaration: {
+            Foo: {
+              fields: [
+                {
+                  name: { text: "foos" },
+                  type: {
+                    kind: "array",
+                    item: {
+                      kind: "record",
+                      key: "path/to/module:18",
+                    },
+                    key: {
+                      pipeToken: { text: "|" },
+                      path: [
+                        { name: { text: "foo" } },
+                        { name: { text: "x" } },
+                      ],
+                      keyType: {
+                        kind: "primitive",
+                        primitive: "int32",
+                      },
+                    },
+                  },
+                },
+                {},
+                {},
+              ],
+            },
+          },
+        },
+      });
+    });
+
     it("field not found in struct", () => {
       const input = new Input();
       input.pathToCode.set(
