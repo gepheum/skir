@@ -326,7 +326,7 @@ describe("completion_helper", () => {
     });
   });
 
-  it("suggests kind after pipe on keyed array of enums", () => {
+  it("suggests 'kind' after path to enum #0", () => {
     const input = new Input();
     input.moduleContent = [
       "enum Status {",
@@ -341,6 +341,26 @@ describe("completion_helper", () => {
     expect(input.doProvide()).toMatch({
       placeholderStartPos: 64,
       placeholderEndPos: 64,
+      items: [{ name: "kind" }],
+    });
+  });
+
+  it("suggests 'kind' after path to enum #1", () => {
+    const input = new Input();
+    input.moduleContent = [
+      "enum Status {",
+      "  OK;",
+      "  error: string;",
+      "}",
+      "struct Foo { status: Status; }",
+      "",
+      "const FOOS: [Foo|status.] = [];",
+    ];
+    input.lineNumber = 6;
+    input.columnNumber = 24;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 95,
+      placeholderEndPos: 95,
       items: [{ name: "kind" }],
     });
   });
