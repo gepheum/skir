@@ -33,11 +33,13 @@ class Input {
   }
 
   doProvide(): CompletionItems | null {
+    const modulePathToContent = new Map(this.modulePathToContent);
+    modulePathToContent.set(this.modulePath, this.moduleContent.join("\n"));
     return provideCompletionItems(
       this.modulePath,
       this.moduleContent.join("\n"),
       this.getPosition(),
-      ModuleSet.compile(this.modulePathToContent),
+      ModuleSet.compile(modulePathToContent),
     );
   }
 

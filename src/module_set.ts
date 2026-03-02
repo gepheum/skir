@@ -128,9 +128,14 @@ export class ModuleSet {
 
     let moduleTokens: Result<ModuleTokens>;
     {
-      const moduleCacheResult = this.cache?.getModuleCacheResult(
-        modulePath,
-      ) ?? { kind: "no-cache" };
+      let moduleCacheResult: ModuleCacheResult;
+      if (modulePath === this.completionMode?.modulePath) {
+        moduleCacheResult = { kind: "no-cache" };
+      } else {
+        moduleCacheResult = this.cache?.getModuleCacheResult(modulePath) ?? {
+          kind: "no-cache",
+        };
+      }
       switch (moduleCacheResult.kind) {
         case "no-cache": {
           moduleTokens = tokenizeModule(
