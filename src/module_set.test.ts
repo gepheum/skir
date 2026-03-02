@@ -3013,18 +3013,18 @@ describe("module set", () => {
     });
 
     it("relative ./ suggests all files in the origin's own directory", () => {
-      // Both "zz/other.skir" and "zz/origin" (the origin itself) are siblings.
-      expect(suggestionsFor("./")).toMatch(["./origin", "./other.skir"]);
+      // "zz/other.skir" is the only sibling; "zz/origin" (the origin itself) is excluded.
+      expect(suggestionsFor("./")).toMatch(["./other.skir"]);
     });
 
     it("relative ../ suggests the contents of the parent directory", () => {
       // From "zz/origin", going up reaches the root which contains aa.skir,
-      // bb/, ff.skir, and the "zz/" directory itself (shown as "./").
+      // bb/, ff.skir. The "zz/" directory itself is not suggested since the
+      // user would just type "./" if they wanted files in their own directory.
       expect(suggestionsFor("../")).toMatch([
         "../aa.skir",
         "../bb/",
         "../ff.skir",
-        "./",
       ]);
     });
 

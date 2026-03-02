@@ -28,6 +28,8 @@ class Input {
         c: Point;
       }`,
     );
+    this.modulePathToContent.set("path/to/foo.skir", "");
+    this.modulePathToContent.set("path/to_bar.skir", "");
   }
 
   doProvide(): CompletionItems | null {
@@ -321,6 +323,78 @@ describe("completion_helper", () => {
       placeholderStartPos: 75,
       placeholderEndPos: 75,
       items: [{ name: "kind" }],
+    });
+  });
+
+  it("suggests module paths #0", () => {
+    const input = new Input();
+    input.moduleContent = ["import * as foo from '';"];
+    input.lineNumber = 0;
+    input.columnNumber = 22;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 22,
+      placeholderEndPos: 22,
+      items: [{ name: "path/" }],
+    });
+  });
+
+  it("suggests module paths #1", () => {
+    const input = new Input();
+    input.moduleContent = ["import * as foo from 'path';"];
+    input.lineNumber = 0;
+    input.columnNumber = 26;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 22,
+      placeholderEndPos: 26,
+      items: [{ name: "path/" }],
+    });
+  });
+
+  it("suggests module paths #2", () => {
+    const input = new Input();
+    input.moduleContent = ["import * as foo from 'path/';"];
+    input.lineNumber = 0;
+    input.columnNumber = 27;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 22,
+      placeholderEndPos: 27,
+      items: [{ name: "path/to/" }, { name: "path/to_bar.skir" }],
+    });
+  });
+
+  it("suggests module paths #3", () => {
+    const input = new Input();
+    input.moduleContent = ["import * as foo from 'path/to/';"];
+    input.lineNumber = 0;
+    input.columnNumber = 27;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 22,
+      placeholderEndPos: 30,
+      items: [{ name: "path/to/other/" }, { name: "path/to/foo.skir" }],
+    });
+  });
+
+  it("suggests module paths #4", () => {
+    const input = new Input();
+    input.moduleContent = ["import * as foo from './';"];
+    input.lineNumber = 0;
+    input.columnNumber = 24;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 22,
+      placeholderEndPos: 24,
+      items: [{ name: "./other/" }, { name: "./foo.skir" }],
+    });
+  });
+
+  it("suggests module paths #5", () => {
+    const input = new Input();
+    input.moduleContent = ["import * as foo from '../';"];
+    input.lineNumber = 0;
+    input.columnNumber = 25;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 22,
+      placeholderEndPos: 25,
+      items: [{ name: "../to_bar.skir" }],
     });
   });
 });

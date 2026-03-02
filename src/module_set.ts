@@ -1679,6 +1679,7 @@ function suggestModulePaths(
 
   for (const path of modulePathToContent) {
     if (!path.startsWith(absolutePrefix)) continue;
+    if (path === originModulePath) continue;
     const remaining = path.slice(absolutePrefix.length);
     const slashIndex = remaining.indexOf("/");
     // If there is a sub-path after the matched prefix, collapse to the next
@@ -1703,7 +1704,11 @@ function suggestModulePaths(
       if (!rel.startsWith(".")) {
         rel = "./" + rel;
       }
-      suggestions.add(isDir ? rel + "/" : rel);
+      const suggestion = isDir ? rel + "/" : rel;
+      // When the user typed "../", don't suggest "./" — they would have typed
+      // "./" directly if they wanted files in their own directory.
+      if (typedPath.startsWith("../") && suggestion === "./") continue;
+      suggestions.add(suggestion);
     } else {
       suggestions.add(absoluteSuggestion);
     }
