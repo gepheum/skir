@@ -1684,6 +1684,10 @@ function suggestModulePaths(
   for (const path of modulePathToContent) {
     if (!path.startsWith(absolutePrefix)) continue;
     if (path === originModulePath) continue;
+    // When the user typed a relative path, never suggest modules that live
+    // under a package root ("@...") — those must be imported with an absolute
+    // path.
+    if (isRelative && path.startsWith("@")) continue;
     const remaining = path.slice(absolutePrefix.length);
     const slashIndex = remaining.indexOf("/");
     // If there is a sub-path after the matched prefix, collapse to the next

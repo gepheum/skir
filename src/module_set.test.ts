@@ -3086,5 +3086,32 @@ describe("module set", () => {
     it("relative ../ with a partial name filters to matching entries", () => {
       expect(suggestionsFor("../a")).toMatch(["../aa.skir"]);
     });
+
+    it("absolute path starting with @ still suggests @-rooted modules", () => {
+      const input = new Input();
+      input.pathToCode.set("foo/bar.skir", "");
+      input.pathToCode.set("@gepheum/soa/zar.skir", "");
+      input.pathToCode.set(
+        "foo/origin",
+        `import * as m from "@gepheum/soa/z";`,
+      );
+      const moduleSet = input.doCompile();
+      const errors = moduleSet.modules.get("foo/origin")!.errors;
+      const notFound = errors.find((e) => e.message === "Module not found");
+      const names = (notFound?.expectedNames ?? []).map((e) => e.name).sort();
+      expect(names).toMatch(["@gepheum/soa/zar.skir"]);
+    });
+
+    it("relative path does not suggest @-rooted modules", () => {
+      const input = new Input();
+      input.pathToCode.set("foo/bar.skir", "");
+      input.pathToCode.set("@gepheum/soa/zar.skir", "");
+      input.pathToCode.set("foo/origin", `import * as m from "../";`);
+      const moduleSet = input.doCompile();
+      const errors = moduleSet.modules.get("foo/origin")!.errors;
+      const notFound = errors.find((e) => e.message === "Module not found");
+      const names = (notFound?.expectedNames ?? []).map((e) => e.name).sort();
+      expect(names.some((n) => n.startsWith("@"))).toMatch(false);
+    });
   });
 });
