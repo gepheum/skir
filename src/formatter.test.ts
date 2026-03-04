@@ -1198,4 +1198,57 @@ describe("formatModule", () => {
     const formatted = formatModuleAndCheck(input, "test.skir");
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
+
+  // ---------------------------------------------------------------------------
+  // Leading whitespace / content removal before the first token
+  // ---------------------------------------------------------------------------
+
+  it("strips leading spaces before the first token and emits a delete textEdit", () => {
+    const input = "   struct Foo {}";
+    const formatted = formatModuleAndCheck(input, "test.skir");
+    expect(formatted).toMatch({ errors: [] });
+    // The first textEdit must delete exactly the 3 leading spaces.
+    expect(formatted.textEdits[0]).toMatch({
+      oldStart: 0,
+      oldEnd: 3,
+      newText: "",
+    });
+    // The formatted output must not start with any leading whitespace.
+    if (!formatted.newSourceCode.startsWith("struct")) {
+      throw new Error(
+        `Expected newSourceCode to start with 'struct', got: ${JSON.stringify(formatted.newSourceCode.slice(0, 20))}`,
+      );
+    }
+  });
+
+  it("strips leading newlines before the first token and emits a delete textEdit", () => {
+    const input = "\n\nimport * as foo from 'foo.skir';";
+    const formatted = formatModuleAndCheck(input, "test.skir");
+    expect(formatted).toMatch({ errors: [] });
+    // The first textEdit must delete exactly the 2 leading newlines.
+    expect(formatted.textEdits[0]).toMatch({
+      oldStart: 0,
+      oldEnd: 2,
+      newText: "",
+    });
+    if (!formatted.newSourceCode.startsWith("import")) {
+      throw new Error(
+        `Expected newSourceCode to start with 'struct', got: ${JSON.stringify(formatted.newSourceCode.slice(0, 20))}`,
+      );
+    }
+  });
+
+  it("does not emit a leading-delete textEdit when the first token is at position 0", () => {
+    // firstBlockStart == 0, so the `if (firstBlockStart > 0)` branch is not
+    // taken and no delete edit should be pushed for position 0.
+    const input = "struct Foo {}";
+    const formatted = formatModuleAndCheck(input, "test.skir");
+    expect(formatted).toMatch({ errors: [] });
+    const hasLeadingDeleteEdit = formatted.textEdits.some(
+      (e) => e.oldStart === 0 && e.oldEnd > 0 && e.newText === "",
+    );
+    if (hasLeadingDeleteEdit) {
+      throw new Error("Expected no leading-delete textEdit but found one");
+    }
+  });
 });

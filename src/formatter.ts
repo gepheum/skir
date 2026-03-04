@@ -96,7 +96,18 @@ export function formatModule(
       newSourceCode += newToken;
     }
   };
-  appendBlock(blocks[0]!);
+  {
+    const firstBlock = blocks[0]!;
+    const firstBlockStart = getStartPosition(firstBlock);
+    if (firstBlockStart > 0) {
+      textEdits.push({
+        oldStart: 0,
+        oldEnd: firstBlockStart,
+        newText: "",
+      });
+    }
+    appendBlock(firstBlock);
+  }
 
   for (let i = 1; i < blocks.length; i++) {
     const block = blocks[i - 1]!;
