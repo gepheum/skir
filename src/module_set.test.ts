@@ -2717,7 +2717,7 @@ describe("module set", () => {
       });
     });
 
-    it("does not allow duplicate method numbers across packages", () => {
+    it("allows duplicate method numbers across packages", () => {
       const input = new Input();
       input.pathToCode.set(
         "@my-org/pkg-a/module",
@@ -2730,24 +2730,10 @@ describe("module set", () => {
 
       const moduleSet = input.doCompile();
       expect(moduleSet.modules.get("@my-org/pkg-a/module")).toMatch({
-        errors: [
-          {
-            token: {
-              text: "GetFoo",
-            },
-            message: "Same number as GetBar in @my-org/pkg-b/module",
-          },
-        ],
+        errors: [],
       });
       expect(moduleSet.modules.get("@my-org/pkg-b/module")).toMatch({
-        errors: [
-          {
-            token: {
-              text: "GetBar",
-            },
-            message: "Same number as GetFoo in @my-org/pkg-a/module",
-          },
-        ],
+        errors: [],
       });
     });
   });

@@ -337,7 +337,9 @@ export class ModuleSet {
       );
 
       const { number } = method;
-      moduleBundle.registry.pushNumberMethod(number, method);
+      if (!modulePath.startsWith("@")) {
+        moduleBundle.registry.pushNumberMethod(number, method);
+      }
       // Resolve the references in the doc comments of the method.
       this.resolveDocReferences(method, module, errors);
     }
