@@ -5,26 +5,6 @@ import { ModuleSet } from "./module_set.js";
 
 const pathToCode = new Map<string, string>();
 
-// line 0:  (empty)
-// line 1:  import * as other_module from "./other/module";
-// line 2:  (empty)
-// line 3:  struct Outer {
-// line 4:    struct Foo {}
-// line 5:  }
-// line 6:  (empty)
-// line 7:  struct Bar {
-// line 8:    foo: Outer.Foo;
-// line 9:    foo2: .Outer.Foo;
-// line 10: (empty)
-// line 11:   struct Inner {}
-// line 12:   inner: Inner;
-// line 13:   zoo: other_module.Outer.Zoo;
-// line 14: }
-// line 15: (empty)
-// line 16: method GetBar(Outer.Foo): Bar = 101;
-// line 17: method GetBar2(Outer.Foo): Bar = 100;
-// line 18: (empty)
-// line 19: const FOO: Outer.Foo = {};
 pathToCode.set(
   "path/to/module",
   [
@@ -79,6 +59,7 @@ pathToCode.set(
     "struct Foo {",
     "  enum Bar {",
     "    zoo: int32;",
+    "    K;",
     "  }",
     "  foo: int32;",
     "  bar: Bar;",
@@ -93,6 +74,8 @@ pathToCode.set(
     "    },",
     "  },",
     "];",
+    "",
+    "const K_CONSTANT: Foo.Bar = 'K';",
     "",
   ].join("\n"),
 );
@@ -392,10 +375,10 @@ describe("definition finder", () => {
   describe("constant values", () => {
     it("foo field is referenced as a struct value key", () => {
       checkDefinitionAndReferences(
-        // "foo" field on line 5 col 2
+        // "foo" field on line 6 col 2
         {
           modulePath: "path/to/constant-value-module",
-          lineNumber: 5,
+          lineNumber: 6,
           colNumberStart: 2,
           colNumberEnd: 4,
         },
@@ -403,7 +386,7 @@ describe("definition finder", () => {
           // { foo: 10, ... }  — "foo" key on line 11 col 4
           {
             modulePath: "path/to/constant-value-module",
-            lineNumber: 11,
+            lineNumber: 12,
             colNumberStart: 4,
             colNumberEnd: 6,
           },
@@ -421,12 +404,31 @@ describe("definition finder", () => {
           colNumberEnd: 6,
         },
         [
-          // kind: "zoo"  — the "zoo" string token on line 13 col 12
+          // kind: "zoo"  — the "zoo" string token on line 14 col 12
           {
             modulePath: "path/to/constant-value-module",
-            lineNumber: 13,
+            lineNumber: 14,
             colNumberStart: 12,
             colNumberEnd: 16,
+          },
+        ],
+      );
+    });
+
+    it("K enum variant is referenced as a literal in a constant value", () => {
+      checkDefinitionAndReferences(
+        {
+          modulePath: "path/to/constant-value-module",
+          lineNumber: 4,
+          colNumberStart: 4,
+          colNumberEnd: 5,
+        },
+        [
+          {
+            modulePath: "path/to/constant-value-module",
+            lineNumber: 20,
+            colNumberStart: 28,
+            colNumberEnd: 31,
           },
         ],
       );

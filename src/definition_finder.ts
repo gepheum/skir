@@ -230,7 +230,7 @@ function findDefinitionInValue(
       } else {
         // An enum. Look for a match with the "kind" field.
         const kindEntry = value.entries["kind"];
-        if (kindEntry && kindEntry.value.kind === "literal") {
+        if (kindEntry && isStringLiteral(kindEntry.value)) {
           if (tokenContains(kindEntry.value.token, position)) {
             const variantName = unquoteAndUnescape(kindEntry.value.token.text);
             const variantDeclaration =
@@ -256,6 +256,10 @@ function findDefinitionInValue(
       return null;
     }
     case "literal": {
+      if (isStringLiteral(value) && value.type?.kind === "enum") {
+        const { variant } = value.type;
+        return declarationToMatch(variant, value.token);
+      }
       return null;
     }
   }
@@ -276,6 +280,10 @@ function declarationToMatch(
     declaration: declaration,
     referenceToken,
   };
+}
+
+function isStringLiteral(value: Value): boolean {
+  return value.kind === "literal" && /^["']/.test(value.token.text);
 }
 
 // -----------------------------------------------------------------------------
@@ -454,6 +462,12 @@ function findReferencesInValue(
       break;
     }
     case "literal": {
+      if (isStringLiteral(value) && value.type?.kind === "enum") {
+        const { variant } = value.type;
+        if (variant.name === definition) {
+          references.push(value.token);
+        }
+      }
       break;
     }
   }

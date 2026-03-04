@@ -730,7 +730,8 @@ export class ModuleSet {
       }
       value.type = {
         kind: "enum",
-        key: expectedEnum.key,
+        enum: expectedEnum,
+        variant: field,
       };
       return field.number;
     } else if (value.kind === "object") {
