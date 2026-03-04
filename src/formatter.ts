@@ -248,6 +248,7 @@ function getWhitespaceAfterBlock(
     });
   }
 
+  let dedent: true | undefined;
   if (
     next.text === "}" ||
     next.text === "|}" ||
@@ -255,6 +256,7 @@ function getWhitespaceAfterBlock(
     (next.text === ")" && topOfStack().methodRequest)
   ) {
     context.indentStack.pop();
+    dedent = true;
   }
 
   // Reset context when we encounter a semicolon, even if the next token is a
@@ -272,6 +274,8 @@ function getWhitespaceAfterBlock(
     next.text === "}" &&
     context.context !== "in-value"
   ) {
+    return "\n";
+  } else if (next.text === ")" && dedent) {
     return "\n";
   } else if (isComment(next)) {
     return token.line.lineNumber === next.line.lineNumber
@@ -292,7 +296,7 @@ function getWhitespaceAfterBlock(
   } else if (["*", ":"].includes(token.text)) {
     return " ";
   } else if (token.text === "(") {
-    return ["struct", "enum"].includes(next.text) ? "\n" : "";
+    return isNumberOrQuestionMark(nextNonComment) ? "" : "\n";
   } else if (token.text === ")") {
     return next.text === "{" ? " " : "";
   } else if (token.text === ";") {
