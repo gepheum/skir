@@ -76,6 +76,7 @@ describe("module parser", () => {
             numSlotsInclRemovedNumbers: 3,
           },
         },
+        importBlockRange: null,
       },
       errors: [],
     });
@@ -519,21 +520,41 @@ describe("module parser", () => {
 
   it("module with imports", () => {
     const actualModule = parse(`
-    import foo from './path/😊/foo';
-    import * as bar from "path/to/bar";`);
+    // Foo
+
+    import Foo from './path/😊/foo';
+    import {} from './path/😊/koo';
+    import {Zoo} from './path/😊/zoo';
+    import {Bar,} from './path/😊/bar';
+    import {Ja, Jaa} from './path/😊/ja';
+    import {Jo, Joo,} from './path/😊/jo';
+    import * as bar from "path/to/bar";
+
+    struct S {}`);
 
     expect(actualModule).toMatch({
       result: {
         nameToDeclaration: {
-          foo: {
+          Foo: {
             kind: "import",
             importedNames: [
               {
-                text: "foo",
+                text: "Foo",
               },
             ],
             modulePath: {
               text: "'./path/😊/foo'",
+            },
+          },
+          Zoo: {
+            kind: "import",
+            importedNames: [
+              {
+                text: "Zoo",
+              },
+            ],
+            modulePath: {
+              text: "'./path/😊/zoo'",
             },
           },
           bar: {
@@ -545,9 +566,149 @@ describe("module parser", () => {
               text: '"path/to/bar"',
             },
           },
+          Bar: {},
+          Ja: {},
+          Jaa: {},
+          Jo: {},
+          Joo: {},
+        },
+        importBlockRange: {
+          start: 17,
+          end: 289,
+        },
+        pathToImportedNames: {
+          "path/to/path/😊/foo": {
+            kind: "some",
+            names: new Set(["Foo"]),
+          },
+          "path/to/bar": {
+            kind: "all",
+            alias: "bar",
+          },
         },
       },
       errors: [],
+    });
+  });
+
+  it("all imports must be grouped", () => {
+    const actualModule = parse(`
+    import {Foo} from './path/😊/foo';
+
+    struct Bar {}
+
+    import {Zoo} from './path/😊/zoo';`);
+
+    expect(actualModule).toMatch({
+      result: {
+        importBlockRange: null,
+      },
+      errors: [
+        {
+          token: {
+            text: "import",
+            line: {
+              lineNumber: 5,
+            },
+            colNumber: 4,
+          },
+          message: "Import declarations must be grouped together at the top",
+        },
+      ],
+    });
+  });
+
+  it("all imports must be at the top", () => {
+    const actualModule = parse(`
+    struct Bar {}
+
+    import {Zoo} from './path/😊/zoo';`);
+
+    expect(actualModule).toMatch({
+      result: {
+        importBlockRange: null,
+      },
+      errors: [
+        {
+          token: {
+            text: "import",
+            line: {
+              lineNumber: 3,
+            },
+            colNumber: 4,
+          },
+          message: "Import declarations must be grouped together at the top",
+        },
+      ],
+    });
+  });
+
+  it("comments not allowed in import block", () => {
+    const actualModule = parse(`
+    // Comment #1
+    import {Zoo} from './path/😊/zoo';
+    // Comment #2
+    import {Ja} from './path/😊/ja';
+    // Comment #3
+
+    struct Bar {}`);
+
+    expect(actualModule).toMatch({
+      result: {
+        importBlockRange: null,
+      },
+      errors: [
+        {
+          token: {
+            text: "// Comment #2",
+            line: {
+              lineNumber: 3,
+            },
+            colNumber: 4,
+          },
+          message: "Comments not allowed within import block",
+        },
+      ],
+    });
+  });
+
+  it("no backslash in imported module path", () => {
+    const actualModule = parse(`
+      import {Zoo} from '.\\\\path\\\\to\\\\zoo';`);
+
+    expect(actualModule).toMatch({
+      errors: [
+        {
+          token: {
+            text: "'.\\\\path\\\\to\\\\zoo'",
+            line: {
+              lineNumber: 1,
+            },
+            colNumber: 24,
+          },
+          message: "Replace backslash with slash",
+        },
+      ],
+    });
+  });
+
+  it("no relative path to external dependency", () => {
+    const actualModule = parse(`
+      import {Zoo} from './@gepheum/foo/bar.skir';`);
+
+    expect(actualModule).toMatch({
+      errors: [
+        {
+          token: {
+            text: "'./@gepheum/foo/bar.skir'",
+            line: {
+              lineNumber: 1,
+            },
+            colNumber: 24,
+          },
+          message: "Use absolute path",
+        },
+      ],
     });
   });
 

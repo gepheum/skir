@@ -17,8 +17,23 @@ export async function collectModules(
   for (const [modulePath, module] of dependencies.modules) {
     modulePathToContent.set(modulePath, module.result.sourceCode);
   }
+  const editableModules = await collectEditableModules(srcDir);
+  for (const { modulePath, content } of editableModules) {
+    modulePathToContent.set(modulePath, content);
+  }
+  return ModuleSet.compile(modulePathToContent, cache ?? dependencies);
+}
+
+export interface EditableModule {
+  readonly fullPath: string;
+  readonly modulePath: string;
+  readonly content: string;
+}
+
+export async function collectEditableModules(
+  srcDir: string,
+): Promise<ReadonlyArray<EditableModule>> {
   const skirFiles = await glob(Paths.join(srcDir, "**/*.skir"), {
-    stat: true,
     withFileTypes: true,
   });
   if (skirFiles.length === 0) {
@@ -29,6 +44,7 @@ export async function collectModules(
       );
     }
   }
+  const result: EditableModule[] = [];
   for (const skirFile of skirFiles) {
     if (!skirFile.isFile) {
       continue;
@@ -43,9 +59,13 @@ export async function collectModules(
         "Cannot read " + rewritePathForRendering(skirFile.fullpath()),
       );
     }
-    modulePathToContent.set(relativePath, content);
+    result.push({
+      fullPath: skirFile.fullpath(),
+      modulePath: relativePath,
+      content: content,
+    });
   }
-  return ModuleSet.compile(modulePathToContent, cache ?? dependencies);
+  return result;
 }
 
 function validate(relativePath: string): void {

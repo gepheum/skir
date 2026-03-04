@@ -26,13 +26,11 @@ import {
   REAL_FILE_SYSTEM,
   rewritePathForRendering,
 } from "./io.js";
-import { collectModules } from "./module_collector.js";
+import { collectEditableModules, collectModules } from "./module_collector.js";
 import { ModuleSet } from "./module_set.js";
 import { PackageIdToVersion } from "./package_types.js";
-import { parseModule } from "./parser.js";
 import { initializeProject } from "./project_initializer.js";
 import { takeSnapshot, viewSnapshot } from "./snapshotter.js";
-import { tokenizeModule } from "./tokenizer.js";
 
 interface GeneratorBundle<Config = unknown> {
   generator: CodeGenerator<Config>;
@@ -296,43 +294,28 @@ interface ModuleFormatResult {
   alreadyFormatted: boolean;
 }
 
-async function format(root: string, mode: "fix" | "check"): Promise<void> {
-  const skirFiles = await glob(Paths.join(root, "**/*.skir"), {
-    withFileTypes: true,
-  });
+async function format(srcDir: string, mode: "fix" | "check"): Promise<void> {
+  const editableModules = await collectEditableModules(srcDir);
   const pathToFormatResult = new Map<string, ModuleFormatResult>();
-  for await (const skirFile of skirFiles) {
-    if (!skirFile.isFile) {
-      continue;
-    }
-    const unformattedCode = REAL_FILE_SYSTEM.readTextFile(skirFile.fullpath());
-    if (unformattedCode === undefined) {
-      throw new ExitError(
-        "Cannot read " + rewritePathForRendering(skirFile.fullpath()),
-      );
-    }
-    const tokens = tokenizeModule(unformattedCode, "");
-    if (tokens.errors.length) {
-      renderErrors(tokens.errors);
+  for await (const editableModule of editableModules) {
+    const unformattedCode = editableModule.content;
+    const formattedModule = formatModule(
+      unformattedCode,
+      editableModule.modulePath,
+    );
+    const { errors } = formattedModule;
+    if (errors.length) {
+      renderErrors(errors);
       process.exit(1);
     }
-    // Make sure there are no parsing errors.
-    {
-      const { errors } = parseModule(tokens.result, "lenient");
-      if (errors.length) {
-        renderErrors(errors);
-        process.exit(1);
-      }
-    }
-    const formattedCode = formatModule(tokens.result).newSourceCode;
-    pathToFormatResult.set(skirFile.fullpath(), {
-      formattedCode: formattedCode,
-      alreadyFormatted: formattedCode === unformattedCode,
+    pathToFormatResult.set(editableModule.fullPath, {
+      formattedCode: formattedModule.newSourceCode,
+      alreadyFormatted: formattedModule.newSourceCode === unformattedCode,
     });
   }
   let numFilesNotFormatted = 0;
   for (const [path, result] of pathToFormatResult) {
-    const relativePath = Paths.relative(root, path).replace(/\\/g, "/");
+    const relativePath = Paths.relative(srcDir, path).replace(/\\/g, "/");
     if (mode === "fix") {
       if (result.alreadyFormatted) {
         console.log(`${makeGray(relativePath)} (unchanged)`);

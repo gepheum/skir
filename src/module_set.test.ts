@@ -816,6 +816,8 @@ describe("module set", () => {
       input.pathToCode.set(
         "path/to/module",
         `
+          import * as other_module from "./other/module";
+
           struct Foo {
             bar: Bar;
           }
@@ -823,8 +825,6 @@ describe("module set", () => {
           struct Zoo {
             o: other_module.O;
           }
-
-          import * as other_module from "./other/module";
         `,
       );
       input.pathToCode.set(
@@ -844,9 +844,9 @@ describe("module set", () => {
             },
             message: "Cannot find name 'Bar'",
             expectedNames: [
+              { name: "other_module" },
               { name: "Foo" },
               { name: "Zoo" },
-              { name: "other_module" },
             ],
           },
         ],
@@ -1091,7 +1091,7 @@ describe("module set", () => {
           token: {
             text: '"../../../other_module"',
           },
-          message: "Module path must point to a file within root",
+          message: "Module path must point to a file within skir-src",
         },
       ],
     });

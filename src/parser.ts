@@ -1,3 +1,5 @@
+import * as Paths from "path";
+
 import type {
   BrokenConstant,
   BrokenMethod,
@@ -11,6 +13,8 @@ import type {
   MutableDeclaration,
   MutableDoc,
   MutableField,
+  MutableImport,
+  MutableImportAlias,
   MutableMethod,
   MutableModule,
   MutableModuleLevelDeclaration,
@@ -20,7 +24,9 @@ import type {
   MutableRecordLocation,
   MutableValue,
   ObjectValue,
+  PathToImportedNames,
   Primitive,
+  Range,
   Record,
   Removed,
   Result,
@@ -30,7 +36,7 @@ import type {
   UnresolvedRecordRef,
   UnresolvedType,
 } from "skir-internal";
-import { convertCase } from "skir-internal";
+import { convertCase, unquoteAndUnescape } from "skir-internal";
 import * as Casing from "./casing.js";
 import { mergeDocs } from "./doc_comment_parser.js";
 import { ModuleTokens } from "./tokenizer.js";
@@ -58,12 +64,38 @@ export function parseModule(
   // Create a mappinng from names to declarations, and check for duplicates.
   const nameToDeclaration: { [name: string]: MutableModuleLevelDeclaration } =
     {};
+  const pathToImports = new Map<string, Array<Import | ImportAlias>>();
   for (const declaration of declarations) {
     let nameTokens: Token[];
+    let otherModulePath: string | undefined;
+    let importDeclaration: MutableImport | MutableImportAlias | undefined;
     if (declaration.kind === "import") {
       nameTokens = declaration.importedNames;
+      otherModulePath = resolveModulePath(
+        declaration.modulePath,
+        modulePath,
+        errors,
+      );
+      importDeclaration = declaration;
+    } else if (declaration.kind === "import-alias") {
+      nameTokens = [declaration.name];
+      otherModulePath = resolveModulePath(
+        declaration.modulePath,
+        modulePath,
+        errors,
+      );
+      importDeclaration = declaration;
     } else {
       nameTokens = [declaration.name];
+    }
+    if (otherModulePath) {
+      let imports = pathToImports.get(otherModulePath);
+      if (!imports) {
+        imports = [];
+        pathToImports.set(otherModulePath, imports);
+      }
+      imports.push(importDeclaration!);
+      importDeclaration!.resolvedModulePath = otherModulePath;
     }
     for (const nameToken of nameTokens) {
       const name = nameToken.text;
@@ -77,6 +109,59 @@ export function parseModule(
       }
     }
   }
+  const importBlockRange = validateImportBlock(
+    declarations,
+    moduleTokens,
+    errors,
+  );
+  const pathToImportedNames: PathToImportedNames = {};
+  for (const [path, imports] of pathToImports) {
+    const importsNoAlias = imports.filter(
+      (i): i is Import => i.kind === "import",
+    );
+    const importsWithAlias = imports.filter(
+      (i): i is ImportAlias => i.kind === "import-alias",
+    );
+
+    if (importsNoAlias.length && importsWithAlias.length) {
+      for (const importNoAlias of importsNoAlias) {
+        errors.push({
+          token: importNoAlias.modulePath,
+          message: "Module already imported with an alias",
+        });
+      }
+      continue;
+    }
+    if (importsWithAlias.length >= 2) {
+      for (const importWithAlias of importsWithAlias.slice(1)) {
+        errors.push({
+          token: importWithAlias.modulePath,
+          message: "Module already imported with a different alias",
+        });
+      }
+      continue;
+    }
+
+    if (importsNoAlias.length) {
+      const names = new Set<string>();
+      for (const importNoAlias of importsNoAlias) {
+        for (const importedName of importNoAlias.importedNames) {
+          names.add(importedName.text);
+        }
+      }
+      pathToImportedNames[path] = {
+        kind: "some",
+        names: names,
+      };
+    } else {
+      const alias = importsWithAlias[0]!.name.text;
+      pathToImportedNames[path] = {
+        kind: "all",
+        alias: alias,
+      };
+    }
+  }
+
   const methods = declarations.filter(
     (d): d is MutableMethod => d.kind === "method",
   );
@@ -90,9 +175,9 @@ export function parseModule(
       sourceCode: sourceCode,
       nameToDeclaration: nameToDeclaration,
       declarations: declarations,
-      // Populated right below.
+      importBlockRange: importBlockRange,
       records: collectModuleRecords(declarations),
-      pathToImportedNames: {},
+      pathToImportedNames: pathToImportedNames,
       methods: methods,
       brokenMethods: brokenMethods,
       constants: constants,
@@ -206,7 +291,7 @@ function parseDeclaration(
     case 3:
       return parseField(it, match.token, doc, parentNode as "struct" | "enum");
     case 4:
-      return parseImport(it);
+      return parseImport(it, match.token);
     case 5:
       return parseMethod(it, doc);
     case 6:
@@ -814,19 +899,28 @@ function parseRemoved(it: TokenIterator, removedToken: Token): Removed | null {
   };
 }
 
-function parseImport(it: TokenIterator): Import | ImportAlias | null {
-  const tokenMatch = it.expectThenNext(["*", TOKEN_IS_IDENTIFIER]);
+function parseImport(
+  it: TokenIterator,
+  importToken: Token,
+): Import | ImportAlias | null {
+  const tokenMatch = it.expectThenNext(["*", "{", TOKEN_IS_IDENTIFIER]);
   switch (tokenMatch.case) {
     case 0:
-      return parseImportAs(it);
+      return parseImportAs(it, importToken);
     case 1:
-      return parseImportGivenNames(tokenMatch.token, it);
+      return parseImportGivenNames(it, importToken);
+    case 2:
+      // TODO: drop this case once the curly bracket syntax becomes mandatory.
+      return parseImportGivenNames(it, importToken, tokenMatch.token);
     default:
       return null;
   }
 }
 
-function parseImportAs(it: TokenIterator): ImportAlias | null {
+function parseImportAs(
+  it: TokenIterator,
+  importToken: Token,
+): ImportAlias | null {
   if (it.expectThenNext(["as"]).case < 0) return null;
   const aliasMatch = it.expectThenNext([TOKEN_IS_IDENTIFIER]);
   if (aliasMatch.case < 0) {
@@ -838,39 +932,74 @@ function parseImportAs(it: TokenIterator): ImportAlias | null {
   if (modulePathMatch.case < 0) {
     return null;
   }
+  const range: Range = {
+    start: importToken.position,
+    end: it.currentToken.position + it.current.length,
+  };
   it.expectThenNext([";"]);
   const modulePath = modulePathMatch.token;
   return {
     kind: "import-alias",
+    importToken: importToken,
     name: aliasMatch.token,
-    modulePath,
+    range: range,
+    modulePath: modulePath,
   };
 }
 
 function parseImportGivenNames(
-  firstName: Token,
   it: TokenIterator,
+  importToken: Token,
+  // TODO: remove this parameter once the curly bracket syntax becomes mandatory
+  firstName?: Token,
 ): Import | null {
-  const importedNames = [firstName];
-  while (it.current === ",") {
-    it.next();
-    const nameMatch = it.expectThenNext([TOKEN_IS_IDENTIFIER]);
-    if (nameMatch.case < 0) {
-      return null;
+  const importedNames = firstName ? [firstName] : [];
+  if (firstName) {
+    // Old syntax
+    while (it.current === ",") {
+      it.next();
+      const nameMatch = it.expectThenNext([TOKEN_IS_IDENTIFIER]);
+      if (nameMatch.case < 0) {
+        return null;
+      }
+      importedNames.push(nameMatch.token);
     }
-    importedNames.push(nameMatch.token);
+  } else {
+    // New syntax with curly brackets
+    while (true) {
+      let match = it.expectThenNext([TOKEN_IS_IDENTIFIER, "}"]);
+      if (match.case === 0) {
+        importedNames.push(match.token);
+      } else if (match.case === 1) {
+        break;
+      } else {
+        return null;
+      }
+      match = it.expectThenNext([",", "}"]);
+      if (match.case === 1) {
+        break;
+      } else if (match.case < 0) {
+        return null;
+      }
+    }
   }
   if (it.expectThenNext(["from"]).case < 0) return null;
   const modulePathMatch = it.expectThenNext([TOKEN_IS_STRING_LITERAL]);
   if (modulePathMatch.case < 0) {
     return null;
   }
+  const range: Range = {
+    start: importToken.position,
+    end: it.currentToken.position + it.current.length,
+  };
   it.expectThenNext([";"]);
   const modulePath = modulePathMatch.token;
   return {
     kind: "import",
-    importedNames,
-    modulePath,
+    importToken: importToken,
+    importedNames: importedNames,
+    range: range,
+    modulePath: modulePath,
   };
 }
 
@@ -1304,4 +1433,110 @@ function collectModuleRecords(
   };
   collect(declarations, []);
   return result;
+}
+
+function validateImportBlock(
+  declarations: readonly Declaration[],
+  moduleTokens: ModuleTokens,
+  errors: ErrorSink,
+): Range | null {
+  let state:
+    | "no-import-seen"
+    | "first-legal-import-seen"
+    | "last-legal-import-seen" = "no-import-seen";
+  let startPosition: number | undefined;
+  let endPosition = -1;
+  let anyError = false;
+  for (const declaration of declarations) {
+    if (declaration.kind === "import" || declaration.kind === "import-alias") {
+      if (state === "no-import-seen") {
+        state = "first-legal-import-seen";
+        startPosition = declaration.range.start;
+      } else if (state === "last-legal-import-seen") {
+        errors.push({
+          token: declaration.importToken,
+          message: "Import declarations must be grouped together at the top",
+        });
+        anyError = true;
+      }
+      endPosition = Math.max(endPosition, declaration.range.end);
+    } else {
+      // Not an import
+      state = "last-legal-import-seen";
+    }
+  }
+  if (startPosition === undefined || anyError) {
+    return null;
+  }
+  const range: Range = {
+    start: startPosition,
+    end: endPosition,
+  };
+  // Look for comments within `range`.
+  {
+    let tokens = moduleTokens.tokensWithComments;
+    tokens = tokens.slice(tokens.findIndex((t) => t.position >= range.start));
+    tokens = tokens.slice(
+      0,
+      tokens.findIndex((t) => t.position >= range.end),
+    );
+    for (const token of tokens) {
+      if (token.text.startsWith("//")) {
+        errors.push({
+          token: token,
+          message: "Comments not allowed within import block",
+        });
+        anyError = true;
+      }
+    }
+  }
+  return anyError ? null : range;
+}
+
+/** Extracts the "@{...}/{...}/" package prefix from a module path. */
+export function extractPackagePrefix(modulePath: string): string {
+  const match = modulePath.match(/^(@[^/]+\/[^/]+\/)/);
+  return match?.at(1) ?? "";
+}
+
+function resolveModulePath(
+  pathToken: Token,
+  originModulePath: string,
+  errors: ErrorSink,
+): string | undefined {
+  let modulePath = unquoteAndUnescape(pathToken.text);
+  if (/\\/.test(modulePath)) {
+    errors.push({
+      token: pathToken,
+      message: "Replace backslash with slash",
+    });
+    return undefined;
+  }
+  if (modulePath.startsWith("./") || modulePath.startsWith("../")) {
+    if (modulePath.includes("/@")) {
+      errors.push({
+        token: pathToken,
+        message: "Use absolute path",
+      });
+      return undefined;
+    }
+    // This is a relative path from the module. Let's transform it into a
+    // relative path from root.
+    modulePath = Paths.join(originModulePath, "..", modulePath);
+  } else if (originModulePath.startsWith("@") && !modulePath.startsWith("@")) {
+    const packagePrefix = extractPackagePrefix(originModulePath);
+    modulePath = packagePrefix + modulePath;
+  }
+  // "a/./b/../c" => "a/c"
+  // Note that `paths.normalize` will use backslashes on Windows.
+  // We don't want that.
+  modulePath = Paths.normalize(modulePath).replace(/\\/g, "/");
+  if (modulePath.startsWith(`../`)) {
+    errors.push({
+      token: pathToken,
+      message: "Module path must point to a file within skir-src",
+    });
+    return undefined;
+  }
+  return modulePath;
 }

@@ -1,11 +1,22 @@
-import type { Token } from "skir-internal";
-import { ModuleTokens } from "./tokenizer.js";
+import type { Module, Range, SkirError, Token } from "skir-internal";
+import { formatImportBlock } from "./import_block_formatter.js";
+import { parseModule } from "./parser.js";
+import { ModuleTokens, tokenizeModule } from "./tokenizer.js";
 
 export interface FormattedModule {
   readonly newSourceCode: string;
-  /// For VSCode extension: text edits to convert the original source code into
-  // the formatted source code.
+  /**
+   * For VSCode extension: text edits to convert the original source code into
+   * the formatted source code.
+   */
   readonly textEdits: readonly TextEdit[];
+
+  /**
+   * Tokenization and parsing errors.
+   * If there is any error, the original source code is returned and no text edits are
+   * provided.
+   */
+  readonly errors: readonly SkirError[];
 }
 
 export interface TextEdit {
@@ -22,10 +33,29 @@ export type RandomGenerator = () => number;
  * Preserves token ordering.
  */
 export function formatModule(
-  moduleTokens: ModuleTokens,
+  sourceCode: string,
+  modulePath: string,
   randomGenerator: RandomGenerator = Math.random,
 ): FormattedModule {
-  const tokens = moduleTokens.tokensWithComments;
+  const makeErroredResult = (
+    errors: readonly SkirError[],
+  ): FormattedModule => ({
+    newSourceCode: sourceCode,
+    textEdits: [],
+    errors: errors,
+  });
+
+  const moduleTokens = tokenizeModule(sourceCode, modulePath);
+  if (moduleTokens.errors.length > 0) {
+    return makeErroredResult(moduleTokens.errors);
+  }
+
+  const module = parseModule(moduleTokens.result, "lenient");
+  if (module.errors.length > 0) {
+    return makeErroredResult(module.errors);
+  }
+
+  const blocks = getBlocks(moduleTokens.result, module.result);
 
   const context: Context = {
     context: null,
@@ -36,47 +66,59 @@ export function formatModule(
   const textEdits: TextEdit[] = [];
   let lastNonCommentToken = "";
 
-  const appendToken: (t: Token) => void = (t: Token) => {
-    const newToken = normalizeToken(
-      t.text,
-      lastNonCommentToken,
-      randomGenerator,
-    );
-    if (newToken !== t.text) {
-      textEdits.push({
-        oldStart: t.position,
-        oldEnd: t.position + t.text.length,
-        newText: newToken,
-      });
-    }
-    if (!isComment(t)) {
-      lastNonCommentToken = t.text;
-    }
-    newSourceCode += newToken;
-  };
-  appendToken(tokens[0]!);
-
-  for (let i = 1; i < tokens.length; i++) {
-    const token = tokens[i - 1]!;
-    const next = tokens[i]!;
-
-    // Find the next non-comment token
-    let nextNonComment = next;
-    for (let j = i; j < tokens.length; j++) {
-      const token = tokens[j]!;
+  const appendBlock = (block: Block): void => {
+    if (block.kind === "import-block") {
+      if (block.newBlock !== block.oldBlock) {
+        textEdits.push({
+          oldStart: block.oldRange.start,
+          oldEnd: block.oldRange.end,
+          newText: block.newBlock,
+        });
+      }
+      newSourceCode += block.newBlock;
+    } else {
+      const { token } = block;
+      const newToken = normalizeToken(
+        token.text,
+        lastNonCommentToken,
+        randomGenerator,
+      );
+      if (newToken !== token.text) {
+        textEdits.push({
+          oldStart: token.position,
+          oldEnd: token.position + token.text.length,
+          newText: newToken,
+        });
+      }
       if (!isComment(token)) {
-        nextNonComment = token;
+        lastNonCommentToken = token.text;
+      }
+      newSourceCode += newToken;
+    }
+  };
+  appendBlock(blocks[0]!);
+
+  for (let i = 1; i < blocks.length; i++) {
+    const block = blocks[i - 1]!;
+    const next = blocks[i]!;
+
+    // Find the next non-comment block
+    let nextNonComment = next;
+    for (let j = i; j < blocks.length; j++) {
+      const block = blocks[j]!;
+      if (!blockIsComment(block)) {
+        nextNonComment = block;
         break;
       }
     }
 
-    // Determine the text to add after 'token' and before 'next': a possible
+    // Determine the text to add after 'block' and before 'next': a possible
     // trailing comma followed by whitespace.
-    let newSeparator = shouldAddTrailingComma(token, nextNonComment!, context)
+    let newSeparator = shouldAddTrailingComma(block, nextNonComment!, context)
       ? ","
       : "";
-    newSeparator += getWhitespaceAfterToken(
-      token,
+    newSeparator += getWhitespaceAfterBlock(
+      block,
       next,
       nextNonComment!,
       context,
@@ -86,27 +128,76 @@ export function formatModule(
       newSeparator = newSeparator + topOfStack.indent;
     }
 
-    const oldSeparator = moduleTokens.sourceCode.slice(
-      token.position + token.text.length,
-      next.position,
+    const oldSeparator = sourceCode.slice(
+      getEndPosition(block),
+      getStartPosition(next),
     );
     if (oldSeparator !== newSeparator) {
       textEdits.push({
-        oldStart: token.position + token.text.length,
-        oldEnd: next.position,
+        oldStart: getEndPosition(block),
+        oldEnd: getStartPosition(next),
         newText: newSeparator,
       });
     }
 
     newSourceCode += newSeparator;
 
-    appendToken(next);
+    appendBlock(next);
   }
 
   return {
     newSourceCode: newSourceCode,
     textEdits: textEdits,
+    errors: [],
   };
+}
+
+type Block =
+  | {
+      kind: "token";
+      token: Token;
+    }
+  | {
+      kind: "import-block";
+      newBlock: string;
+      oldBlock: string;
+      oldRange: Range;
+    };
+
+function getBlocks(
+  moduleTokens: ModuleTokens,
+  module: Module,
+): readonly Block[] {
+  const blocks = moduleTokens.tokensWithComments.map(
+    (t): Block => ({ kind: "token", token: t }),
+  );
+  const { importBlockRange } = module;
+  if (!importBlockRange) {
+    // No import block.
+    return blocks;
+  }
+  const importBlock: Block = {
+    kind: "import-block",
+    newBlock: formatImportBlock(module.pathToImportedNames),
+    oldBlock: module.sourceCode.slice(
+      importBlockRange.start,
+      importBlockRange.end,
+    ),
+    oldRange: importBlockRange,
+  };
+  // Index of the first token in the import block.
+  const importTokenIndex = blocks.findIndex(
+    (t) => t.kind === "token" && t.token.position >= importBlockRange.start,
+  );
+  // Number of tokens in the import block.
+  const importTokenCount = blocks
+    .slice(importTokenIndex)
+    .findIndex(
+      (t) => t.kind === "token" && t.token.position >= importBlockRange.end,
+    );
+  // Replace the tokens in the import block with a single "import-block" block.
+  blocks.splice(importTokenIndex, importTokenCount, importBlock);
+  return blocks;
 }
 
 type Context = {
@@ -121,25 +212,25 @@ type Context = {
 
 interface IndentStackItem {
   indent: string;
-  // If true, the new indentation level is for the declaration of an inline
-  // record as a method request type:
-  //    method GetFoo(
-  //      struct {
-  //        ...
-  //      }
-  //    ): Foo;
-  inlineRecordInBracket?: true;
+  methodRequest?: true;
 }
 
-function getWhitespaceAfterToken(
-  token: Token,
-  next: Token,
-  // If 'next' is a comment, the next non-comment token after 'next'.
+function getWhitespaceAfterBlock(
+  block: Block,
+  nextBlock: Block,
+  // If 'next' is a comment, the next non-comment block after 'next'.
   // Otherwise, 'next' itself.
-  nextNonComment: Token,
+  nextNonComment: Block,
   context: Context,
 ): "" | " " | "  " | "\n" | "\n\n" {
-  const topOfStack: () => IndentStackItem = () => context.indentStack.at(-1)!;
+  if (block.kind === "import-block" || nextBlock.kind === "import-block") {
+    return "\n\n";
+  }
+
+  const token = block.token;
+  const next = nextBlock.token;
+
+  const topOfStack = (): IndentStackItem => context.indentStack.at(-1)!;
 
   const indentUnit = "  ";
   if (
@@ -150,13 +241,10 @@ function getWhitespaceAfterToken(
     context.indentStack.push({
       indent: topOfStack().indent + indentUnit,
     });
-  } else if (
-    token.text === "(" &&
-    ["struct", "enum"].includes(nextNonComment.text)
-  ) {
+  } else if (token.text === "(" && !isNumberOrQuestionMark(nextNonComment)) {
     context.indentStack.push({
       indent: topOfStack().indent + indentUnit,
-      inlineRecordInBracket: true,
+      methodRequest: true,
     });
   }
 
@@ -164,7 +252,7 @@ function getWhitespaceAfterToken(
     next.text === "}" ||
     next.text === "|}" ||
     (context.context === "in-value" && next.text === "]") ||
-    (next.text === ")" && topOfStack().inlineRecordInBracket)
+    (next.text === ")" && topOfStack().methodRequest)
   ) {
     context.indentStack.pop();
   }
@@ -247,14 +335,16 @@ function getWhitespaceAfterToken(
 }
 
 function shouldAddTrailingComma(
-  first: Token,
-  nextNonComment: Token,
+  first: Block,
+  nextNonComment: Block,
   context: Context,
 ): boolean {
   return (
+    first.kind !== "import-block" &&
+    nextNonComment.kind !== "import-block" &&
     context.context === "in-value" &&
-    ["]", "}", "|}"].includes(nextNonComment.text) &&
-    !["[", "{", "{|", ","].includes(first.text)
+    ["]", "}", "|}"].includes(nextNonComment.token.text) &&
+    !["[", "{", "{|", ","].includes(first.token.text)
   );
 }
 
@@ -273,6 +363,31 @@ function oneOrTwoLineBreaks(first: Token, second: Token): "\n" | "\n\n" {
 
 function isComment(token: Token): boolean {
   return token.text.startsWith("//") || token.text.startsWith("/*");
+}
+
+function blockIsComment(block: Block): boolean {
+  return block.kind === "token" && isComment(block.token);
+}
+
+function isNumberOrQuestionMark(block: Block): boolean {
+  return block.kind === "token" && /^[?0-9]/.test(block.token.text);
+}
+
+function getStartPosition(block: Block): number {
+  if (block.kind === "import-block") {
+    return block.oldRange.start;
+  } else {
+    return block.token.position;
+  }
+}
+
+function getEndPosition(block: Block): number {
+  if (block.kind === "import-block") {
+    return block.oldRange.end;
+  } else {
+    const { token } = block;
+    return token.position + token.text.length;
+  }
 }
 
 function normalizeToken(

@@ -26,7 +26,7 @@ export interface ModuleTokens {
 export function tokenizeModule(
   sourceCode: string,
   modulePath: string,
-  comletionMode?: {
+  completionMode?: {
     position: number;
   },
 ): Result<ModuleTokens> {
@@ -142,8 +142,8 @@ export function tokenizeModule(
     }
   }
 
-  if (comletionMode !== undefined) {
-    const { position } = comletionMode;
+  if (completionMode !== undefined) {
+    const { position } = completionMode;
     const existingToken = tokens.find((t) => {
       const start = t.position;
       const end = t.position + t.text.length;

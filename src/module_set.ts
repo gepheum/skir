@@ -6,7 +6,6 @@ import {
   type Doc,
   type ErrorSink,
   type FieldPath,
-  type Import,
   type ImportAlias,
   type Method,
   type Module,
@@ -41,7 +40,7 @@ import {
   literalValueToIdentity,
   valueHasPrimitiveType,
 } from "./literals.js";
-import { parseModule } from "./parser.js";
+import { extractPackagePrefix, parseModule } from "./parser.js";
 import { ModuleTokens, tokenizeModule } from "./tokenizer.js";
 
 /**
@@ -170,7 +169,6 @@ export class ModuleSet {
     });
 
     // Process all imports.
-    const pathToImports = new Map<string, Array<Import | ImportAlias>>();
     for (const declaration of module.declarations) {
       if (
         declaration.kind !== "import" &&
@@ -178,22 +176,11 @@ export class ModuleSet {
       ) {
         continue;
       }
-      const otherModulePath = resolveModulePath(
-        declaration.modulePath,
-        modulePath,
-        errors,
-      );
-      declaration.resolvedModulePath = otherModulePath;
+      const otherModulePath = declaration.resolvedModulePath;
       if (otherModulePath === undefined) {
         // An error was already registered.
         continue;
       }
-      let imports = pathToImports.get(otherModulePath);
-      if (!imports) {
-        imports = [];
-        pathToImports.set(otherModulePath, imports);
-      }
-      imports.push(declaration);
 
       // Add the imported module to the module set.
       const circularDependencyMessage = "Circular dependency between modules";
@@ -264,54 +251,6 @@ export class ModuleSet {
             });
           }
         }
-      }
-    }
-
-    const pathToImportedNames = module.pathToImportedNames;
-    for (const [path, imports] of pathToImports) {
-      const importsNoAlias = imports.filter(
-        (i): i is Import => i.kind === "import",
-      );
-      const importsWithAlias = imports.filter(
-        (i): i is ImportAlias => i.kind === "import-alias",
-      );
-
-      if (importsNoAlias.length && importsWithAlias.length) {
-        for (const importNoAlias of importsNoAlias) {
-          errors.push({
-            token: importNoAlias.modulePath,
-            message: "Module already imported with an alias",
-          });
-        }
-        continue;
-      }
-      if (importsWithAlias.length >= 2) {
-        for (const importWithAlias of importsWithAlias.slice(1)) {
-          errors.push({
-            token: importWithAlias.modulePath,
-            message: "Module already imported with a different alias",
-          });
-        }
-        continue;
-      }
-
-      if (importsNoAlias.length) {
-        const names = new Set<string>();
-        for (const importNoAlias of importsNoAlias) {
-          for (const importedName of importNoAlias.importedNames) {
-            names.add(importedName.text);
-          }
-        }
-        pathToImportedNames[path] = {
-          kind: "some",
-          names: names,
-        };
-      } else {
-        const alias = importsWithAlias[0]!.name.text;
-        pathToImportedNames[path] = {
-          kind: "all",
-          alias: alias,
-        };
       }
     }
 
@@ -1667,7 +1606,6 @@ function suggestModulePaths(
     );
     absolutePrefix = absoluteDir + filePrefix;
   } else if (originModulePath.startsWith("@") && !typedPath.startsWith("@")) {
-    // Mirror the package-prefix logic from resolveModulePath.
     absolutePrefix = extractPackagePrefix(originModulePath) + typedPath;
   } else {
     absolutePrefix = typedPath;
@@ -1725,41 +1663,6 @@ function suggestModulePaths(
   return [...suggestions].map((name) => ({ name }));
 }
 
-function resolveModulePath(
-  pathToken: Token,
-  originModulePath: string,
-  errors: ErrorSink,
-): string | undefined {
-  let modulePath = unquoteAndUnescape(pathToken.text);
-  if (/\\/.test(modulePath)) {
-    errors.push({
-      token: pathToken,
-      message: "Replace backslash with slash",
-    });
-    return undefined;
-  }
-  if (modulePath.startsWith("./") || modulePath.startsWith("../")) {
-    // This is a relative path from the module. Let's transform it into a
-    // relative path from root.
-    modulePath = Paths.join(originModulePath, "..", modulePath);
-  } else if (originModulePath.startsWith("@") && !modulePath.startsWith("@")) {
-    const packagePrefix = extractPackagePrefix(originModulePath);
-    modulePath = packagePrefix + modulePath;
-  }
-  // "a/./b/../c" => "a/c"
-  // Note that `paths.normalize` will use backslashes on Windows.
-  // We don't want that.
-  modulePath = Paths.normalize(modulePath).replace(/\\/g, "/");
-  if (modulePath.startsWith(`../`)) {
-    errors.push({
-      token: pathToken,
-      message: "Module path must point to a file within root",
-    });
-    return undefined;
-  }
-  return modulePath;
-}
-
 function tryFindRecordForType(type: ResolvedType): RecordKey | null {
   switch (type.kind) {
     case "array":
@@ -1771,12 +1674,6 @@ function tryFindRecordForType(type: ResolvedType): RecordKey | null {
     case "primitive":
       return null;
   }
-}
-
-/** Extracts the "@{...}/{...}/" package prefix from a module path. */
-function extractPackagePrefix(modulePath: string): string {
-  const match = modulePath.match(/^(@[^/]+\/[^/]+\/)/);
-  return match?.at(1) ?? "";
 }
 
 function declarationsToExpectedNames(

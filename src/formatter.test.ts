@@ -1,13 +1,14 @@
 import { expect } from "buckwheat";
 import { describe, it } from "mocha";
 import { formatModule } from "./formatter.js";
-import { parseModule } from "./parser.js";
-import { tokenizeModule } from "./tokenizer.js";
 
 const UNFORMATTED_MODULE = `//module
-import A from 'module.skir';  import * as foo from 'module.skir';
-import  a,b,c  from  'module.skir';
+import A from 'module.skir';  import * as foo from 'other_module.skir';
+import  c,a,b  from  './path/to/other_module.skir';
 
+
+
+import {Foo} from "@gepheum/foo.skir";
   struct Empty1 { }
 struct Empty2 { //
   }  //
@@ -128,9 +129,16 @@ int32 //
 
 const EXPECTED_FORMATTED_MODULE = [
   "// module",
-  'import A from "module.skir";',
-  'import * as foo from "module.skir";',
-  'import a, b, c from "module.skir";',
+  "",
+  'import { Foo } from "@gepheum/foo.skir";',
+  "",
+  'import { A } from "module.skir";',
+  'import * as foo from "other_module.skir";',
+  "import {",
+  "  a,",
+  "  b,",
+  "  c,",
+  '} from "path/to/path/to/other_module.skir";',
   "",
   "struct Empty1 {}",
   "struct Empty2 {  //",
@@ -260,11 +268,11 @@ const EXPECTED_FORMATTED_MODULE = [
 
 describe("formatModule", () => {
   it("works", () => {
-    const tokens = tokenizeModule(UNFORMATTED_MODULE, "path/to/module");
-    expect(tokens.errors).toMatch([]);
-    const parsedModule = parseModule(tokens.result, "lenient");
-    expect(parsedModule.errors).toMatch([]);
-    const formatted = formatModule(tokens.result, () => 0.5);
+    const formatted = formatModule(
+      UNFORMATTED_MODULE,
+      "path/to/module",
+      () => 0.5,
+    );
     expect(formatted).toMatch({
       newSourceCode: EXPECTED_FORMATTED_MODULE,
       textEdits: [
@@ -274,33 +282,29 @@ describe("formatModule", () => {
           newText: "// module",
         },
         {
-          oldStart: 23,
-          oldEnd: 36,
-          newText: '"module.skir"',
+          oldStart: 8,
+          oldEnd: 9,
+          newText: "\n\n",
         },
         {
-          oldStart: 37,
-          oldEnd: 39,
-          newText: "\n",
+          oldStart: 9,
+          oldEnd: 174,
+          newText: [
+            'import { Foo } from "@gepheum/foo.skir";',
+            "",
+            'import { A } from "module.skir";',
+            'import * as foo from "other_module.skir";',
+            "import {",
+            "  a,",
+            "  b,",
+            "  c,",
+            '} from "path/to/path/to/other_module.skir";',
+          ].join("\n"),
         },
         {
-          oldStart: 60,
-          oldEnd: 73,
-        },
-        {
-          oldStart: 81,
-          oldEnd: 83,
-          newText: " ",
-        },
-        {
-          oldStart: 85,
-          oldEnd: 85,
-          newText: " ",
-        },
-        {
-          oldStart: 87,
-          oldEnd: 87,
-          newText: " ",
+          oldStart: 174,
+          oldEnd: 177,
+          newText: "\n\n",
         },
         {},
         {},
@@ -402,19 +406,12 @@ describe("formatModule", () => {
         {},
         {},
         {},
-        {
-          newText: "500000",
-        },
         {},
         {},
         {},
-        {},
-        {},
-        {
-          newText: "500000",
-        },
         {},
       ],
+      errors: [],
     });
   });
 
@@ -442,10 +439,11 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const tokens = tokenizeModule(input, "test.skir");
-    expect(tokens.errors).toMatch([]);
-    const formatted = formatModule(tokens.result, () => 0.5);
-    expect(formatted.newSourceCode).toMatch(expected);
+    const formatted = formatModule(input, "test.skir", () => 0.5);
+    expect(formatted).toMatch({
+      newSourceCode: expected,
+      errors: [],
+    });
   });
 
   it("does not add trailing comma in struct after const with comment", () => {
@@ -469,9 +467,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const tokens = tokenizeModule(input, "test.skir");
-    expect(tokens.errors).toMatch([]);
-    const formatted = formatModule(tokens.result, () => 0.5);
-    expect(formatted.newSourceCode).toMatch(expected);
+    const formatted = formatModule(input, "test.skir", () => 0.5);
+    expect(formatted).toMatch({
+      newSourceCode: expected,
+      errors: [],
+    });
   });
 });
