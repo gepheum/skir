@@ -1,10 +1,5 @@
-import { Declaration, Doc, Removed } from "skir-internal";
+import type { Declaration, ExpectedName, Removed } from "skir-internal";
 import { ModuleSet } from "./module_set.js";
-
-export interface ExpectedName {
-  readonly name: string;
-  readonly doc?: Doc;
-}
 
 export function declarationsToExpectedNames(
   nameToDeclaration: { [name: string]: Declaration },
@@ -22,6 +17,24 @@ export function declarationsToExpectedNames(
     result.push({ name, doc });
   }
   return result;
+}
+
+export class ExpectedNamesCollector {
+  private readonly expectedNamesData: ExpectedName[] = [];
+  private readonly expectedNameSet = new Set<string>();
+
+  collect(expectedNames: readonly ExpectedName[]): void {
+    for (const expectedName of expectedNames) {
+      if (!this.expectedNameSet.has(expectedName.name)) {
+        this.expectedNamesData.push(expectedName);
+        this.expectedNameSet.add(expectedName.name);
+      }
+    }
+  }
+
+  get expectedNames(): readonly ExpectedName[] {
+    return this.expectedNamesData;
+  }
 }
 
 export interface CompletionItems {

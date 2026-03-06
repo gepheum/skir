@@ -1,6 +1,7 @@
 import {
   Constant,
   ErrorSink,
+  ExpectedName,
   Method,
   Module,
   MutableConstant,
@@ -19,7 +20,7 @@ import {
 } from "skir-internal";
 import {
   declarationsToExpectedNames,
-  ExpectedName,
+  ExpectedNamesCollector,
 } from "./completion_helper.js";
 
 export type Documentee =
@@ -117,20 +118,14 @@ function resolveReferenceInScopes(
   if (nameParts.length <= 0) {
     return;
   }
-  const expectedNames: ExpectedName[] = [];
-  const expectedNameSet = new Set<string>();
+  const expectedNamesCollector = new ExpectedNamesCollector();
   for (const scope of scopes) {
     if (reference.absolute && scope !== docModule) {
       continue;
     }
     const referee = tryResolveReference(nameParts, scope, docModule, getModule);
     if (referee.kind === "no-match") {
-      for (const expectedName of referee.expectedNames) {
-        if (!expectedNameSet.has(expectedName.name)) {
-          expectedNames.push(expectedName);
-          expectedNameSet.add(expectedName.name);
-        }
-      }
+      expectedNamesCollector.collect(referee.expectedNames);
       // Try the next scope.
     } else if (referee.kind === "failed-match") {
       if (referee.error) {
@@ -148,7 +143,7 @@ function resolveReferenceInScopes(
   errors.push({
     token: firstName,
     message: "Not found",
-    expectedNames: expectedNames,
+    expectedNames: expectedNamesCollector.expectedNames,
   });
 }
 

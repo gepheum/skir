@@ -820,6 +820,7 @@ describe("module set", () => {
 
           struct Foo {
             bar: Bar;
+            struct Za {}
           }
 
           struct Zoo {
@@ -844,6 +845,7 @@ describe("module set", () => {
             },
             message: "Cannot find name 'Bar'",
             expectedNames: [
+              { name: "Za" },
               { name: "other_module" },
               { name: "Foo" },
               { name: "Zoo" },

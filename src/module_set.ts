@@ -2,8 +2,8 @@ import * as Paths from "path";
 import {
   unquoteAndUnescape,
   type DenseJson,
-  type Doc,
   type ErrorSink,
+  type ExpectedName,
   type FieldPath,
   type ImportAlias,
   type Method,
@@ -26,7 +26,10 @@ import {
   type UnresolvedType,
   type Value,
 } from "skir-internal";
-import { declarationsToExpectedNames } from "./completion_helper.js";
+import {
+  declarationsToExpectedNames,
+  ExpectedNamesCollector,
+} from "./completion_helper.js";
 import { Documentee, resolveDocReferences } from "./doc_reference_resolver.js";
 import {
   isStringLiteral,
@@ -1090,44 +1093,66 @@ class TypeResolver {
   ): ResolvedRecordRef | undefined {
     const firstNamePart = recordRef.nameParts[0]!;
 
-    // The most nested record/module which contains the first name in the record
-    // reference, or the module if the record reference is absolute (starts with
-    // a dot).
-    let start: Record | Module | undefined;
-    const { errors, module, moduleBundles: modules, usedImports } = this;
-    if (recordOrigin !== "top-level") {
-      if (!recordRef.absolute) {
-        // Traverse the chain of ancestors from most nested to top-level.
-        for (const fromRecord of [...recordOrigin.recordAncestors].reverse()) {
-          const matchMaybe = fromRecord.nameToDeclaration[firstNamePart.text];
-          if (matchMaybe && matchMaybe.kind === "record") {
-            start = fromRecord;
-            break;
-          }
-        }
-      }
-      if (!start) {
-        start = module;
-      }
-    } else {
-      start = module;
-    }
-
     const makeNotARecordError = (name: Token): SkirError => ({
       token: name,
       message: "Does not refer to a struct or an enum",
     });
     const makeCannotFindNameError = (
       name: Token,
-      expectedNames: ReadonlyArray<{
-        readonly name: string;
-        readonly doc?: Doc;
-      }>,
+      expectedNames: readonly ExpectedName[],
     ): SkirError => ({
       token: name,
       message: `Cannot find name '${name.text}'`,
       expectedNames: expectedNames,
     });
+
+    // The most nested record/module which contains the first name in the record
+    // reference, or the module if the record reference is absolute (starts with
+    // a dot).
+    let start: Record | Module | undefined;
+    const { errors, module, moduleBundles: modules, usedImports } = this;
+    if (recordOrigin !== "top-level" && !recordRef.absolute) {
+      const expectedNamesCollector = new ExpectedNamesCollector();
+      // Traverse the chain of ancestors from most nested to top-level.
+      for (const fromRecord of [...recordOrigin.recordAncestors].reverse()) {
+        const matchMaybe = fromRecord.nameToDeclaration[firstNamePart.text];
+        if (matchMaybe && matchMaybe.kind === "record") {
+          start = fromRecord;
+          break;
+        } else {
+          expectedNamesCollector.collect(
+            declarationsToExpectedNames(
+              fromRecord.nameToDeclaration,
+              (d) => d.kind === "record",
+            ),
+          );
+        }
+      }
+      if (!start) {
+        const maybeMatch = module.nameToDeclaration[firstNamePart.text];
+        if (!maybeMatch) {
+          expectedNamesCollector.collect(
+            declarationsToExpectedNames(
+              module.nameToDeclaration,
+              (d) =>
+                d.kind === "record" ||
+                d.kind === "import" ||
+                d.kind === "import-alias",
+            ),
+          );
+          errors.push(
+            makeCannotFindNameError(
+              firstNamePart,
+              expectedNamesCollector.expectedNames,
+            ),
+          );
+          return undefined;
+        }
+        start = module;
+      }
+    } else {
+      start = module;
+    }
 
     let it: Module | Record = start;
     const nameParts: Array<{
