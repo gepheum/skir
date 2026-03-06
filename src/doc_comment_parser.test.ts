@@ -481,4 +481,133 @@ describe("doc_comment_parser", () => {
       },
     });
   });
+
+  describe("completionMode", () => {
+    it("inserts fake token in empty reference when cursor is inside", () => {
+      // "/// []": content = "[]", contentOffset = 4
+      // '[' at absolute 4, ']' at absolute 5, refAbsoluteEnd = 6
+      // cursor at 5 is within [4, 6) and no word token covers it
+      const token = makeToken("/// []", 0);
+      const result = parseDocComment(token, { position: 5 });
+
+      expect(result).toMatch({
+        errors: [],
+        result: {
+          pieces: [
+            {
+              kind: "reference",
+              nameParts: [
+                { token: { text: "...", originalText: "", position: 5 } },
+              ],
+            },
+          ],
+        },
+      });
+    });
+
+    it("does not insert fake token when cursor is at the start of a word (inclusive)", () => {
+      // "/// [Foo]": content = "[Foo]", contentOffset = 4
+      // Foo at absolute 5, length 3, covers [5, 8]
+      // cursor at 5 is the inclusive start of Foo
+      const token = makeToken("/// [Foo]", 0);
+      const result = parseDocComment(token, { position: 5 });
+
+      expect(result).toMatch({
+        errors: [],
+        result: {
+          pieces: [
+            {
+              kind: "reference",
+              nameParts: [{ token: { text: "Foo" } }],
+            },
+          ],
+        },
+      });
+    });
+
+    it("does not insert fake token when cursor is at the end of a word (inclusive)", () => {
+      // "/// [Foo]": Foo at absolute 5, length 3 → inclusive end = 5 + 3 = 8
+      // cursor at 8 is the inclusive end boundary
+      const token = makeToken("/// [Foo]", 0);
+      const result = parseDocComment(token, { position: 8 });
+
+      expect(result).toMatch({
+        errors: [],
+        result: {
+          pieces: [
+            {
+              kind: "reference",
+              nameParts: [{ token: { text: "Foo" } }],
+            },
+          ],
+        },
+      });
+    });
+
+    it("inserts fake token after dot when cursor is between separator and closing bracket", () => {
+      // "/// [Foo.]": content = "[Foo.]", contentOffset = 4
+      // Foo at absolute 5 (len 3), '.' at absolute 8, ']' at absolute 9
+      // refAbsoluteEnd = 10; cursor at 9 is within [4, 10) and Foo only covers [5, 8]
+      // fake token gets spliced before ']'
+      const token = makeToken("/// [Foo.]", 0);
+      const result = parseDocComment(token, { position: 9 });
+
+      expect(result).toMatch({
+        errors: [],
+        result: {
+          pieces: [
+            {
+              kind: "reference",
+              nameParts: [
+                { token: { text: "Foo" } },
+                { token: { text: "...", originalText: "", position: 9 } },
+              ],
+            },
+          ],
+        },
+      });
+    });
+
+    it("does not insert fake token when cursor is outside the reference span", () => {
+      // "/// [Foo] bar": reference spans absolute [4, 9); cursor at 11 is outside
+      const token = makeToken("/// [Foo] bar", 0);
+      const result = parseDocComment(token, { position: 11 });
+
+      expect(result).toMatch({
+        errors: [],
+        result: {
+          pieces: [
+            {
+              kind: "reference",
+              nameParts: [{ token: { text: "Foo" } }],
+            },
+            { kind: "text", text: " bar" },
+          ],
+        },
+      });
+    });
+
+    it("does not insert fake token when the reference has an error", () => {
+      // "/// [foo@bar]": '@' is invalid, so hasError = true and completionMode is skipped
+      // The '@' is at contentOffset(4) + charIndex(4) = column 8, so column+1 = 9
+      const token = makeToken("/// [foo@bar]", 0);
+      const result = parseDocComment(token, { position: 9 });
+
+      expect(result).toMatch({
+        result: {
+          pieces: [
+            {
+              kind: "reference",
+              nameParts: [],
+            },
+          ],
+        },
+        errors: [
+          {
+            message: "Invalid character in reference at column 9",
+          },
+        ],
+      });
+    });
+  });
 });

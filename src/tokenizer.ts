@@ -161,7 +161,7 @@ export function tokenizeModule(
       const colNumber = position - line.position;
       const fakeToken: Token = {
         text: "...",
-        originalText: "...",
+        originalText: "",
         position: position,
         line: line,
         colNumber: colNumber,
@@ -181,7 +181,7 @@ export function tokenizeModule(
     if (!token.text.startsWith("///")) {
       continue;
     }
-    const docResult = parseDocComment(token);
+    const docResult = parseDocComment(token, completionMode);
     posToDoc[token.position] = docResult.result;
     docResult.errors.forEach((e) => errors.push(e));
   }

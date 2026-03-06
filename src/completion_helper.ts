@@ -1,13 +1,33 @@
-import { Doc } from "skir-internal";
+import { Declaration, Doc, Removed } from "skir-internal";
 import { ModuleSet } from "./module_set.js";
+
+export interface ExpectedName {
+  readonly name: string;
+  readonly doc?: Doc;
+}
+
+export function declarationsToExpectedNames(
+  nameToDeclaration: { [name: string]: Declaration },
+  predicate: (value: Exclude<Declaration, Removed>) => boolean,
+): readonly ExpectedName[] {
+  const result: ExpectedName[] = [];
+  for (const [name, declaration] of Object.entries(nameToDeclaration)) {
+    if (declaration.kind === "removed" || !predicate(declaration)) {
+      continue;
+    }
+    const doc =
+      declaration.kind !== "import" && declaration.kind !== "import-alias"
+        ? declaration.doc
+        : undefined;
+    result.push({ name, doc });
+  }
+  return result;
+}
 
 export interface CompletionItems {
   readonly placeholderStartPos: number;
   readonly placeholderEndPos: number;
-  readonly items: ReadonlyArray<{
-    readonly name: string;
-    readonly doc?: Doc;
-  }>;
+  readonly items: readonly ExpectedName[];
 }
 
 export function provideCompletionItems(

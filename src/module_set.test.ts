@@ -2471,8 +2471,9 @@ describe("module set", () => {
         result: {},
         errors: [
           {
-            token: { text: "[NonExistent]", line: { lineNumber: 1 } },
-            message: "Cannot resolve reference",
+            token: { text: "NonExistent", line: { lineNumber: 1 } },
+            message: "Not found",
+            expectedNames: [{ name: "Foo" }],
           },
         ],
       });
@@ -2486,7 +2487,10 @@ describe("module set", () => {
           /// See [Bar.NonExistent]
           struct Foo {}
 
-          struct Bar {}
+          struct Bar {
+            x: int32;
+            y: int32;
+          }
         `,
       );
       const moduleSet = input.doCompile();
@@ -2495,8 +2499,9 @@ describe("module set", () => {
         result: {},
         errors: [
           {
-            token: { text: "[Bar.NonExistent]" },
-            message: "Cannot resolve reference",
+            token: { text: "NonExistent" },
+            message: "Not found",
+            expectedNames: [{ name: "x" }, { name: "y" }],
           },
         ],
       });

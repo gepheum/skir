@@ -470,4 +470,29 @@ describe("tokenizer", () => {
       ],
     });
   });
+
+  it("passes completionMode to doc comment parser for references", () => {
+    // Source: "/// [Foo.]"
+    //          0123456789
+    // doc comment token at position 0 (non-word, exclusive span [0, 10))
+    // position 9 is inside that token so no fake token is inserted in the main
+    // stream. However, it is also within the reference [4, 10) and *not*
+    // covered by any word token (Foo covers [5, 8] inclusive), so a fake
+    // "..." token should appear in posToDoc[0].
+    const code = "/// [Foo.]";
+    const actual = tokenizeModule(code, "test", { position: 9 });
+
+    expect(actual).toMatch({ errors: [] });
+    expect(actual.result.posToDoc[0]).toMatch({
+      pieces: [
+        {
+          kind: "reference",
+          nameParts: [
+            { token: { text: "Foo" } },
+            { token: { text: "...", originalText: "", position: 9 } },
+          ],
+        },
+      ],
+    });
+  });
 });

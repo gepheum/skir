@@ -12,8 +12,11 @@ import type {
   Token,
 } from "skir-internal";
 
-export function parseDocComment(docComment: Token): Result<Doc> {
-  const parser = new DocCommentParser(docComment);
+export function parseDocComment(
+  docComment: Token,
+  completionMode?: { position: number },
+): Result<Doc> {
+  const parser = new DocCommentParser(docComment, completionMode);
   return parser.parse();
 }
 
@@ -24,7 +27,10 @@ class DocCommentParser {
   private charIndex = -1;
   private readonly content: string;
 
-  constructor(private readonly docComment: Token) {
+  constructor(
+    private readonly docComment: Token,
+    private readonly completionMode?: { position: number },
+  ) {
     const { text } = docComment;
     if (text.startsWith("/// ")) {
       this.content = text.slice(4);
@@ -196,6 +202,36 @@ class DocCommentParser {
       }
     }
 
+    if (!hasError && this.completionMode) {
+      const { position } = this.completionMode;
+      const refAbsoluteStart = startPosition;
+      const refAbsoluteEnd = docComment.position + contentOffset + endCharIndex;
+      if (position >= refAbsoluteStart && position < refAbsoluteEnd) {
+        const inExistingWord = tokens.some((t) => {
+          return (
+            /^[a-zA-Z]/.test(t.text) &&
+            position >= t.position &&
+            position <= t.position + t.text.length
+          );
+        });
+        if (!inExistingWord) {
+          const fakeToken: Token = {
+            text: "...",
+            originalText: "",
+            position: position,
+            line: docComment.line,
+            colNumber: position - docComment.line.position,
+          };
+          const insertIndex = tokens.findIndex((t) => t.position >= position);
+          if (insertIndex === -1) {
+            tokens.push(fakeToken);
+          } else {
+            tokens.splice(insertIndex, 0, fakeToken);
+          }
+        }
+      }
+    }
+
     const nameParts = hasError ? [] : this.parseNameParts(tokens);
 
     return {
@@ -216,7 +252,8 @@ class DocCommentParser {
       "identifier or '.'";
     for (const token of tokens) {
       let expected: boolean;
-      if (/^[a-zA-Z]/.test(token.text)) {
+      if (/^[a-zA-Z]/.test(token.text) || token.text === "...") {
+        // Identifier token or fake completion token.
         expected = expect === "identifier or '.'" || expect === "identifier";
         expect = "'.' or ']'";
         nameParts.push({
