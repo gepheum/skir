@@ -108,6 +108,9 @@ class CompatibilityChecker {
   check(): readonly BreakingChange[] {
     for (const [, moduleBeforeResult] of this.moduleSet.before.modules) {
       const moduleBefore = moduleBeforeResult.result;
+      if (moduleBefore.path.startsWith("@")) {
+        continue;
+      }
       for (const methodBefore of moduleBefore.methods) {
         const { number } = methodBefore;
         const methodAfter = this.moduleSet.after.findMethodByNumber(number);

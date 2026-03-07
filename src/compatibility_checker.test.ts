@@ -654,6 +654,53 @@ describe("compatibility checker", () => {
       },
     ]);
   });
+
+  it("skips modules whose path starts with '@'", () => {
+    // The @-prefixed module has a numbered struct and a numbered method; both
+    // disappear in "after". Because the module is skipped, no breaking changes
+    // should be reported.
+    expect(
+      doCheckCompatibilityMulti({
+        before: new Map([
+          [
+            "@pkg/foo.skir",
+            `
+              struct Foo(101) { x: string; }
+              method Bar(string): string = 201;
+            `,
+          ],
+        ]),
+        after: new Map([["@pkg/foo.skir", ""]]),
+      }),
+    ).toMatch([]);
+  });
+
+  it("still checks non-'@' modules when '@' modules are present", () => {
+    // The @-prefixed module loses its method — that should be silently skipped.
+    // The regular module loses its numbered struct — that SHOULD be reported.
+    expect(
+      doCheckCompatibilityMulti({
+        before: new Map([
+          ["@pkg/foo.skir", "method Bar(string): string = 201;"],
+          ["path/to/module", "struct A(101) {}"],
+        ]),
+        after: new Map([
+          ["@pkg/foo.skir", ""],
+          ["path/to/module", "struct A {}"],
+        ]),
+      }),
+    ).toMatch([
+      {
+        kind: "missing-record",
+        record: {
+          record: {
+            name: { text: "A" },
+          },
+        },
+        recordNumber: 101,
+      },
+    ]);
+  });
 });
 
 function doCheckBackwardCompatibility(
@@ -676,6 +723,30 @@ function parseModuleSet(sourceCode: string): ModuleSet {
     const firstError = moduleResult.errors[0]!;
     const message = firstError.message ?? `expected: ${firstError.expected}`;
     throw new Error("Error while parsing module set: " + message);
+  }
+  return moduleSet;
+}
+
+function doCheckCompatibilityMulti(
+  modulePathToSourceCode: BeforeAfter<Map<string, string>>,
+): readonly BreakingChange[] {
+  const moduleSet: BeforeAfter<ModuleSet> = {
+    before: parseModuleSetMulti(modulePathToSourceCode.before),
+    after: parseModuleSetMulti(modulePathToSourceCode.after),
+  };
+  return checkCompatibility(moduleSet);
+}
+
+function parseModuleSetMulti(
+  modulePathToSourceCode: Map<string, string>,
+): ModuleSet {
+  const moduleSet = ModuleSet.compile(modulePathToSourceCode);
+  for (const [modulePath, moduleResult] of moduleSet.modules) {
+    if (moduleResult.errors.length > 0) {
+      const firstError = moduleResult.errors[0]!;
+      const message = firstError.message ?? `expected: ${firstError.expected}`;
+      throw new Error(`Error while parsing module '${modulePath}': ` + message);
+    }
   }
   return moduleSet;
 }
