@@ -502,4 +502,143 @@ describe("completion_helper", () => {
     input.columnNumber = 10;
     expect(input.doProvide()).toMatch(null);
   });
+
+  // Automatic-import completion items
+
+  it("auto-imports when module has no import statements", () => {
+    const input = new Input();
+    input.modulePathToContent.set("path/to/baz.skir", "struct Foo {}");
+    input.moduleContent = ["struct Holder {", "  field: Foo", "}"];
+    input.lineNumber = 1;
+    input.columnNumber = 12;
+    // "struct Holder {" = 15 chars + newline = 16
+    // "  field: " = 9 chars, so Foo starts at 25, ends at 28
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 25,
+      placeholderEndPos: 28,
+      items: [
+        { name: "Holder" },
+        {
+          name: "Foo",
+          modulePath: "path/to/baz.skir",
+          insertText: ".Foo",
+          importBlockEdit: {
+            oldStart: 0,
+            oldEnd: 0,
+            newText: 'import { Foo } from "path/to/baz.skir";\n\n',
+          },
+        },
+      ],
+    });
+  });
+
+  it("auto-imports when the other module is already imported under an alias", () => {
+    const input = new Input();
+    input.modulePathToContent.set("path/to/baz.skir", "struct Foo {}");
+    input.moduleContent = [
+      'import * as baz from "./baz.skir";',
+      "",
+      "struct Holder {",
+      "  field: Foo",
+      "}",
+    ];
+    input.lineNumber = 3;
+    input.columnNumber = 12;
+    // Line 0: 34 chars + newline = 35
+    // Line 1: empty + newline = 1
+    // Line 2: "struct Holder {" = 15 + newline = 16
+    // "  field: " = 9 chars, so Foo starts at 61, ends at 64
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 61,
+      placeholderEndPos: 64,
+      items: [
+        { name: "baz" },
+        { name: "Holder" },
+        {
+          name: "Foo",
+          modulePath: "path/to/baz.skir",
+          insertText: "baz.Foo",
+          importBlockEdit: undefined,
+        },
+      ],
+    });
+  });
+
+  it("auto-imports when the other module imports some names but not Foo", () => {
+    const input = new Input();
+    input.modulePathToContent.set(
+      "path/to/baz.skir",
+      "struct Foo {}\nstruct Bar {}",
+    );
+    input.moduleContent = [
+      'import { Bar } from "./baz.skir";',
+      "",
+      "struct Holder {",
+      "  field: Foo",
+      "}",
+    ];
+    input.lineNumber = 3;
+    input.columnNumber = 12;
+    // Line 0: "import { Bar } from "./baz.skir";" = 33 chars + newline = 34
+    // Line 1: empty + newline = 1
+    // Line 2: "struct Holder {" = 15 + newline = 16
+    // "  field: " = 9 chars, so Foo starts at 60, ends at 63
+    // "import { Bar } from "./baz.skir";" is 33 chars, so importBlockRange end is 33.
+    const bazImportBlockEnd = 33;
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 60,
+      placeholderEndPos: 63,
+      items: [
+        { name: "Bar" },
+        { name: "Holder" },
+        {
+          name: "Foo",
+          modulePath: "path/to/baz.skir",
+          insertText: ".Foo",
+          importBlockEdit: {
+            oldStart: 0,
+            oldEnd: bazImportBlockEnd,
+            newText: 'import {\n  Bar,\n  Foo,\n} from "path/to/baz.skir";',
+          },
+        },
+      ],
+    });
+  });
+
+  it("auto-imports when module has imports but none for the other module", () => {
+    const input = new Input();
+    input.modulePathToContent.set("path/to/baz.skir", "struct Foo {}");
+    input.moduleContent = [
+      'import * as other from "./other/module.skir";',
+      "",
+      "struct Holder {",
+      "  field: Foo",
+      "}",
+    ];
+    input.lineNumber = 3;
+    input.columnNumber = 12;
+    // Line 0: "import * as other from "./other/module.skir";" = 45 chars + newline = 46
+    // Line 1: empty + newline = 1
+    // Line 2: "struct Holder {" = 15 + newline = 16
+    // "  field: " = 9 chars, so Foo starts at 72, ends at 75
+    expect(input.doProvide()).toMatch({
+      placeholderStartPos: 72,
+      placeholderEndPos: 75,
+      items: [
+        { name: "other" },
+        { name: "Holder" },
+        {
+          name: "Foo",
+          modulePath: "path/to/baz.skir",
+          insertText: ".Foo",
+          importBlockEdit: {
+            oldStart: 0,
+            oldEnd: 45,
+            newText:
+              'import { Foo } from "path/to/baz.skir";\nimport * as other from "path/to/other/module.skir";',
+          },
+        },
+      ],
+    });
+  });
 });

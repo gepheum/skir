@@ -82,7 +82,7 @@ export class ModuleSet {
     },
   ) {
     this.cache = cache
-      ? new Cache(modulePathToContent, cache.moduleBundles)
+      ? new Cache(modulePathToContent, cache.moduleBundles, cache.registry)
       : undefined;
     // In completion mode, no need to recompile modules which are not dependencies of
     // the current module.
@@ -275,6 +275,9 @@ export class ModuleSet {
     const typeResolver = new TypeResolver(
       module,
       this.moduleBundles,
+      this.completionMode
+        ? this.cache?.registry.topLevelNameToRecordLocations
+        : undefined,
       usedImports,
       errors,
     );
@@ -368,6 +371,16 @@ export class ModuleSet {
       const { unresolvedType } = constant;
       resolveTopLevelTypeAndValidate(unresolvedType);
     }
+
+    moduleBundle.registry.pushTopLevelNames(
+      module.declarations
+        .filter((d) => d.kind === "record")
+        .map((d) => ({
+          name: d.name.text,
+          doc: d.doc,
+          modulePath: modulePath,
+        })),
+    );
 
     ensureAllImportsAreUsed(module, usedImports, errors);
 
@@ -1051,7 +1064,11 @@ function validateKeyedItems(
 class TypeResolver {
   constructor(
     private readonly module: Module,
-    private readonly moduleBundles: Map<string, ModuleBundle>,
+    private readonly moduleBundles: ReadonlyMap<string, ModuleBundle>,
+    /** For automatic imports in completion mode. */
+    private readonly topLevelNameToRecordLocations:
+      | ReadonlyMap<string, readonly ExpectedName[]>
+      | undefined,
     private readonly usedImports: Set<string>,
     private readonly errors: ErrorSink,
   ) {}
@@ -1106,13 +1123,15 @@ class TypeResolver {
       expectedNames: expectedNames,
     });
 
+    const { errors, module, moduleBundles, usedImports } = this;
+
     // The most nested record/module which contains the first name in the record
     // reference, or the module if the record reference is absolute (starts with
     // a dot).
     let start: Record | Module | undefined;
-    const { errors, module, moduleBundles: modules, usedImports } = this;
+
+    const expectedNamesCollector = new ExpectedNamesCollector();
     if (recordOrigin !== "top-level" && !recordRef.absolute) {
-      const expectedNamesCollector = new ExpectedNamesCollector();
       // Traverse the chain of ancestors from most nested to top-level.
       for (const fromRecord of [...recordOrigin.recordAncestors].reverse()) {
         const matchMaybe = fromRecord.nameToDeclaration[firstNamePart.text];
@@ -1128,29 +1147,34 @@ class TypeResolver {
           );
         }
       }
-      if (!start) {
-        const maybeMatch = module.nameToDeclaration[firstNamePart.text];
-        if (!maybeMatch) {
-          expectedNamesCollector.collect(
-            declarationsToExpectedNames(
-              module.nameToDeclaration,
-              (d) =>
-                d.kind === "record" ||
-                d.kind === "import" ||
-                d.kind === "import-alias",
-            ),
-          );
-          errors.push(
-            makeCannotFindNameError(
-              firstNamePart,
-              expectedNamesCollector.expectedNames,
-            ),
-          );
-          return undefined;
-        }
-        start = module;
+    }
+
+    if (start === undefined) {
+      const maybeMatch = module.nameToDeclaration[firstNamePart.text];
+      if (!maybeMatch) {
+        expectedNamesCollector.collect(
+          declarationsToExpectedNames(
+            module.nameToDeclaration,
+            (d) =>
+              d.kind === "record" ||
+              d.kind === "import" ||
+              d.kind === "import-alias",
+          ),
+        );
+        // For automatic imports.
+        expectedNamesCollector.collect(
+          this.topLevelNameToRecordLocations
+            ?.get(firstNamePart.text)
+            ?.filter((l) => l.modulePath !== module.path) ?? [],
+        );
+        errors.push(
+          makeCannotFindNameError(
+            firstNamePart,
+            expectedNamesCollector.expectedNames,
+          ),
+        );
+        return undefined;
       }
-    } else {
       start = module;
     }
 
@@ -1193,7 +1217,7 @@ class TypeResolver {
         if (newModulePath === undefined) {
           return undefined;
         }
-        const newModuleResult = modules.get(newModulePath);
+        const newModuleResult = moduleBundles.get(newModulePath);
         if (!newModuleResult) {
           // The module was not found or has errors: an error was already
           // registered, no need to register a new one.
@@ -1269,6 +1293,7 @@ class Cache {
   constructor(
     modulePathToNewContent: ReadonlyMap<string, string | ModuleTokens>,
     modulePathToOldBundle: ReadonlyMap<string, ModuleBundle>,
+    readonly registry: DeclarationRegistry,
   ) {
     const unchangedModulePaths = new Set<string>();
     for (const [modulePath, newContent] of modulePathToNewContent) {
@@ -1325,6 +1350,11 @@ class DeclarationRegistry {
   readonly recordMap = new Map<RecordKey, RecordLocation>();
   readonly numberToRecords = new Map<number, RecordKey[]>();
   readonly numberToMethods = new Map<number, Method[]>();
+  /**
+   * Key: name of a record defined at the top level of a module
+   * Value: array of record locations (record name, doc, module path)
+   */
+  readonly topLevelNameToRecordLocations = new Map<string, ExpectedName[]>();
 
   mergeFrom(other: DeclarationRegistry): void {
     for (const [key, value] of other.recordMap) {
@@ -1346,6 +1376,17 @@ class DeclarationRegistry {
       }
       existing.push(...value);
     }
+    for (const [
+      topLevelName,
+      recordLocations,
+    ] of other.topLevelNameToRecordLocations) {
+      let existing = this.topLevelNameToRecordLocations.get(topLevelName);
+      if (!existing) {
+        existing = [];
+        this.topLevelNameToRecordLocations.set(topLevelName, existing);
+      }
+      existing.push(...recordLocations);
+    }
   }
 
   pushNumberRecord(number: number, record: RecordKey): void {
@@ -1364,6 +1405,17 @@ class DeclarationRegistry {
       this.numberToMethods.set(number, value);
     }
     value.push(method);
+  }
+
+  pushTopLevelNames(recordLocations: readonly ExpectedName[]): void {
+    for (const recordName of recordLocations) {
+      let value = this.topLevelNameToRecordLocations.get(recordName.name);
+      if (!value) {
+        value = [];
+        this.topLevelNameToRecordLocations.set(recordName.name, value);
+      }
+      value.push(recordName);
+    }
   }
 }
 
