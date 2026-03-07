@@ -521,7 +521,6 @@ describe("completion_helper", () => {
         {
           name: "Foo",
           modulePath: "path/to/baz.skir",
-          insertText: ".Foo",
           importBlockEdit: {
             oldStart: 0,
             oldEnd: 0,
@@ -594,7 +593,6 @@ describe("completion_helper", () => {
         {
           name: "Foo",
           modulePath: "path/to/baz.skir",
-          insertText: ".Foo",
           importBlockEdit: {
             oldStart: 0,
             oldEnd: bazImportBlockEnd,
@@ -630,7 +628,6 @@ describe("completion_helper", () => {
         {
           name: "Foo",
           modulePath: "path/to/baz.skir",
-          insertText: ".Foo",
           importBlockEdit: {
             oldStart: 0,
             oldEnd: 45,

@@ -429,7 +429,11 @@ export class ModuleSet {
         if (out.has(key)) return;
         out.add(key);
         // Recursively add deps of all fields of the record.
-        const record = this.recordMap.get(key)!.record;
+        const record = this.recordMap.get(key)?.record;
+        if (!record) {
+          console.error("collectTypeDeps: record not found", key);
+          return;
+        }
         if (mode === "hard" && record.recordType === "enum") {
           return;
         }
@@ -487,7 +491,11 @@ export class ModuleSet {
           }
           return;
         }
-        const record = this.recordMap.get(currentType.key)!.record;
+        const record = this.recordMap.get(currentType.key)?.record;
+        if (!record) {
+          console.error("validateArrayKeys: record not found", currentType.key);
+          return;
+        }
         if (record.recordType === "struct") {
           const field = record.nameToDeclaration[fieldName.text];
           if (field?.kind !== "field") {

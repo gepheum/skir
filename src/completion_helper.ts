@@ -129,7 +129,7 @@ function expectedNameToCompletionItem(
     return expectedName;
   }
   // Requires an automatic import.
-  let insertText: string;
+  let insertText: string | undefined;
   // Set if the import block needs to be modified.
   let newPathToImportedNames: PathToImportedNames | undefined;
   // Check if the module is already imported.
@@ -148,7 +148,6 @@ function expectedNameToCompletionItem(
           names: new Set([...oldImportedNames.names, expectedName.name]),
         },
       };
-      insertText = `.${expectedName.name}`;
     }
   } else {
     // The module is not imported yet.
@@ -159,7 +158,6 @@ function expectedNameToCompletionItem(
         names: new Set([expectedName.name]),
       },
     };
-    insertText = `.${expectedName.name}`;
   }
   let importBlockEdit: TextEdit | undefined;
   if (newPathToImportedNames) {
