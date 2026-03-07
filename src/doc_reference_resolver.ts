@@ -194,25 +194,46 @@ function tryResolveReference(
     }
     firstNameMatched = true;
     const isLastPart = i === nameParts.length - 1;
-    if (isLastPart) {
-      switch (match.kind) {
-        case "constant":
-        case "method":
-        case "record": {
-          namePart.declaration = match;
+    const makeExpectedToBeLastNameFailedMatch = (): FailedMatch => ({
+      kind: "failed-match",
+      error: {
+        token: namePart.token,
+        message: "Expected to be the last name in the sequence",
+      },
+    });
+    switch (match.kind) {
+      case "constant":
+      case "method": {
+        namePart.declaration = match;
+        if (isLastPart) {
           return match;
+        } else {
+          return makeExpectedToBeLastNameFailedMatch();
         }
-        case "field": {
-          namePart.declaration = match;
+      }
+      case "record": {
+        scope = match;
+        namePart.declaration = match;
+        if (isLastPart) {
+          return match;
+        } else {
+          break;
+        }
+      }
+      case "field": {
+        namePart.declaration = match;
+        if (isLastPart) {
           return {
             kind: "field",
             field: match,
             record: scope as Record,
           };
+        } else {
+          return makeExpectedToBeLastNameFailedMatch();
         }
-        case "import":
-        case "import-alias":
-        case "removed": {
+      }
+      case "import-alias": {
+        if (isLastPart) {
           return {
             kind: "failed-match",
             error: {
@@ -221,61 +242,44 @@ function tryResolveReference(
             },
           };
         }
+        // Falls through
       }
-    } else {
-      switch (match.kind) {
-        case "record": {
-          scope = match;
-          namePart.declaration = match;
-          break;
-        }
-        case "import":
-        case "import-alias": {
-          if (scope !== docModule) {
-            // Cannot refer to other module's imports.
-            return {
-              kind: "failed-match",
-              error: {
-                token: namePart.token,
-                message: "Cannot refer to other module's imports",
-              },
-            };
-          }
-          const { resolvedModulePath } = match;
-          if (!resolvedModulePath) {
-            return {
-              kind: "failed-match",
-              error: null, // An error has already been registered
-            };
-          }
-          const importedModule = getModule(resolvedModulePath!);
-          if (!importedModule) {
-            return {
-              kind: "failed-match",
-              error: null, // An error has already been registered
-            };
-          }
-          scope = importedModule;
-          if (match.kind === "import") {
-            // Rewind to this name part, but with the imported module as scope.
-            --i;
-          } else {
-            namePart.declaration = match;
-          }
-          break;
-        }
-        case "constant":
-        case "method":
-        case "field":
-        case "removed": {
+      case "import": {
+        if (scope !== docModule) {
+          // Cannot refer to other module's imports.
           return {
             kind: "failed-match",
             error: {
               token: namePart.token,
-              message: "Expected to be the last name in the sequence",
+              message: "Cannot refer to other module's imports",
             },
           };
         }
+        const { resolvedModulePath } = match;
+        if (!resolvedModulePath) {
+          return {
+            kind: "failed-match",
+            error: null, // An error has already been registered
+          };
+        }
+        const importedModule = getModule(resolvedModulePath!);
+        if (!importedModule) {
+          return {
+            kind: "failed-match",
+            error: null, // An error has already been registered
+          };
+        }
+        scope = importedModule;
+        if (match.kind === "import") {
+          // Rewind to this name part, but with the imported module as scope.
+          --i;
+        } else {
+          namePart.declaration = match;
+        }
+        break;
+      }
+      case "removed": {
+        throw new TypeError();
       }
     }
   }

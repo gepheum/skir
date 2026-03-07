@@ -2410,10 +2410,14 @@ describe("module set", () => {
       input.pathToCode.set(
         "path/to/module",
         `
-          import * as other from "./other";
+          import {Foo} from "./other";
 
-          /// Uses [other.Foo]
+          /// Uses [Foo]
           struct Bar {}
+
+          struct FooFoo {
+            foo: Foo;
+          }
         `,
       );
       input.pathToCode.set(
@@ -2436,13 +2440,6 @@ describe("module set", () => {
                     kind: "reference",
                     nameParts: [
                       {
-                        token: { text: "other" },
-                        declaration: {
-                          kind: "import-alias",
-                          name: { text: "other" },
-                        },
-                      },
-                      {
                         token: { text: "Foo" },
                         declaration: { kind: "record", name: { text: "Foo" } },
                       },
@@ -2454,7 +2451,7 @@ describe("module set", () => {
             },
           },
         },
-        errors: [{ message: "Unused import alias" }],
+        errors: [],
       });
     });
 
