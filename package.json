@@ -1,8 +1,8 @@
 {
   "name": "skir",
-  "version": "1.1.17",
+  "version": "1.1.18",
   "description": "",
-  "homepage": "https://skir.sh/",
+  "homepage": "https://skir.build/",
   "bugs": {
     "url": "https://github.com/gepheum/skir/issues"
   },
