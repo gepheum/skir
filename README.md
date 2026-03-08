@@ -1,6 +1,6 @@
 <div align="center">
   <h1>Skir</h1>
-  <p><strong>Like Protocol Buffer, but better.</strong></p>
+  <p><strong>A modern alternative to Protocol Buffer</strong></p>
 
   <p>
     <a href="https://skir.build/"><b>skir.build</b></a>
