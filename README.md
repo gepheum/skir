@@ -46,9 +46,9 @@ struct Shape {
 }
 
 const TOP_RIGHT_CORNER: Point = {
-  x = 600,
-  y = 400,
-  label = "top-right corner",
+  x: 600,
+  y: 400,
+  label: "top-right corner",
 };
 
 /// Returns true if no part of the shape's boundary curves inward.
