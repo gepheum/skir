@@ -78,6 +78,18 @@ generators:
       writeGoogleTestHeaders: false
 
   # # --------------------------------------------------------------------------
+  # # Go code generator
+  # # Home: https://github.com/gepheum/skir-go-gen
+  # # To install runtime dependencies: go get github.com/gepheum/skir-go-client
+  # # --------------------------------------------------------------------------
+  # - mod: skir-go-gen
+  #   outDir: ./skirout
+  #   config: {}
+  #   # Alternatively:
+  #   # config:
+  #   #   packagePrefix: github.com/myorg/myproject/skirout
+
+  # # --------------------------------------------------------------------------
   # # Dart code generator
   # # Home: https://github.com/gepheum/skir-dart-gen
   # # To install runtime dependencies: dart pub add skir_client
