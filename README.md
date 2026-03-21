@@ -90,4 +90,5 @@ assert(restored == point)
 | ⚡ **C++** | [Documentation](https://github.com/gepheum/skir-cc-gen) | [Example](https://github.com/gepheum/skir-cc-example) |
 | ☕ **Java** | [Documentation](https://github.com/gepheum/skir-java-gen) | [Example](https://github.com/gepheum/skir-java-example) |
 | 💜 **Kotlin** | [Documentation](https://github.com/gepheum/skir-kotlin-gen) | [Example](https://github.com/gepheum/skir-kotlin-example) |
+| 🎯 **Go** | [Documentation](https://github.com/gepheum/skir-go-gen) | [Example](https://github.com/gepheum/skir-go-example) |
 | 🎯 **Dart** | [Documentation](https://github.com/gepheum/skir-dart-gen) | [Example](https://github.com/gepheum/skir-dart-example) |

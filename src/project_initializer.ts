@@ -93,7 +93,9 @@ generators:
   # # --------------------------------------------------------------------------
   # - mod: skir-go-gen
   #   outDir: ./skirout
-  #   config: {}
+  #   config:
+  #     #  Must match the module name declared in your go.mod file.
+  #     goModuleName: "github.com/my-org/my-project"
 
   # # --------------------------------------------------------------------------
   # # Java code generator
