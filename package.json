@@ -1,6 +1,6 @@
 {
   "name": "skir",
-  "version": "1.1.18",
+  "version": "1.1.19",
   "description": "",
   "homepage": "https://skir.build/",
   "bugs": {
@@ -44,6 +44,7 @@
     "glob": "^13.0.6",
     "skir-cc-gen": "^1.0.7",
     "skir-dart-gen": "^1.0.4",
+    "skir-go-gen": "^0.1.1",
     "skir-internal": "^0.2.17",
     "skir-java-gen": "^1.0.5",
     "skir-kotlin-gen": "^1.0.6",

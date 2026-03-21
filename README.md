@@ -19,7 +19,7 @@
 ## ✨ Features
 
 - 💎 **Single source of truth** - Define your data types and APIs once and share them between your backend, frontend, and microservices.
-- 🌍 **Multi-language** - First-class support for TypeScript, Python, C++, Java, Kotlin, and Dart.
+- 🌍 **Multi-language** - First-class support for TypeScript, Python, C++, Java, Kotlin, Go and Dart.
 - ✍️ **Idiomatic code gen** - Generates code that feels native to each language.
 - 🍃 **Effortless serialization** - Skir generates functions to serialize your data to JSON or binary, so you never have to write parsing code manually.
 - 🦋 **Schema evolution** - Simple guidelines and built-in checks to evolve your schema without breaking backward compatibility.

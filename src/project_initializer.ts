@@ -87,6 +87,15 @@ generators:
   #   config: {}
 
   # # --------------------------------------------------------------------------
+  # # Go code generator
+  # # Home: https://github.com/gepheum/skir-go-gen
+  # # To install runtime dependencies: go get github.com/gepheum/skir-go-client
+  # # --------------------------------------------------------------------------
+  # - mod: skir-go-gen
+  #   outDir: ./skirout
+  #   config: {}
+
+  # # --------------------------------------------------------------------------
   # # Java code generator
   # # Home: https://github.com/gepheum/skir-java-gen
   # # Add the following line to your build.gradle dependencies:
