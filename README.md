@@ -19,7 +19,7 @@
 ## ✨ Features
 
 - 💎 **Single source of truth** - Define your data types and APIs once and share them between your backend, frontend, and microservices.
-- 🌍 **Multi-language** - First-class support for TypeScript, Python, C++, Java, Kotlin, Go and Dart.
+- 🌍 **Multi-language** - First-class support for TypeScript, Python, C++, Java, Kotlin, Rust, Go and Dart.
 - ✍️ **Idiomatic code gen** - Generates code that feels native to each language.
 - 🍃 **Effortless serialization** - Skir generates functions to serialize your data to JSON or binary, so you never have to write parsing code manually.
 - 🦋 **Schema evolution** - Simple guidelines and built-in checks to evolve your schema without breaking backward compatibility.
@@ -90,5 +90,6 @@ assert(restored == point)
 | ⚡ **C++** | [Documentation](https://github.com/gepheum/skir-cc-gen) | [Example](https://github.com/gepheum/skir-cc-example) |
 | ☕ **Java** | [Documentation](https://github.com/gepheum/skir-java-gen) | [Example](https://github.com/gepheum/skir-java-example) |
 | 💜 **Kotlin** | [Documentation](https://github.com/gepheum/skir-kotlin-gen) | [Example](https://github.com/gepheum/skir-kotlin-example) |
-| 🎯 **Go** | [Documentation](https://github.com/gepheum/skir-go-gen) | [Example](https://github.com/gepheum/skir-go-example) |
+| 🦀 **Rust** | [Documentation](https://github.com/gepheum/skir-rust-gen) | [Example](https://github.com/gepheum/skir-rust-example) |
+| 🐹 **Go** | [Documentation](https://github.com/gepheum/skir-go-gen) | [Example](https://github.com/gepheum/skir-go-example) |
 | 🎯 **Dart** | [Documentation](https://github.com/gepheum/skir-dart-gen) | [Example](https://github.com/gepheum/skir-dart-example) |
