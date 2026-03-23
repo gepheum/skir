@@ -139,6 +139,18 @@ generators:
   #   #   packagePrefix: my.project.
 
   # # --------------------------------------------------------------------------
+  # # Rust code generator
+  # # Home: https://github.com/gepheum/skir-rust-gen
+  # # Complete these 3 steps:
+  # # (1) Install runtime dependencies: cargo add skir-client
+  # # (2) In ./src/lib.rs, add this line: 'pub mod skirout;'
+  # # (3) Create a new ./src/skirout.rs file with this content: 'pub mod base;'
+  # # --------------------------------------------------------------------------
+  # - mod: skir-rust-gen
+  #   outDir: ./src/skirout
+  #   config: {}
+
+  # # --------------------------------------------------------------------------
   # # TypeScript/JavaScript code generator
   # # Home: https://github.com/gepheum/skir-typescript-gen
   # # To install runtime dependencies: npm i skir-client
