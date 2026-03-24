@@ -192,6 +192,8 @@ describe("module set", () => {
         struct G { b: B; }
         struct H { i: I; }
         enum I { h: H; }
+        struct J { k: K?; }
+        struct K { j: J; }
       `,
     );
     const moduleSet = input.doCompile();
@@ -206,7 +208,7 @@ describe("module set", () => {
             fields: [{ isRecursive: "hard" }],
           },
           C: {
-            fields: [{ isRecursive: "soft" }],
+            fields: [{ isRecursive: "via-optional" }],
           },
           D: {
             fields: [{ isRecursive: "soft" }],
@@ -224,6 +226,12 @@ describe("module set", () => {
             fields: [{ isRecursive: "soft" }],
           },
           I: {
+            fields: [{ isRecursive: "soft" }],
+          },
+          J: {
+            fields: [{ isRecursive: "via-optional" }],
+          },
+          K: {
             fields: [{ isRecursive: "soft" }],
           },
         },

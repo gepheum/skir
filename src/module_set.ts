@@ -405,8 +405,10 @@ export class ModuleSet {
   private storeFieldRecursivity(record: MutableRecord): void {
     for (const field of record.fields) {
       if (!field.type) continue;
-      const modes: ReadonlyArray<"soft" | "hard"> =
-        record.recordType === "struct" ? ["hard", "soft"] : ["soft"];
+      const modes: ReadonlyArray<"soft" | "via-optional" | "hard"> =
+        record.recordType === "struct"
+          ? ["hard", "via-optional", "soft"]
+          : ["soft"];
       for (const mode of modes) {
         const deps = new Set<RecordKey>();
         this.collectTypeDeps(field.type, mode, deps);
@@ -420,11 +422,12 @@ export class ModuleSet {
 
   private collectTypeDeps(
     input: ResolvedType,
-    mode: "soft" | "hard",
+    mode: "soft" | "via-optional" | "hard",
     out: Set<RecordKey>,
   ): void {
     switch (input.kind) {
       case "record": {
+        if (mode === "via-optional") return;
         const { key } = input;
         if (out.has(key)) return;
         out.add(key);
@@ -444,13 +447,26 @@ export class ModuleSet {
         break;
       }
       case "array": {
-        if (mode === "hard") break;
-        this.collectTypeDeps(input.item, mode, out);
+        if (mode === "soft") {
+          this.collectTypeDeps(input.item, mode, out);
+        }
         break;
       }
       case "optional": {
-        if (mode === "hard") break;
-        this.collectTypeDeps(input.other, mode, out);
+        switch (mode) {
+          case "soft": {
+            this.collectTypeDeps(input.other, mode, out);
+            break;
+          }
+          case "via-optional": {
+            // Important: must pass "hard" here.
+            this.collectTypeDeps(input.other, "hard", out);
+            break;
+          }
+          default: {
+            const _: "hard" = mode;
+          }
+        }
         break;
       }
     }
