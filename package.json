@@ -1,6 +1,6 @@
 {
   "name": "skir",
-  "version": "1.1.24",
+  "version": "1.1.25",
   "description": "",
   "homepage": "https://skir.build/",
   "bugs": {
@@ -49,8 +49,8 @@
     "skir-java-gen": "^1.0.5",
     "skir-kotlin-gen": "^1.0.6",
     "skir-python-gen": "^1.0.4",
-    "skir-swift-gen": "^0.1.1",
     "skir-rust-gen": "^0.1.2",
+    "skir-swift-gen": "^0.1.2",
     "skir-typescript-gen": "^1.0.7",
     "watcher": "^2.3.1",
     "yaml": "^2.7.1",
