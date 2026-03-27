@@ -85,21 +85,46 @@ export async function downloadPackage(
   };
 }
 
+async function fetchWithRetry(
+  url: string,
+  headers: Record<string, string>,
+  maxRetries = 3,
+): Promise<Response> {
+  let lastResponse: Response | undefined;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetch(url, { headers });
+    if (response.status !== 403 && response.status !== 429) {
+      return response;
+    }
+    lastResponse = response;
+    if (attempt === maxRetries) {
+      break;
+    }
+    const retryAfter = response.headers.get("Retry-After");
+    const waitMs = retryAfter
+      ? parseInt(retryAfter, 10) * 1000
+      : 1000 * 2 ** attempt;
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+  }
+  return lastResponse!;
+}
+
 async function getGithubTree(
   repo: string,
   version: string,
   githubToken?: string,
 ): Promise<GithubTreeResult> {
   const url = `https://api.github.com/repos/${repo}/git/trees/${version}?recursive=1`;
-  const response = await fetch(url, { headers: makeHeaders(githubToken) });
+  const response = await fetchWithRetry(url, makeHeaders(githubToken));
 
   if (!response.ok) {
     if (response.status === 404) {
       // Check if the repo exists or if it's the tag that's missing
       const repoCheckUrl = `https://api.github.com/repos/${repo}`;
-      const repoResponse = await fetch(repoCheckUrl, {
-        headers: makeHeaders(githubToken),
-      });
+      const repoResponse = await fetchWithRetry(
+        repoCheckUrl,
+        makeHeaders(githubToken),
+      );
 
       if (repoResponse.ok) {
         // Repo exists, so the tag is missing
@@ -134,7 +159,7 @@ async function downloadFileContent(
   githubToken?: string,
 ): Promise<string> {
   const url = `https://api.github.com/repos/${repo}/git/blobs/${sha}`;
-  const response = await fetch(url, { headers: makeHeaders(githubToken) });
+  const response = await fetchWithRetry(url, makeHeaders(githubToken));
 
   if (!response.ok) {
     throw new Error(
