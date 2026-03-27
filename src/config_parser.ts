@@ -6,6 +6,7 @@ import * as JavaGen from "skir-java-gen";
 import * as KotlinGen from "skir-kotlin-gen";
 import * as PythonGen from "skir-python-gen";
 import * as RustGen from "skir-rust-gen";
+import * as SwiftGen from "skir-swift-gen";
 import * as TypescriptGen from "skir-typescript-gen";
 import { LineCounter, parseDocument, Scalar, YAMLMap } from "yaml";
 import { SkirConfig } from "./config.js";
@@ -288,6 +289,7 @@ const STATIC_GENERATORS: Record<string, CodeGenerator<unknown>> = {
   "skir-kotlin-gen": KotlinGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-python-gen": PythonGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-rust-gen": RustGen.GENERATOR as any as CodeGenerator<unknown>,
+  "skir-swift-gen": SwiftGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-typescript-gen":
     TypescriptGen.GENERATOR as any as CodeGenerator<unknown>,
 };

@@ -139,6 +139,20 @@ generators:
   #   #   packagePrefix: my.project.
 
   # # --------------------------------------------------------------------------
+  # # Swift code generator
+  # # Home: https://github.com/gepheum/skir-swift-gen
+  # # To install runtime dependencies:
+  # #   swift package add-dependency \
+  # #       https://github.com/gepheum/skir-swift-client --branch main
+  # # --------------------------------------------------------------------------
+  # - mod: skir-swift-gen
+  #   outDir: ./Sources/skirout
+  #   config:
+  #     # Whether to generate public declarations.
+  #     # If false, declarations are internal.
+  #     public: false
+
+  # # --------------------------------------------------------------------------
   # # Rust code generator
   # # Home: https://github.com/gepheum/skir-rust-gen
   # # Complete these 3 steps:
