@@ -1,6 +1,9 @@
 import { expect } from "buckwheat";
 import { describe, it } from "node:test";
-import { DependencyManager } from "./dependency_manager.js";
+import {
+  DependencyManager,
+  getModuleFromGithubUrl,
+} from "./dependency_manager.js";
 import type { AsyncFileReader } from "./io.js";
 import type {
   DownloadPackageResult,
@@ -429,5 +432,128 @@ describe("DependencyManager", () => {
       packages: { "@org/pkg": pkg },
       changed: true,
     });
+  });
+});
+
+describe("getModuleFromGithubUrl", () => {
+  it("returns the compiled record for a valid URL and matching record line", async () => {
+    const downloader = new FakePackageDownloader();
+
+    const pkg: Package = {
+      packageId: "@org/repo",
+      version: "main",
+      modules: {
+        "@org/repo/example.skir": [
+          "struct First {}",
+          "struct Target {}",
+          "",
+        ].join("\n"),
+      },
+      dependencies: {},
+    };
+    downloader.setPackage("@org/repo", "main", pkg);
+
+    const result = await getModuleFromGithubUrl(
+      "https://github.com/org/repo/blob/main/skir-src/example.skir#L2",
+      undefined,
+      downloader.downloadPackage,
+    );
+
+    expect(result.kind).toMatch("success");
+    if (result.kind === "success") {
+      expect(result.record.name.text).toMatch("Target");
+      expect(result.record.name.line.modulePath).toMatch(
+        "@org/repo/example.skir",
+      );
+    }
+  });
+
+  it("returns dependency errors from downloader", async () => {
+    const downloader = new FakePackageDownloader();
+
+    const result = await getModuleFromGithubUrl(
+      "https://github.com/org/missing/blob/main/skir-src/example.skir#L1",
+      undefined,
+      downloader.downloadPackage,
+    );
+
+    expect(result).toMatch({
+      kind: "error",
+      message: "Package @org/missing@main not found",
+    });
+  });
+
+  it("returns the first compile error when modules fail to compile", async () => {
+    const downloader = new FakePackageDownloader();
+
+    const brokenPkg: Package = {
+      packageId: "@org/repo",
+      version: "main",
+      modules: {
+        "@org/repo/example.skir": [
+          'import * as missing from "./missing";',
+          "struct Target {}",
+          "",
+        ].join("\n"),
+      },
+      dependencies: {},
+    };
+    downloader.setPackage("@org/repo", "main", brokenPkg);
+
+    const result = await getModuleFromGithubUrl(
+      "https://github.com/org/repo/blob/main/skir-src/example.skir#L2",
+      undefined,
+      downloader.downloadPackage,
+    );
+
+    expect(result.kind).toMatch("error");
+    if (result.kind === "error") {
+      expect(result.message).toMatch("Module not found");
+    }
+  });
+
+  it("returns an error when no record starts on the requested line", async () => {
+    const downloader = new FakePackageDownloader();
+
+    const pkg: Package = {
+      packageId: "@org/repo",
+      version: "main",
+      modules: {
+        "@org/repo/example.skir": ["struct First {}", ""].join("\n"),
+      },
+      dependencies: {},
+    };
+    downloader.setPackage("@org/repo", "main", pkg);
+
+    const result = await getModuleFromGithubUrl(
+      "https://github.com/org/repo/blob/main/skir-src/example.skir#L2",
+      undefined,
+      downloader.downloadPackage,
+    );
+
+    expect(result).toMatch({
+      kind: "error",
+      message: "No record found at line 2 in @org/repo/example.skir",
+    });
+  });
+
+  it("works in real life", async () => {
+    const actuallyDownloadFromGithub = true;
+    if (actuallyDownloadFromGithub) {
+      const result = await getModuleFromGithubUrl(
+        "https://github.com/gepheum/skir-fantasy-game-example/blob/v1.0.0/skir-src/fantasy_game.skir#L42",
+        undefined,
+      );
+
+      expect(result.kind).toMatch("success");
+      if (result.kind === "success") {
+        expect(result.record.name).toMatch({
+          text: "Spell",
+          line: {
+            modulePath: "@gepheum/skir-fantasy-game-example/fantasy_game.skir",
+          },
+        });
+      }
+    }
   });
 });

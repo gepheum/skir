@@ -1,6 +1,8 @@
 import * as fs from "fs/promises";
 import path from "node:path";
+import type { Record } from "skir-internal";
 import { AsyncFileReader, REAL_FILE_SYSTEM } from "./io.js";
+import { ModuleSet } from "./module_set.js";
 import { downloadPackage } from "./package_downloader.js";
 import type {
   DependenciesResult,
@@ -247,4 +249,132 @@ interface DependencyItem {
 interface PackageBundle {
   pkg: Package;
   dependencyChain: DependencyItem[];
+}
+
+/**
+ * Resolves a GitHub blob URL to the first record declared at the referenced line.
+ *
+ * Expected URL shape:
+ *   https://github.com/<owner>/<repo>/blob/<version>/skir-src/<path>.skir#L<line>
+ *
+ * Returns:
+ * - `{ kind: "success", record, moduleSet }` when a record is found.
+ * - `{ kind: "error", message }` for invalid URLs, dependency download issues,
+ *   compilation failures, missing modules, or when no record starts at the line.
+ */
+export async function getModuleFromGithubUrl(
+  githubUrl: string,
+  githubToken: string | undefined,
+  packageDownloader: PackageDownloader = downloadPackage,
+): Promise<
+  | {
+      kind: "success";
+      record: Record;
+      moduleSet: ModuleSet;
+    }
+  | DependencyError
+> {
+  const parsedUrl = parseGithubModuleUrl(githubUrl);
+  if (parsedUrl.kind === "error") {
+    return parsedUrl;
+  }
+
+  const { packageId, version, modulePath, lineNumber } = parsedUrl;
+
+  const flow = new GetDependenciesFlow({}, githubToken, packageDownloader);
+  const dependenciesResult = await flow.run({
+    [packageId]: version,
+  });
+  if (dependenciesResult.kind === "error") {
+    return dependenciesResult;
+  }
+
+  const modulePathToContent = new Map<string, string>();
+  for (const pkg of Object.values(dependenciesResult.packages)) {
+    for (const [path, content] of Object.entries(pkg.modules)) {
+      modulePathToContent.set(path, content);
+    }
+  }
+
+  const moduleSet = ModuleSet.compile(modulePathToContent);
+  if (moduleSet.errors.length > 0) {
+    return {
+      kind: "error",
+      message: moduleSet.errors[0]!.message || "Compilation failed",
+    };
+  }
+
+  const moduleResult = moduleSet.modules.get(modulePath);
+  if (!moduleResult) {
+    return {
+      kind: "error",
+      message: `Module not found: ${modulePath}`,
+    };
+  }
+
+  const recordAtLine = moduleResult.result.records.find(
+    (record) => record.record.name.line.lineNumber === lineNumber,
+  );
+  if (!recordAtLine) {
+    return {
+      kind: "error",
+      message: `No record found at line ${lineNumber + 1} in ${modulePath}`,
+    };
+  }
+
+  return {
+    kind: "success",
+    record: recordAtLine.record,
+    moduleSet,
+  };
+}
+
+function parseGithubModuleUrl(githubUrl: string):
+  | {
+      kind: "success";
+      packageId: string;
+      version: string;
+      modulePath: string;
+      lineNumber: number;
+    }
+  | DependencyError {
+  const match = githubUrl.match(
+    /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/blob\/([^/]+)\/(.+)#L(\d+)$/,
+  );
+  if (!match) {
+    return {
+      kind: "error",
+      message: `Invalid GitHub URL: ${githubUrl}`,
+    };
+  }
+
+  const owner = match[1]!;
+  const repo = match[2]!;
+  const version = match[3]!;
+  const repoPath = match[4]!;
+  const lineNumberOneBased = Number(match[5]!);
+
+  if (!repoPath.startsWith("skir-src/") || !repoPath.endsWith(".skir")) {
+    return {
+      kind: "error",
+      message: `URL must target a .skir file in skir-src: ${githubUrl}`,
+    };
+  }
+  if (!Number.isInteger(lineNumberOneBased) || lineNumberOneBased <= 0) {
+    return {
+      kind: "error",
+      message: `Invalid line number in URL: ${githubUrl}`,
+    };
+  }
+
+  const packageId = `@${owner}/${repo}`;
+  const modulePath = packageId + repoPath.substring("skir-src".length);
+
+  return {
+    kind: "success",
+    packageId,
+    version,
+    modulePath,
+    lineNumber: lineNumberOneBased - 1,
+  };
 }
