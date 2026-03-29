@@ -1,4 +1,3 @@
-import { assert } from "node:console";
 import type {
   Doc,
   DocPiece,
@@ -264,7 +263,9 @@ class DocCommentParser {
         expected = expect === "identifier or '.'" || expect === "'.' or ']'";
         expect = "identifier";
       } else {
-        assert(token.text === "]");
+        if (token.text !== "]") {
+          throw new Error(`Unexpected token in doc reference: ${token.text}`);
+        }
         expected = expect === "'.' or ']'";
       }
       if (!expected) {

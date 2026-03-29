@@ -22,4 +22,5 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm run build
+      - run: npx esbuild src/get_dependencies_flow.ts --bundle --platform=browser --format=esm --outfile=/tmp/get_dependencies_flow.browser-check.js
       - run: npm test

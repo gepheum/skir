@@ -1,8 +1,15 @@
-import { parseSkirConfig } from "./config_parser.js";
+import { LineCounter, parseDocument, Scalar, YAMLMap } from "yaml";
+import { z } from "zod";
+import type {
+  SkirConfigError,
+  SkirConfigErrorPos,
+  SkirConfigErrorRange,
+} from "./config_parser.js";
 import { formatSkirConfigError } from "./error_renderer.js";
 import type {
   DependencyError,
   DownloadPackageResult,
+  PackageIdToVersion,
 } from "./package_types.js";
 
 /** Downloads a package from Github. */
@@ -60,7 +67,7 @@ export async function downloadPackage(
     skirYmlFile.sha,
     githubToken,
   );
-  const configResult = parseSkirConfig(skirYmlContent);
+  const configResult = parseDependenciesConfig(skirYmlContent);
   if (configResult.errors.length > 0) {
     return {
       kind: "error",
@@ -73,7 +80,7 @@ export async function downloadPackage(
         .join("\n"),
     };
   }
-  const dependencies = configResult.skirConfig!.dependencies;
+  const dependencies = configResult.dependencies ?? {};
   return {
     kind: "success",
     package: {
@@ -174,10 +181,128 @@ async function downloadFileContent(
 
   // Github API returns base64 encoded content
   if (data.encoding === "base64") {
-    return Buffer.from(data.content, "base64").toString("utf-8");
+    return decodeBase64Utf8(data.content);
   }
 
   return data.content;
+}
+
+function decodeBase64Utf8(base64: string): string {
+  const normalized = base64.replace(/\s/g, "");
+  const binary = atob(normalized);
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+// We intentionally keep this parser local to avoid importing the full
+// config parser stack (which drags Node-only generator packages) when
+// dependency download is used from browser-safe entry points.
+type DependenciesConfigError = {
+  message: SkirConfigError["message"];
+  range?: DependenciesConfigErrorRange;
+};
+
+type DependenciesConfigErrorRange = SkirConfigErrorRange;
+type DependenciesConfigErrorPos = SkirConfigErrorPos;
+
+const PackageId = z.string().regex(/^@[A-Za-z0-9-]+\/[A-Za-z0-9\-_.]+$/);
+const Version = z.string().regex(/^[A-Za-z0-9\-_./+]+$/);
+
+const DependenciesOnlyConfig = z.object({
+  dependencies: z.record(PackageId, Version).default({}),
+});
+
+function parseDependenciesConfig(yamlCode: string): {
+  dependencies: PackageIdToVersion | undefined;
+  errors: readonly DependenciesConfigError[];
+} {
+  const errors: DependenciesConfigError[] = [];
+
+  const lineCounter = new LineCounter();
+  const doc = parseDocument(yamlCode, { lineCounter });
+
+  const offsetToPos = (offset: number): DependenciesConfigErrorPos => {
+    const pos = lineCounter.linePos(offset);
+    return {
+      offset,
+      lineNumber: pos.line,
+      colNumber: pos.col,
+    };
+  };
+
+  const offsetRangeToRange = (
+    start: number,
+    end: number,
+  ): DependenciesConfigErrorRange => ({
+    start: offsetToPos(start),
+    end: offsetToPos(end),
+  });
+
+  const pathToRange = (
+    path: readonly PropertyKey[],
+  ): DependenciesConfigErrorRange | undefined => {
+    const node = doc.getIn(path, true) as Scalar | YAMLMap | undefined;
+    if (!node?.range) {
+      return undefined;
+    }
+    return offsetRangeToRange(node.range[0], node.range[1]);
+  };
+
+  const pushErrorAtPath = (
+    originalPath: readonly PropertyKey[],
+    message: string,
+  ): void => {
+    let path = originalPath;
+    const pathRemainder: PropertyKey[] = [];
+    while (path.length !== 0) {
+      const range = pathToRange(path);
+      if (range) {
+        break;
+      }
+      pathRemainder.push(path.at(-1)!);
+      path = path.slice(0, -1);
+    }
+    pathRemainder.reverse();
+    const pathRemainderStr = pathRemainder
+      .map((part, index) =>
+        typeof part === "number"
+          ? `[${part}]`
+          : index === 0
+            ? part
+            : `.${String(part)}`,
+      )
+      .join("");
+    const messagePrefix = pathRemainder.length
+      ? `Missing property '${pathRemainderStr}': `
+      : "";
+    errors.push({
+      message: messagePrefix + message,
+      range: pathToRange(path),
+    });
+  };
+
+  if (doc.errors.length > 0) {
+    for (const error of doc.errors) {
+      errors.push({
+        message: error.message,
+        range: offsetRangeToRange(error.pos[0], error.pos[1]),
+      });
+    }
+    return { dependencies: undefined, errors };
+  }
+
+  const parsed = DependenciesOnlyConfig.safeParse(doc.toJS());
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      pushErrorAtPath(issue.path, issue.message);
+    }
+    return { dependencies: undefined, errors };
+  }
+
+  return {
+    dependencies: parsed.data.dependencies,
+    errors,
+  };
 }
 
 function makeHeaders(githubToken?: string): Record<string, string> {

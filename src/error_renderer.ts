@@ -6,13 +6,13 @@ import type {
 } from "skir-internal";
 import { caseMatches } from "./casing.js";
 import {
-  BeforeAfter,
-  BreakingChange,
-  Expression,
+  type BeforeAfter,
+  type BreakingChange,
+  type Expression,
   getTokenForBreakingChange,
 } from "./compatibility_checker.js";
-import { SkirConfigError } from "./config_parser.js";
-import { ModuleSet } from "./module_set.js";
+import type { SkirConfigError } from "./config_parser.js";
+import type { ModuleSet } from "./module_set.js";
 
 export function renderErrors(errors: readonly SkirError[]): void {
   const MAX_ERRORS = 10;

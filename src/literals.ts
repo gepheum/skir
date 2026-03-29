@@ -79,8 +79,7 @@ export function literalValueToDenseJson(
       return token === "true" ? 1 : 0;
     case "bytes": {
       const string = unquoteAndUnescape(token);
-      const buffer = Buffer.from(string.substring(4), "hex");
-      return buffer.toString("base64");
+      return hexToBase64(string.substring(4));
     }
     case "timestamp": {
       const dateTime = unquoteAndUnescape(token);
@@ -108,4 +107,15 @@ export function literalValueToDenseJson(
 export function literalValueToIdentity(token: string, type: Primitive): string {
   const denseJson = literalValueToDenseJson(token, type);
   return typeof denseJson === "string" ? denseJson : JSON.stringify(denseJson);
+}
+
+function hexToBase64(hex: string): string {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+  }
+  const binaryString = Array.from(bytes, (byte) =>
+    String.fromCharCode(byte),
+  ).join("");
+  return btoa(binaryString);
 }
