@@ -1,4 +1,3 @@
-import * as Paths from "path";
 import {
   unquoteAndUnescape,
   type DenseJson,
@@ -1488,6 +1487,44 @@ function ensureAllImportsAreUsed(
   }
 }
 
+function posixDirname(p: string): string {
+  const i = p.lastIndexOf("/");
+  return i >= 0 ? p.slice(0, i) : "";
+}
+
+function posixJoin(base: string, rel: string): string {
+  const parts = (base + "/" + rel).split("/");
+  const result: string[] = [];
+  for (const part of parts) {
+    if (part === "..") {
+      if (result.length > 0 && result[result.length - 1] !== "..") {
+        result.pop();
+      } else {
+        result.push("..");
+      }
+    } else if (part !== "." && part !== "") {
+      result.push(part);
+    }
+  }
+  return result.join("/");
+}
+
+function posixRelative(from: string, to: string): string {
+  const fromParts = from === "" ? [] : from.split("/");
+  const toParts = to === "" ? [] : to.split("/");
+  let commonLen = 0;
+  while (
+    commonLen < fromParts.length &&
+    commonLen < toParts.length &&
+    fromParts[commonLen] === toParts[commonLen]
+  ) {
+    commonLen++;
+  }
+  const upCount = fromParts.length - commonLen;
+  const downParts = toParts.slice(commonLen);
+  return [...Array(upCount).fill(".."), ...downParts].join("/");
+}
+
 /**
  * Returns suggested module paths for import auto-completion.
  *
@@ -1519,10 +1556,10 @@ function suggestModulePaths(
     // component as a file path (avoids trailing-slash edge-cases), then strip
     // it off again.
     const dummy = dirComponent + "__dummy__";
-    const resolvedDummy = Paths.join(
-      Paths.dirname(originModulePath),
+    const resolvedDummy = posixJoin(
+      posixDirname(originModulePath),
       dummy.startsWith("./") ? dummy.slice(2) : dummy,
-    ).replace(/\\/g, "/");
+    );
     const absoluteDir = resolvedDummy.slice(
       0,
       resolvedDummy.length - "__dummy__".length,
@@ -1539,7 +1576,7 @@ function suggestModulePaths(
     return [];
   }
 
-  const originBaseDir = Paths.dirname(originModulePath).replace(/\\/g, "/");
+  const originBaseDir = posixDirname(originModulePath);
   const suggestions = new Set<string>();
 
   for (const path of modulePathToContent) {
@@ -1563,7 +1600,7 @@ function suggestModulePaths(
       const absPath = isDir
         ? absoluteSuggestion.slice(0, -1)
         : absoluteSuggestion;
-      let rel = Paths.relative(originBaseDir, absPath).replace(/\\/g, "/");
+      let rel = posixRelative(originBaseDir, absPath);
       // Paths.relative returns "" when both paths are the same; normalise to
       // "." so the subsequent prefix-check and directory-slash logic work
       // correctly (avoids producing the invalid path ".//" for same-dir cases).

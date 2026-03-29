@@ -1,5 +1,3 @@
-import * as Paths from "path";
-
 import type {
   BrokenConstant,
   BrokenMethod,
@@ -1499,6 +1497,28 @@ export function extractPackagePrefix(modulePath: string): string {
   return match?.at(1) ?? "";
 }
 
+function posixDirname(p: string): string {
+  const i = p.lastIndexOf("/");
+  return i >= 0 ? p.slice(0, i) : "";
+}
+
+function posixNormalize(p: string): string {
+  const parts = p.split("/");
+  const result: string[] = [];
+  for (const part of parts) {
+    if (part === "..") {
+      if (result.length > 0 && result[result.length - 1] !== "..") {
+        result.pop();
+      } else {
+        result.push("..");
+      }
+    } else if (part !== "." && part !== "") {
+      result.push(part);
+    }
+  }
+  return result.length === 0 ? "." : result.join("/");
+}
+
 function resolveModulePath(
   pathToken: Token,
   originModulePath: string,
@@ -1522,15 +1542,15 @@ function resolveModulePath(
     }
     // This is a relative path from the module. Let's transform it into a
     // relative path from root.
-    modulePath = Paths.join(originModulePath, "..", modulePath);
+    modulePath = posixNormalize(
+      posixDirname(originModulePath) + "/" + modulePath,
+    );
   } else if (originModulePath.startsWith("@") && !modulePath.startsWith("@")) {
     const packagePrefix = extractPackagePrefix(originModulePath);
     modulePath = packagePrefix + modulePath;
   }
   // "a/./b/../c" => "a/c"
-  // Note that `paths.normalize` will use backslashes on Windows.
-  // We don't want that.
-  modulePath = Paths.normalize(modulePath).replace(/\\/g, "/");
+  modulePath = posixNormalize(modulePath);
   if (modulePath.startsWith(`../`)) {
     errors.push({
       token: pathToken,
