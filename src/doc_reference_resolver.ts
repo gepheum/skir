@@ -21,7 +21,7 @@ import {
 import {
   declarationsToExpectedNames,
   ExpectedNamesCollector,
-} from "./completion_helper.js";
+} from "./expected_names.js";
 
 export type Documentee =
   | MutableConstant

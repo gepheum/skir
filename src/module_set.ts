@@ -25,11 +25,11 @@ import {
   type UnresolvedType,
   type Value,
 } from "skir-internal";
+import { Documentee, resolveDocReferences } from "./doc_reference_resolver.js";
 import {
   declarationsToExpectedNames,
   ExpectedNamesCollector,
-} from "./completion_helper.js";
-import { Documentee, resolveDocReferences } from "./doc_reference_resolver.js";
+} from "./expected_names.js";
 import {
   isStringLiteral,
   literalValueToDenseJson,
