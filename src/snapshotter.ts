@@ -252,7 +252,6 @@ interface TrackedRecords {
 }
 
 function collectTrackedRecords(moduleSet: ModuleSet): TrackedRecords {
-  const seenRecordIds = new Set<string>();
   const trackedRecordIds = new Set<string>();
 
   const getRecordId = (record: RecordLocation): string => {
@@ -262,26 +261,29 @@ function collectTrackedRecords(moduleSet: ModuleSet): TrackedRecords {
     return `${record.modulePath}:${qualifiedName}`;
   };
 
-  const getRecordForType = (type: ResolvedType): RecordLocation | null => {
+  const trackType = (type: ResolvedType): void => {
     switch (type.kind) {
       case "array":
-        return getRecordForType(type.item);
+        trackType(type.item);
+        break;
       case "optional":
-        return getRecordForType(type.other);
+        trackType(type.other);
+        break;
       case "primitive":
-        return null;
-      case "record":
-        return moduleSet.recordMap.get(type.key) ?? null;
+        break;
+      case "record": {
+        const record = moduleSet.recordMap.get(type.key);
+        if (record) {
+          trackRecord(record);
+        }
+        break;
+      }
     }
   };
 
-  const processRecord = (record: RecordLocation): void => {
+  const trackRecord = (record: RecordLocation): void => {
     const recordId = getRecordId(record);
-    if (seenRecordIds.has(recordId)) {
-      return;
-    }
-    seenRecordIds.add(recordId);
-    if (record.record.recordNumber === null) {
+    if (trackedRecordIds.has(recordId)) {
       return;
     }
     trackedRecordIds.add(recordId);
@@ -289,19 +291,28 @@ function collectTrackedRecords(moduleSet: ModuleSet): TrackedRecords {
     for (const field of record.record.fields) {
       const fieldType = field.type;
       if (fieldType) {
-        const fieldRecord = getRecordForType(fieldType);
-        if (fieldRecord) {
-          processRecord(fieldRecord);
-        }
+        trackType(fieldType);
       }
     }
   };
 
-  for (const record of moduleSet.recordMap.values()) {
-    processRecord(record);
+  for (const module of moduleSet.modules.values()) {
+    // Skip external dependencies
+    if (module.result.path.startsWith("@")) continue;
+    for (const record of module.result.records) {
+      if (record.record.recordNumber !== null) {
+        trackRecord(record);
+      }
+    }
+    for (const method of module.result.methods) {
+      trackType(method.requestType!);
+      trackType(method.responseType!);
+    }
   }
   const untrackedRecordIds = new Set(
-    [...seenRecordIds].filter((id) => !trackedRecordIds.has(id)),
+    [...moduleSet.recordMap.values()]
+      .map(getRecordId)
+      .filter((id) => !trackedRecordIds.has(id)),
   );
   return {
     trackedRecordIds: trackedRecordIds,
