@@ -17,7 +17,7 @@ Write your schema once in a `.skir` file and generate idiomatic, type-safe code 
 
 ## 🎬 Quick demo
 
-[![Watch the quick demo](https://github.com/user-attachments/assets/1bfb84d1-11cd-48d2-92c5-3f27344d954e)](https://skir.build/greet.mp4)
+[![Watch the quick demo](.github/assets/greet.png)](.github/assets/greet.mp4)
 
 ## ✨ Features
 
