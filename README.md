@@ -1,4 +1,5 @@
 <div align="center">
+  <img src="https://skir.build/octopus.svg" alt="Skir octopus logo" width="96" height="96" />
   <h1>Skir</h1>
   <p><strong>A modern alternative to Protocol Buffer</strong></p>
 
@@ -8,25 +9,33 @@
 
   [![npm](https://img.shields.io/npm/v/skir?style=flat-square)](https://www.npmjs.com/package/skir)
   [![build](https://github.com/gepheum/skir/workflows/Build/badge.svg?style=flat-square)](https://github.com/gepheum/skir/actions)
-
-  ![quick-example](https://github.com/user-attachments/assets/1bfb84d1-11cd-48d2-92c5-3f27344d954e)
 </div>
 
 <br />
 
-**Skir** is a universal language for representing data types, constants, and RPC interfaces. Define your schema once in a `.skir` file and generate idiomatic, type-safe code in TypeScript, Python, Java, C++, and more.
+**Skir** is a declarative language for defining data types, constants, and APIs.
+Write your schema once in a `.skir` file and generate idiomatic, type-safe code in TypeScript, Python, Java, Go, C++, and more.
+
+## 🎬 Quick demo
+
+<video src="https://skir.build/greet.mp4" controls muted playsinline width="960">
+  Your browser does not support the video tag. You can watch it here:
+  <a href="https://skir.build/greet.mp4">https://skir.build/greet.mp4</a>
+</video>
 
 ## ✨ Features
 
-- 💎 **Single source of truth** - Define your data types and APIs once and share them between your backend, frontend, and microservices.
-- 🌍 **Multi-language** - First-class support for TypeScript, Python, C++, Java, Kotlin, Rust, Go, Dart and Swift.
-- ✍️ **Idiomatic code gen** - Generates code that feels native to each language.
-- 🍃 **Effortless serialization** - Skir generates functions to serialize your data to JSON or binary, so you never have to write parsing code manually.
-- 🦋 **Schema evolution** - Simple guidelines and built-in checks to evolve your schema without breaking backward compatibility.
-- 🤝 **RPCs with end-to-end type safety** - Like tRPC, but for every language. Call your backend functions directly from your frontend or microservices with full compile-time safety.
-- 🛠️ **Delightful developer experience** - Automatic recompilation in watch mode, built-in code formatter, official VSCode extension.
-- 📦 **Built-in package manager** - Import types from other GitHub repositories to easily share common data structures across projects.
-- 🍃 **Easy setup** - Get started with `npx skir init`, manage your entire project configuration from a single YAML file.
+- 🧩 **One schema, nine languages, zero friction** - One YAML config, one command, and watch mode that refreshes generated code on every change.
+- 🧠 **End-to-end type safety** - Shared method and type definitions keep client/server contracts aligned before runtime.
+- ⚡ **SkirRPC + Studio** - Lightweight HTTP RPC with a built-in Studio app for browsing and testing methods.
+- 📦 **GitHub imports** - Import types directly from GitHub repositories to share data structures across projects.
+- 🔁 **Serialization modes** - Dense JSON for APIs/DBs, readable JSON for debugging, and binary for raw performance.
+- 🕰️ **Safe schema evolution** - Built-in checks and clear rules so old and new data remain deserializable.
+- 🧬 **Rust-like enums** - Variants can be constants or carry typed payloads for clean polymorphism.
+- 🔒 **Immutable generated models** - Deep immutability (except C++) with required fields at construction time.
+- 🗂️ **Key-indexed arrays** - Declare arrays like `[User|user_id]` and get fast key-based lookup APIs.
+- 🛠️ **First-class tooling** - VS Code extension + LSP with validation, completion, and auto-formatting.
+- 🧱 **Easy to extend** - Generators are regular NPM modules, so custom generators plug in cleanly.
 
 ## ⚡ Syntax example
 
@@ -77,7 +86,7 @@ assert(restored == point)
 - [Language reference](https://skir.build/docs/language-reference)
 - [Serialization](https://skir.build/docs/serialization)
 - [Schema evolution](https://skir.build/docs/schema-evolution)
-- [RPC services](https://skir.build/docs/services)
+- [SkirRPC](https://skir.build/docs/skirrpc)
 - [External dependencies](https://skir.build/docs/dependencies)
 - [Coming from Protocol Buffer](https://skir.build/docs/protobuf)
 
@@ -85,12 +94,12 @@ assert(restored == point)
 
 | Language | Documentation | Example |
 | :--- | :--- | :--- |
-| 🟦 **TypeScript** | [Documentation](https://github.com/gepheum/skir-typescript-gen) | [Example](https://github.com/gepheum/skir-typescript-example) |
-| 🐍 **Python** | [Documentation](https://github.com/gepheum/skir-python-gen) | [Example](https://github.com/gepheum/skir-python-example) |
-| ⚡ **C++** | [Documentation](https://github.com/gepheum/skir-cc-gen) | [Example](https://github.com/gepheum/skir-cc-example) |
-| ☕ **Java** | [Documentation](https://github.com/gepheum/skir-java-gen) | [Example](https://github.com/gepheum/skir-java-example) |
-| 💜 **Kotlin** | [Documentation](https://github.com/gepheum/skir-kotlin-gen) | [Example](https://github.com/gepheum/skir-kotlin-example) |
-| 🦀 **Rust** | [Documentation](https://github.com/gepheum/skir-rust-gen) | [Example](https://github.com/gepheum/skir-rust-example) |
-| 🐹 **Go** | [Documentation](https://github.com/gepheum/skir-go-gen) | [Example](https://github.com/gepheum/skir-go-example) |
-| 🎯 **Dart** | [Documentation](https://github.com/gepheum/skir-dart-gen) | [Example](https://github.com/gepheum/skir-dart-example) |
-| 🐦 **Swift** | [Documentation](https://github.com/gepheum/skir-swift-gen) | [Example](https://github.com/gepheum/skir-swift-example) |
+| 🟦 **TypeScript** | [Documentation](https://skir.build/docs/typescript) | [Example](https://github.com/gepheum/skir-typescript-example) |
+| 🐍 **Python** | [Documentation](https://skir.build/docs/python) | [Example](https://github.com/gepheum/skir-python-example) |
+| ⚡ **C++** | [Documentation](https://skir.build/docs/cpp) | [Example](https://github.com/gepheum/skir-cc-example) |
+| ☕ **Java** | [Documentation](https://skir.build/docs/java) | [Example](https://github.com/gepheum/skir-java-example) |
+| 💜 **Kotlin** | [Documentation](https://skir.build/docs/kotlin) | [Example](https://github.com/gepheum/skir-kotlin-example) |
+| 🦀 **Rust** | [Documentation](https://skir.build/docs/rust) | [Example](https://github.com/gepheum/skir-rust-example) |
+| 🐹 **Go** | [Documentation](https://skir.build/docs/go) | [Example](https://github.com/gepheum/skir-go-example) |
+| 🎯 **Dart** | [Documentation](https://skir.build/docs/dart) | [Example](https://github.com/gepheum/skir-dart-example) |
+| 🐦 **Swift** | [Documentation](https://skir.build/docs/swift) | [Example](https://github.com/gepheum/skir-swift-example) |
