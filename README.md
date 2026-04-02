@@ -4,6 +4,8 @@
 
   <p>
     <a href="https://skir.build/"><b>skir.build</b></a>
+    ·
+    <a href="https://discord.gg/mruvDuybJ"><b>Discord</b></a>
   </p>
 
   [![npm](https://img.shields.io/npm/v/skir?style=flat-square)](https://www.npmjs.com/package/skir)
@@ -17,7 +19,7 @@ Write your schema once in a `.skir` file and generate idiomatic, type-safe code 
 
 ## 🎬 Quick demo
 
-[![Watch the quick demo](.github/assets/greet.png)](https://github.com/gepheum/skir/raw/main/.github/assets/greet.mp4)
+![Quick demo](.github/assets/greet.gif)
 
 ## ✨ Features
 
