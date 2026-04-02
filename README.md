@@ -18,15 +18,14 @@ Write your schema once in a `.skir` file and generate idiomatic, type-safe code 
 
 ## 🎬 Quick demo
 
-<video src="https://skir.build/greet.mp4" controls muted playsinline width="960">
-  Your browser does not support the video tag. You can watch it here:
-  <a href="https://skir.build/greet.mp4">https://skir.build/greet.mp4</a>
-</video>
+[![Watch the quick demo](https://github.com/user-attachments/assets/1bfb84d1-11cd-48d2-92c5-3f27344d954e)](https://skir.build/greet.mp4)
+
+[Watch the quick demo video](https://skir.build/greet.mp4)
 
 ## ✨ Features
 
 - 🧩 **One schema, nine languages, zero friction** - One YAML config, one command, and watch mode that refreshes generated code on every change.
-- 🧠 **End-to-end type safety** - Shared method and type definitions keep client/server contracts aligned before runtime.
+- 🛡️ **End-to-end type safety** - Shared method and type definitions keep client/server contracts aligned before runtime.
 - ⚡ **SkirRPC + Studio** - Lightweight HTTP RPC with a built-in Studio app for browsing and testing methods.
 - 📦 **GitHub imports** - Import types directly from GitHub repositories to share data structures across projects.
 - 🔁 **Serialization modes** - Dense JSON for APIs/DBs, readable JSON for debugging, and binary for raw performance.
