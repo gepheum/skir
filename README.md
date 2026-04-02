@@ -1,6 +1,5 @@
 <div align="center">
-  <img src="https://skir.build/octopus.svg" alt="Skir octopus logo" width="96" height="96" />
-  <h1>Skir</h1>
+  <h1>Skir 🐙</h1>
   <p><strong>A modern alternative to Protocol Buffer</strong></p>
 
   <p>
