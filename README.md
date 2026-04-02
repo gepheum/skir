@@ -17,7 +17,7 @@ Write your schema once in a `.skir` file and generate idiomatic, type-safe code 
 
 ## 🎬 Quick demo
 
-[![Watch the quick demo](.github/assets/greet.png)](.github/assets/greet.mp4)
+[![Watch the quick demo](.github/assets/greet.png)](https://github.com/gepheum/skir/raw/main/.github/assets/greet.mp4)
 
 ## ✨ Features
 
