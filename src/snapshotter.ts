@@ -5,6 +5,7 @@ import { checkCompatibility } from "./compatibility_checker.js";
 import {
   formatError,
   makeGreen,
+  makeOrange,
   makeRed,
   renderBreakingChanges,
   renderErrors,
@@ -84,7 +85,7 @@ export async function takeSnapshot(args: {
   console.log("See them in " + rewritePathForRendering(snapshotPath));
 
   if (trackedRecordCount === 0) {
-    console.log(makeRed("Warning: no tracked records found."));
+    console.log(makeOrange("Warning: no tracked records found."));
     console.log(
       "Breaking changes cannot be detected without tracking records.",
     );
