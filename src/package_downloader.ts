@@ -36,16 +36,14 @@ export async function downloadPackage(
       item.path.endsWith(".skir"),
   );
 
-  // Download the content of each .skir file in parallel
+  // Download file blobs with bounded concurrency to avoid rate-limit bursts.
   const modules: { [modulePath: string]: string } = {};
-  const downloadPromises = skirFiles.map(async (file) => {
+  const downloadedFiles = await runWithConcurrency(skirFiles, async (file) => {
     const content = await downloadFileContent(repo, file.sha, githubToken);
     // Get relative path from skir-src/
     const modulePath = packageId + file.path.substring("skir-src".length);
     return { modulePath, content };
   });
-
-  const downloadedFiles = await Promise.all(downloadPromises);
   for (const { modulePath, content } of downloadedFiles) {
     modules[modulePath] = content;
   }
@@ -107,13 +105,71 @@ async function fetchWithRetry(
     if (attempt === maxRetries) {
       break;
     }
-    const retryAfter = response.headers.get("Retry-After");
-    const waitMs = retryAfter
-      ? parseInt(retryAfter, 10) * 1000
-      : 1000 * 2 ** attempt;
+    const waitMs = getRetryWaitMs(response, attempt);
     await new Promise((resolve) => setTimeout(resolve, waitMs));
   }
   return lastResponse!;
+}
+
+function getRetryWaitMs(response: Response, attempt: number): number {
+  const retryAfterSeconds = parseHeaderInt(response.headers.get("Retry-After"));
+  if (retryAfterSeconds !== undefined && retryAfterSeconds > 0) {
+    return Math.min(retryAfterSeconds * 1000, MAX_RETRY_WAIT_MS);
+  }
+
+  const remaining = parseHeaderInt(
+    response.headers.get("X-RateLimit-Remaining"),
+  );
+  const resetEpochSeconds = parseHeaderInt(
+    response.headers.get("X-RateLimit-Reset"),
+  );
+  if (
+    remaining === 0 &&
+    resetEpochSeconds !== undefined &&
+    resetEpochSeconds > 0
+  ) {
+    const waitUntilResetMs = resetEpochSeconds * 1000 - Date.now();
+    const jitterMs = 250;
+    return Math.min(
+      Math.max(waitUntilResetMs + jitterMs, 1000),
+      MAX_RETRY_WAIT_MS,
+    );
+  }
+
+  // Secondary rate limits may not include reset headers; use exponential backoff.
+  return Math.min(1000 * 2 ** attempt, 30_000);
+}
+
+function parseHeaderInt(value: string | null): number | undefined {
+  if (value === null) {
+    return undefined;
+  }
+  const parsed = parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+async function runWithConcurrency<T, U>(
+  items: readonly T[],
+  fn: (item: T, index: number) => Promise<U>,
+): Promise<U[]> {
+  const results: U[] = new Array(items.length);
+  let nextIndex = 0;
+
+  const worker = async (): Promise<void> => {
+    while (true) {
+      const current = nextIndex;
+      if (current >= items.length) {
+        return;
+      }
+      nextIndex += 1;
+      results[current] = await fn(items[current]!, current);
+    }
+  };
+
+  const maxConcurrency = 4;
+  const numWorkers = Math.max(1, Math.min(maxConcurrency, items.length));
+  await Promise.all(Array.from({ length: numWorkers }, () => worker()));
+  return results;
 }
 
 async function getGithubTree(
@@ -339,3 +395,5 @@ type GithubTreeResult =
       tree: GithubTree;
     }
   | DependencyError;
+
+const MAX_RETRY_WAIT_MS = 60 * 1000;
