@@ -67,6 +67,32 @@ describe("getShortMessageForBreakingChange", () => {
     ).toBe("missing variant: 1");
   });
 
+  it("wrapper-to-constant-variant", () => {
+    const breakingChange: BreakingChange = {
+      kind: "wrapper-to-constant-variant",
+      enumEpression: {
+        before: { kind: "record", recordName: { text: "Foo" } as Token },
+        after: { kind: "record", recordName: { text: "Foo" } as Token },
+      },
+      record: {
+        before: {
+          recordAncestors: [{ name: { text: "Foo" } }],
+        } as any,
+        after: {
+          recordAncestors: [{ name: { text: "Foo" } }],
+        } as any,
+      },
+      variantName: {
+        before: { text: "bar" } as Token,
+        after: { text: "BAR" } as Token,
+      },
+      number: 1,
+    };
+    expect(
+      getShortMessageForBreakingChange(breakingChange, mockModuleSet),
+    ).toBe("was a wrapper variant");
+  });
+
   it("record-kind-change (struct to enum)", () => {
     const breakingChange: BreakingChange = {
       kind: "record-kind-change",

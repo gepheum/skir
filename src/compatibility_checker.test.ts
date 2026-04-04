@@ -412,6 +412,49 @@ describe("compatibility checker", () => {
     ]);
   });
 
+  it("enum variant kind change", () => {
+    expect(
+      doCheckBackwardCompatibility({
+        before: `
+          enum E(100) {
+            a: string;
+          }
+        `,
+        after: `
+          enum E2(100) {
+            A;
+          }
+        `,
+      }),
+    ).toMatch([
+      {
+        kind: "wrapper-to-constant-variant",
+        enumEpression: {
+          before: {
+            kind: "record",
+            recordName: {
+              text: "E",
+            },
+          },
+          after: {
+            kind: "record",
+            recordName: {
+              text: "E2",
+            },
+          },
+        },
+        variantName: {
+          before: {
+            text: "a",
+          },
+          after: {
+            text: "A",
+          },
+        },
+      },
+    ]);
+  });
+
   it("primitive type compatibility", () => {
     // Compatible primitive type changes
     expect(

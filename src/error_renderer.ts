@@ -182,6 +182,26 @@ function formatBreakingChange(
         `    ${makeGray("Number:")} ${method.number}`,
       ].join("\n");
     }
+    case "wrapper-to-constant-variant": {
+      const { enumEpression, number, record, variantName } = breakingChange;
+      const errorHeader = makeRed("Illegal variant kind change");
+      const enumName = map(record, getQualifiedName);
+      return [
+        `${locationPrefix}${errorHeader}\n`,
+        "  [Last snapshot]\n",
+        `    ${makeGray("Expression:")} ${formatExpression(enumEpression.before)}`,
+        `          ${makeGray("Enum:")} ${enumName.before}`,
+        `       ${makeGray("Variant:")} ${variantName.before.text}`,
+        `        ${makeGray("Number:")} ${number}`,
+        `          ${makeGray("Kind:")} wrapper\n`,
+        "  [Now]\n",
+        `    ${makeGray("Expression:")} ${formatExpression(enumEpression.after)}`,
+        `          ${makeGray("Enum:")} ${enumName.after}`,
+        `       ${makeGray("Variant:")} ${variantName.after.text}`,
+        `        ${makeGray("Number:")} ${number}`,
+        `          ${makeGray("Kind:")} constant`,
+      ].join("\n");
+    }
     case "missing-variant": {
       const { enumEpression, number, record, variantName } = breakingChange;
       const errorHeader = makeRed("Missing variant");
@@ -250,6 +270,9 @@ export function getShortMessageForBreakingChange(
     case "missing-slots": {
       const { missingRangeEnd } = breakingChange;
       return `missing slots; had ${missingRangeEnd}`;
+    }
+    case "wrapper-to-constant-variant": {
+      return `was a wrapper variant`;
     }
     case "missing-variant": {
       const { number } = breakingChange;

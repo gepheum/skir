@@ -55,6 +55,13 @@ export type BreakingChange =
       enumEpression: BeforeAfter<Expression>;
       variantName: Token;
       number: number;
+    }
+  | {
+      kind: "wrapper-to-constant-variant";
+      record: BeforeAfter<RecordLocation>;
+      enumEpression: BeforeAfter<Expression>;
+      variantName: BeforeAfter<Token>;
+      number: number;
     };
 
 export type Expression =
@@ -261,6 +268,17 @@ class CompatibilityChecker {
                 },
               },
         );
+      } else if (fieldBefore.type) {
+        this.pushBreakingChange({
+          kind: "wrapper-to-constant-variant",
+          record,
+          enumEpression: recordExpression,
+          variantName: {
+            before: fieldBefore.name,
+            after: fieldAfter.name,
+          },
+          number: fieldBefore.number,
+        });
       }
     }
   }
@@ -373,7 +391,8 @@ export function getTokenForBreakingChange(
       return getTokenForExpression(breakingChange.expression.after);
     }
     case "missing-slots":
-    case "record-kind-change": {
+    case "record-kind-change":
+    case "wrapper-to-constant-variant": {
       return breakingChange.record.after.record.name;
     }
     case "missing-variant": {
