@@ -4,7 +4,6 @@ import type {
   SkirError,
   Token,
 } from "skir-internal";
-import { caseMatches } from "./casing.js";
 import {
   type BeforeAfter,
   type BreakingChange,
@@ -183,29 +182,6 @@ function formatBreakingChange(
         `    ${makeGray("Number:")} ${method.number}`,
       ].join("\n");
     }
-    case "variant-kind-change": {
-      const { enumEpression, number, record, variantName } = breakingChange;
-      const errorHeader = makeRed("Illegal variant kind change");
-      const enumName = map(record, getQualifiedName);
-      const variantKind = map(variantName, (vn) =>
-        caseMatches(vn.text, "lower_underscore") ? "wrapper" : "constant",
-      );
-      return [
-        `${locationPrefix}${errorHeader}\n`,
-        "  [Last snapshot]\n",
-        `    ${makeGray("Expression:")} ${formatExpression(enumEpression.before)}`,
-        `          ${makeGray("Enum:")} ${enumName.before}`,
-        `       ${makeGray("Variant:")} ${variantName.before.text}`,
-        `        ${makeGray("Number:")} ${number}`,
-        `          ${makeGray("Kind:")} ${variantKind.before}\n`,
-        "  [Now]\n",
-        `    ${makeGray("Expression:")} ${formatExpression(enumEpression.after)}`,
-        `          ${makeGray("Enum:")} ${enumName.after}`,
-        `       ${makeGray("Variant:")} ${variantName.after.text}`,
-        `        ${makeGray("Number:")} ${number}`,
-        `          ${makeGray("Kind:")} ${variantKind.after}`,
-      ].join("\n");
-    }
     case "missing-variant": {
       const { enumEpression, number, record, variantName } = breakingChange;
       const errorHeader = makeRed("Missing variant");
@@ -274,16 +250,6 @@ export function getShortMessageForBreakingChange(
     case "missing-slots": {
       const { missingRangeEnd } = breakingChange;
       return `missing slots; had ${missingRangeEnd}`;
-    }
-    case "variant-kind-change": {
-      const { variantName } = breakingChange;
-      const variantKind = caseMatches(
-        variantName.before.text,
-        "lower_underscore",
-      )
-        ? "wrapper"
-        : "constant";
-      return `was a ${variantKind} variant`;
     }
     case "missing-variant": {
       const { number } = breakingChange;

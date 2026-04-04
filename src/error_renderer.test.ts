@@ -44,58 +44,6 @@ describe("getShortMessageForBreakingChange", () => {
     ).toBe("missing slots; had 2");
   });
 
-  it("variant-kind-change (constant to wrapper)", () => {
-    const breakingChange: BreakingChange = {
-      kind: "variant-kind-change",
-      enumEpression: {
-        before: { kind: "record", recordName: { text: "Foo" } as Token },
-        after: { kind: "record", recordName: { text: "Foo" } as Token },
-      },
-      record: {
-        before: {
-          recordAncestors: [{ name: { text: "Foo" } }],
-        } as any,
-        after: {
-          recordAncestors: [{ name: { text: "Foo" } }],
-        } as any,
-      },
-      variantName: {
-        before: { text: "BAR" } as Token,
-        after: { text: "bar" } as Token,
-      },
-      number: 1,
-    };
-    expect(
-      getShortMessageForBreakingChange(breakingChange, mockModuleSet),
-    ).toBe("was a constant variant");
-  });
-
-  it("variant-kind-change (wrapper to constant)", () => {
-    const breakingChange: BreakingChange = {
-      kind: "variant-kind-change",
-      enumEpression: {
-        before: { kind: "record", recordName: { text: "Foo" } as Token },
-        after: { kind: "record", recordName: { text: "Foo" } as Token },
-      },
-      record: {
-        before: {
-          recordAncestors: [{ name: { text: "Foo" } }],
-        } as any,
-        after: {
-          recordAncestors: [{ name: { text: "Foo" } }],
-        } as any,
-      },
-      variantName: {
-        before: { text: "bar" } as Token,
-        after: { text: "BAR" } as Token,
-      },
-      number: 1,
-    };
-    expect(
-      getShortMessageForBreakingChange(breakingChange, mockModuleSet),
-    ).toBe("was a wrapper variant");
-  });
-
   it("missing-variant", () => {
     const breakingChange: BreakingChange = {
       kind: "missing-variant",
