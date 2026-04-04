@@ -4,8 +4,6 @@
 
   <p>
     <a href="https://skir.build/"><b>skir.build</b></a>
-    ·
-    <a href="https://discord.gg/mruvDuybJ"><b>Discord</b></a>
   </p>
 
   [![npm](https://img.shields.io/npm/v/skir?style=flat-square)](https://www.npmjs.com/package/skir)
