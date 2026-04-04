@@ -1,6 +1,6 @@
 <div align="center">
   <h1>🐙 Skir 🐙</h1>
-  <p><strong>A modern alternative to Protocol Buffer</strong></p>
+  <p><strong>Like Protobuf, without the pain</strong></p>
 
   <p>
     <a href="https://skir.build/"><b>skir.build</b></a>
