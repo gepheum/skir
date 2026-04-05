@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🐙 Skir 🐙</h1>
+  <h1>Skir</h1>
   <p><strong>Like Protobuf, without the pain</strong></p>
 
   <p>
