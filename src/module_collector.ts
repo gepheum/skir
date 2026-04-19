@@ -44,28 +44,26 @@ export async function collectEditableModules(
       );
     }
   }
-  const result: EditableModule[] = [];
-  for (const skirFile of skirFiles) {
-    if (!skirFile.isFile) {
-      continue;
-    }
-    const relativePath = //
-      Paths.relative(srcDir, skirFile.fullpath()).replace(/\\/g, "/");
 
-    validate(relativePath);
-    const content = REAL_FILE_SYSTEM.readTextFile(skirFile.fullpath());
-    if (content === undefined) {
-      throw new ExitError(
-        "Cannot read " + rewritePathForRendering(skirFile.fullpath()),
-      );
-    }
-    result.push({
-      fullPath: skirFile.fullpath(),
-      modulePath: relativePath,
-      content: content,
+  const modules = skirFiles
+    .filter((skirFile) => skirFile.isFile)
+    .map(async (skirFile): Promise<EditableModule> => {
+      const fullPath = skirFile.fullpath();
+      const relativePath = Paths.relative(srcDir, fullPath).replace(/\\/g, "/");
+
+      validate(relativePath);
+      const content = await REAL_FILE_SYSTEM.readTextFileAsync(fullPath);
+      if (content === undefined) {
+        throw new ExitError("Cannot read " + rewritePathForRendering(fullPath));
+      }
+      return {
+        fullPath: fullPath,
+        modulePath: relativePath,
+        content: content,
+      };
     });
-  }
-  return result;
+
+  return Promise.all(modules);
 }
 
 function validate(relativePath: string): void {
