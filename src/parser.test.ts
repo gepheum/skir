@@ -1017,6 +1017,25 @@ describe("module parser", () => {
     });
   });
 
+  it("enum with case-insensitive duplicate variant names", () => {
+    const actualModule = parse(`
+      enum Enum {
+        FOO_BAR;
+        foo_bar: string;
+      }`);
+
+    expect(actualModule).toMatch({
+      errors: [
+        {
+          token: {
+            text: "foo_bar",
+          },
+          message: "Duplicate identifier 'foo_bar'",
+        },
+      ],
+    });
+  });
+
   it("struct with removed fields", () => {
     const actualModule = parse(`
       struct Point {

@@ -1,6 +1,6 @@
 {
   "name": "skir",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "",
   "homepage": "https://skir.build/",
   "bugs": {
@@ -42,7 +42,7 @@
   },
   "dependencies": {
     "glob": "^13.0.6",
-    "skir-cc-gen": "^1.0.13",
+    "skir-cc-gen": "^1.0.14",
     "skir-dart-gen": "^1.0.5",
     "skir-go-gen": "^0.1.5",
     "skir-internal": "^0.2.19",

@@ -366,6 +366,17 @@ class RecordBuilder {
     // Register the record/field name and make sure it's unique.
     if (nameToken !== undefined) {
       const name = nameToken.text;
+      if (this.recordType === "enum" && declaration.kind === "field") {
+        const foldedName = name.toLowerCase();
+        if (this.enumFoldedVariantNames.has(foldedName)) {
+          this.errors.push({
+            token: nameToken,
+            message: `Duplicate identifier '${name}'`,
+          });
+          return;
+        }
+        this.enumFoldedVariantNames.add(foldedName);
+      }
       if (name in this.nameToDeclaration) {
         this.errors.push({
           token: nameToken,
@@ -459,6 +470,7 @@ class RecordBuilder {
 
   private nameToDeclaration: { [n: string]: MutableRecordLevelDeclaration } =
     {};
+  private enumFoldedVariantNames = new Set<string>();
   private numbers = new Set<number>();
   private numbering: Numbering = "";
   private removedNumbers: number[] = [];
