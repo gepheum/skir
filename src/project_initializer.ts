@@ -87,6 +87,15 @@ generators:
   #   config: {}
 
   # # --------------------------------------------------------------------------
+  # # Gleam code generator
+  # # Home: https://github.com/gepheum/skir-gleam-gen
+  # # To install runtime dependencies: gleam add skir_client
+  # # --------------------------------------------------------------------------
+  # - mod: skir-gleam-gen
+  #   outDir: ./src/skirout
+  #   config: {}
+
+  # # --------------------------------------------------------------------------
   # # Go code generator
   # # Home: https://github.com/gepheum/skir-go-gen
   # # To install runtime dependencies: go get github.com/gepheum/skir-go-client
@@ -174,6 +183,15 @@ generators:
   #   config:
   #     # Use ".js" for ES modules, "" for CommonJS
   #     importPathExtension: ".js"
+
+  # # --------------------------------------------------------------------------
+  # # Zig code generator
+  # # Home: https://github.com/gepheum/skir-zig-gen
+  # # To install runtime dependencies: zig fetch --save https://github.com/gepheum/skir-zig-client/archive/refs/tags/\${latest_tag}.tar.gz
+  # # --------------------------------------------------------------------------
+  # - mod: skir-zig-gen
+  #   outDir: ./src/skirout
+  #   config: {}
 
 # # --------------------------------------------------------------------------
 # # External Skir dependencies hosted on GitHub

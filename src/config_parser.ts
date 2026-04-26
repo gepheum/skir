@@ -1,5 +1,6 @@
 import * as CcGen from "skir-cc-gen";
 import * as DartGen from "skir-dart-gen";
+import * as GleamGen from "skir-gleam-gen";
 import * as GoGen from "skir-go-gen";
 import { CodeGenerator } from "skir-internal";
 import * as JavaGen from "skir-java-gen";
@@ -8,6 +9,7 @@ import * as PythonGen from "skir-python-gen";
 import * as RustGen from "skir-rust-gen";
 import * as SwiftGen from "skir-swift-gen";
 import * as TypescriptGen from "skir-typescript-gen";
+import * as ZigGen from "skir-zig-gen";
 import { LineCounter, parseDocument, Scalar, YAMLMap } from "yaml";
 import { SkirConfig } from "./config.js";
 
@@ -280,16 +282,17 @@ async function parseSkirConfigInternalAsync(
   return { skirConfig: zodResult.data!, errors: [] };
 }
 
-// TODO: remove the casts
 const STATIC_GENERATORS: Record<string, CodeGenerator<unknown>> = {
   "skir-cc-gen": CcGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-dart-gen": DartGen.GENERATOR as any as CodeGenerator<unknown>,
+  "skir-gleam-gen": GleamGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-go-gen": GoGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-java-gen": JavaGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-kotlin-gen": KotlinGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-python-gen": PythonGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-rust-gen": RustGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-swift-gen": SwiftGen.GENERATOR as any as CodeGenerator<unknown>,
+  "skir-zig-gen": ZigGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-typescript-gen":
     TypescriptGen.GENERATOR as any as CodeGenerator<unknown>,
 };

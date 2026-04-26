@@ -16,9 +16,9 @@
     "allowUnreachableCode": false,
     "noImplicitOverride": true,
     "skipLibCheck": true,
+    "types": ["node", "mocha"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   },
-  "include": ["src/**/*"],
-  "exclude": ["src/**/*.test.ts"]
+  "include": ["src/**/*"]
 }
