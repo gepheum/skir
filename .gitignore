@@ -2,4 +2,4 @@
 /playground/
 dist
 node_modules
-tsconfig.tsbuildinfo
+*.tsbuildinfo
