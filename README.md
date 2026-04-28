@@ -21,7 +21,7 @@ Write your schema once in a `.skir` file and generate idiomatic, type-safe code 
 
 ## ✨ Features
 
-- 🧩 **One schema, nine languages, zero friction** - One YAML config, one command, and watch mode that refreshes generated code on every change.
+- 🧩 **One schema, eleven languages, zero friction** - One YAML config, one command, and watch mode that refreshes generated code on every change.
 - 🛡️ **End-to-end type safety** - Shared method and type definitions keep client/server contracts aligned before runtime.
 - ⚡ **SkirRPC + Studio** - Lightweight HTTP RPC with a built-in Studio app for browsing and testing methods.
 - 📦 **GitHub imports** - Import types directly from GitHub repositories to share data structures across projects.
@@ -99,3 +99,5 @@ assert(restored == point)
 | 🐹 **Go** | [Documentation](https://skir.build/docs/go) | [Example](https://github.com/gepheum/skir-go-example) |
 | 🎯 **Dart** | [Documentation](https://skir.build/docs/dart) | [Example](https://github.com/gepheum/skir-dart-example) |
 | 🐦 **Swift** | [Documentation](https://skir.build/docs/swift) | [Example](https://github.com/gepheum/skir-swift-example) |
+| ✨ **Gleam** | [Documentation](https://skir.build/docs/gleam) | [Example](https://github.com/gepheum/skir-gleam-example) |
+| ⚡ **Zig** | [Documentation](https://skir.build/docs/zig) | [Example](https://github.com/gepheum/skir-zig-example) |
