@@ -13,35 +13,45 @@ import {
 import type { SkirConfigError } from "./config_parser.js";
 import type { ModuleSet } from "./module_set.js";
 
-export function renderErrors(errors: readonly SkirError[]): void {
+export function renderErrors(
+  errors: readonly SkirError[],
+  severity: "error" | "warning",
+): void {
   const MAX_ERRORS = 10;
   for (let i = 0; i < errors.length && i < MAX_ERRORS; ++i) {
     const error = errors[i];
-    console.error(formatError(error!));
+    console.error(formatError(error!, severity));
   }
   // Count the number of distinct modules with errors.
-  if (errors.length) {
-    const modules = new Set<string>();
-    for (const error of errors) {
-      modules.add(error.token.line.modulePath);
-    }
-    const numErrors = `${errors.length} error${errors.length <= 1 ? "" : "s"}`;
-    const numFiles = `${modules.size} file${modules.size <= 1 ? "" : "s"}`;
-    console.error(`Found ${numErrors} in ${numFiles}\n`);
+  if (errors.length <= 0) {
+    return;
   }
+  const modules = new Set<string>();
+  for (const error of errors) {
+    modules.add(error.token.line.modulePath);
+  }
+  const formatCount = (n: number, thing: string): string =>
+    `${n} ${thing}${n <= 1 ? "" : "s"}`;
+  const numErrors = formatCount(errors.length, severity);
+  const numFiles = formatCount(modules.size, "file");
+  console.error(`Found ${numErrors} in ${numFiles}\n`);
 }
 
-export function formatError(error: SkirError): string {
+export function formatError(
+  error: SkirError,
+  severity: "error" | "warning",
+): string {
+  const makeRedOrOrange = severity === "error" ? makeRed : makeOrange;
   const { token } = error;
   const { line, colNumber } = token;
   const lineNumberStr = (line.lineNumber + 1).toString();
   let result = formatLocation(token);
   result += " - ";
   if (error.expected !== undefined) {
-    result += makeRed("expected");
+    result += makeRedOrOrange("expected");
     result += `: ${error.expected}`;
   } else {
-    result += makeRed("error");
+    result += makeRedOrOrange(severity);
     result += `: ${error.message}`;
   }
   result += "\n\n";
@@ -51,8 +61,14 @@ export function formatError(error: SkirError): string {
   result += "\n";
   result += makeBlackOnWhite(" ".repeat(lineNumberStr.length));
   result += " ".repeat(colNumber + 1);
-  result += makeRed("~".repeat(Math.max(token.originalText.length, 1)));
+  const underline = "~".repeat(Math.max(token.originalText.length, 1));
+  result += makeRedOrOrange(underline);
   result += "\n";
+  if (error.suggestReformat) {
+    result += "\n";
+    result += makeGreen("To fix, run: npx skir format");
+    result += "\n";
+  }
   return result;
 }
 

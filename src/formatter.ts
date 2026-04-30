@@ -1,4 +1,13 @@
-import type { Module, Range, SkirError, Token } from "skir-internal";
+import type {
+  Declaration,
+  Doc,
+  Module,
+  Range,
+  Record,
+  SkirError,
+  Token,
+  Value,
+} from "skir-internal";
 import { formatImportBlock } from "./import_block_formatter.js";
 import { parseModule } from "./parser.js";
 import { ModuleTokens, tokenizeModule } from "./tokenizer.js";
@@ -30,13 +39,19 @@ export type RandomGenerator = () => number;
 
 /**
  * Formats the given module and returns the new source code.
- * Preserves token ordering.
+ * If a resolved module is provided, the formatter will try to convert enum
+ * variants spelled with the legacy UPPERCASE format to the preferred lowercase
+ * format.
  */
-export function formatModule(
-  sourceCode: string,
-  modulePath: string,
-  randomGenerator: RandomGenerator = Math.random,
-): FormattedModule {
+export function formatModule(args: {
+  sourceCode: string;
+  modulePath: string;
+  resolvedModule?: Module;
+  randomGenerator?: RandomGenerator;
+}): FormattedModule {
+  const { modulePath, resolvedModule, randomGenerator = Math.random } = args;
+  let { sourceCode } = args;
+
   const makeErroredResult = (
     errors: readonly SkirError[],
   ): FormattedModule => ({
@@ -44,6 +59,15 @@ export function formatModule(
     textEdits: [],
     errors: errors,
   });
+
+  if (resolvedModule) {
+    if (resolvedModule.sourceCode !== sourceCode) {
+      throw new Error(
+        "Resolved module's source code does not match the provided source code.",
+      );
+    }
+    sourceCode = convertLegacyVariantNames(resolvedModule).newSourceCode;
+  }
 
   const moduleTokens = tokenizeModule(sourceCode, modulePath);
   if (moduleTokens.errors.length > 0) {
@@ -446,4 +470,107 @@ function normalizeToken(
   } else {
     return token;
   }
+}
+
+/**
+ * Converts the constant variants spelled with the legacy UPPERCASE format to
+ * the preferred lowercase format.
+ * The enum must not be declared in an external dependency.
+ */
+function convertLegacyVariantNames(resolvedModule: Module): {
+  newSourceCode: string;
+} {
+  const legacyTokens: Token[] = [];
+  const isEligibleEnum = (record: Record): boolean =>
+    record.recordType === "enum" &&
+    !record.name.line.modulePath.startsWith("@");
+  const collectInDoc = (doc: Doc): void => {
+    for (const piece of doc.pieces) {
+      if (piece.kind !== "reference") continue;
+      const { referee } = piece;
+      if (
+        referee?.kind === "field" &&
+        !referee.field.unresolvedType &&
+        isEligibleEnum(referee.record) &&
+        /^[A-Z]/.test(referee.field.name.text)
+      ) {
+        const { token } = piece.nameParts.at(-1)!;
+        legacyTokens.push(token);
+      }
+    }
+  };
+  const collectInValue = (value: Value): void => {
+    switch (value.kind) {
+      case "array": {
+        return value.items.forEach(collectInValue);
+      }
+      case "object": {
+        return Object.values(value.entries).forEach((val) => {
+          collectInValue(val.value);
+        });
+      }
+      case "literal": {
+        if (
+          value.type &&
+          value.type.kind === "enum" &&
+          isEligibleEnum(value.type.enum) &&
+          /^['"][A-Z]/.test(value.token.text)
+        ) {
+          legacyTokens.push(value.token);
+        }
+      }
+    }
+  };
+  const collect = (declaration: Declaration, inEligibleEnum: boolean): void => {
+    // First, collect tokens from doc references.
+    switch (declaration.kind) {
+      case "constant":
+      case "field":
+      case "method":
+      case "record": {
+        collectInDoc(declaration.doc);
+      }
+    }
+    switch (declaration.kind) {
+      case "constant": {
+        return collectInValue(declaration.value);
+      }
+      case "field": {
+        if (
+          inEligibleEnum &&
+          !declaration.unresolvedType &&
+          /^[A-Z]/.test(declaration.name.text)
+        ) {
+          legacyTokens.push(declaration.name);
+        }
+        break;
+      }
+      case "record": {
+        const isEligible = isEligibleEnum(declaration);
+        declaration.declarations.forEach((decl) => collect(decl, isEligible));
+      }
+    }
+  };
+  for (const declaration of resolvedModule.declarations) {
+    const inEligibleEnum = false;
+    collect(declaration, inEligibleEnum);
+  }
+
+  const oldSourceCode = resolvedModule.sourceCode;
+  if (legacyTokens.length === 0) {
+    return { newSourceCode: oldSourceCode };
+  }
+  legacyTokens.sort((a, b) => a.position - b.position);
+
+  const fragments: string[] = [];
+  let lastPosition = 0;
+  for (const legacyToken of legacyTokens) {
+    fragments.push(oldSourceCode.slice(lastPosition, legacyToken.position));
+    fragments.push(legacyToken.text.toLowerCase());
+    lastPosition = legacyToken.position + legacyToken.text.length;
+  }
+  fragments.push(oldSourceCode.slice(lastPosition));
+  return {
+    newSourceCode: fragments.join(""),
+  };
 }

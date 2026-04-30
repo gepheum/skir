@@ -717,7 +717,11 @@ function parseModuleSet(sourceCode: string): ModuleSet {
   const modulePath = "path/to/module";
   const modulePathToSourceCode = new Map<string, string>();
   modulePathToSourceCode.set(modulePath, sourceCode);
-  const moduleSet = ModuleSet.compile(modulePathToSourceCode);
+  const moduleSet = ModuleSet.compile(
+    modulePathToSourceCode,
+    "no-cache",
+    "strict",
+  );
   const moduleResult = moduleSet.modules.get(modulePath)!;
   if (moduleResult.errors.length > 0) {
     const firstError = moduleResult.errors[0]!;
@@ -740,7 +744,11 @@ function doCheckCompatibilityMulti(
 function parseModuleSetMulti(
   modulePathToSourceCode: Map<string, string>,
 ): ModuleSet {
-  const moduleSet = ModuleSet.compile(modulePathToSourceCode);
+  const moduleSet = ModuleSet.compile(
+    modulePathToSourceCode,
+    "no-cache",
+    "strict",
+  );
   for (const [modulePath, moduleResult] of moduleSet.modules) {
     if (moduleResult.errors.length > 0) {
       const firstError = moduleResult.errors[0]!;

@@ -39,7 +39,7 @@ class Input {
       this.modulePath,
       this.moduleContent.join("\n"),
       this.getPosition(),
-      ModuleSet.compile(modulePathToContent),
+      ModuleSet.compile(modulePathToContent, "no-cache", "lenient"),
     );
   }
 

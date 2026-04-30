@@ -46,7 +46,8 @@ export function parseModule(
 ): Result<MutableModule> {
   const { modulePath, sourceCode } = moduleTokens;
   const errors: SkirError[] = [];
-  const it = new TokenIterator(moduleTokens, mode, errors);
+  const warnings: SkirError[] = [];
+  const it = new TokenIterator(moduleTokens, mode, errors, warnings);
   const maybeBrokenDeclarations = parseDeclarations(it, "module");
   const brokenConstants: BrokenConstant[] = maybeBrokenDeclarations.filter(
     (d) => d.kind === "broken-constant",
@@ -182,6 +183,7 @@ export function parseModule(
       brokenConstants: brokenConstants,
     },
     errors: errors,
+    warnings: warnings,
   };
 }
 
@@ -429,6 +431,29 @@ class RecordBuilder {
         });
         break;
       }
+    } else {
+      // An enum. Make sure that constant variants are either all spelled in
+      // lowercase or all spelled in uppercase (legacy format).
+      const firstLegacyConstant = Object.values(this.nameToDeclaration).find(
+        (d): d is MutableField =>
+          d.kind === "field" &&
+          !d.unresolvedType &&
+          Casing.caseMatches(d.name.text, "UPPER_UNDERSCORE"),
+      );
+      if (
+        firstLegacyConstant &&
+        Object.values(this.nameToDeclaration).some(
+          (d) =>
+            d.kind === "field" &&
+            !d.unresolvedType &&
+            Casing.caseMatches(d.name.text, "lower_underscore"),
+        )
+      ) {
+        this.errors.push({
+          token: firstLegacyConstant.name,
+          message: "Cannot mix legacy format and lowercase format",
+        });
+      }
     }
 
     const declarations = Object.values(this.nameToDeclaration);
@@ -610,12 +635,28 @@ function parseField(
         break;
       }
       case 2: {
-        const expectedCasing = type ? "lower_underscore" : "UPPER_UNDERSCORE";
-        Casing.validate(name, expectedCasing, it.errors);
-        if (recordType === "enum" && name.text === "UNKNOWN") {
+        if (!type && Casing.caseMatches(name.text, "UPPER_UNDERSCORE")) {
+          // Legacy format for enum constant variants: UPPER_UNDERSCORE.
+          // Raise a warning unless the variant is defined in an external
+          // dependency.
+          if (!name.line.modulePath.startsWith("@")) {
+            it.warnings.push({
+              token: name,
+              message:
+                "Constant variants should be spelled in lowercase; uppercase format is legacy",
+              suggestReformat: true,
+            });
+          }
+        } else {
+          Casing.validate(name, "lower_underscore", it.errors);
+        }
+        if (
+          recordType === "enum" &&
+          ["UNKNOWN", "unknown"].includes(name.text)
+        ) {
           it.errors.push({
             token: name,
-            message: `Cannot name field of enum: UNKNOWN`,
+            message: `Cannot name field of enum: unknown`,
           });
         }
         return makeField();
@@ -1330,6 +1371,7 @@ class TokenIterator {
     readonly moduleTokens: ModuleTokens,
     readonly mode: "strict" | "lenient",
     readonly errors: ErrorSink,
+    readonly warnings: ErrorSink,
   ) {
     this.tokens = moduleTokens.tokens;
   }

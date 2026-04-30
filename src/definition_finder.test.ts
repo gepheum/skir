@@ -92,7 +92,7 @@ pathToCode.set(
     "",
   ].join("\n"),
 );
-const moduleSet = ModuleSet.compile(pathToCode);
+const moduleSet = ModuleSet.compile(pathToCode, "no-cache", "strict");
 
 interface Range {
   modulePath: string;
@@ -316,7 +316,7 @@ describe("definition finder", () => {
     });
 
     it("returns empty references for an unused symbol", () => {
-      const decl = module.nameToDeclaration["GetBar2"];
+      const decl = module.nameToDeclaration["GetBar2"]!;
       if (decl.kind !== "method") throw new Error("GetBar2 not found");
       const refs = findReferences(decl.name, [
         module,

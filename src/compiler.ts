@@ -26,7 +26,7 @@ import {
   REAL_FILE_SYSTEM,
   rewritePathForRendering,
 } from "./io.js";
-import { collectEditableModules, collectModules } from "./module_collector.js";
+import { collectModules } from "./module_collector.js";
 import { ModuleSet } from "./module_set.js";
 import { PackageIdToVersion } from "./package_types.js";
 import { initializeProject } from "./project_initializer.js";
@@ -133,6 +133,7 @@ class WatchModeMainLoop {
           this.srcDir,
           this.dependencies,
           this.previousModuleSet,
+          "strict",
         );
         this.previousModuleSet = moduleSet;
       } catch (e) {
@@ -144,10 +145,12 @@ class WatchModeMainLoop {
         }
       }
       const errors = moduleSet.errors.filter((e) => !e.errorIsInOtherModule);
+      const { warnings } = moduleSet;
       if (errors.length) {
-        renderErrors(errors);
+        renderErrors(errors, "error");
         return false;
       } else {
+        renderErrors(warnings, "warning");
         if (moduleSet.recordMap.size <= 0) {
           console.error(makeRed("No skir modules found in source directory"));
         }
@@ -294,33 +297,49 @@ interface ModuleFormatResult {
   alreadyFormatted: boolean;
 }
 
-async function format(srcDir: string, mode: "fix" | "check"): Promise<void> {
-  const editableModules = await collectEditableModules(srcDir);
+async function format(
+  skirConfig: SkirConfig,
+  root: string,
+  srcDir: string,
+  mode: "fix" | "check",
+): Promise<void> {
+  const moduleSet = await collectModules(
+    srcDir,
+    ModuleSet.empty(),
+    undefined,
+    "lenient",
+  );
+
   const pathToFormatResult = new Map<string, ModuleFormatResult>();
-  for await (const editableModule of editableModules) {
-    const unformattedCode = editableModule.content;
-    const formattedModule = formatModule(
-      unformattedCode,
-      editableModule.modulePath,
-    );
+  for await (const [modulePath, module] of moduleSet.modules) {
+    const unformattedCode = module.result.sourceCode;
+    const formattedModule = formatModule({
+      sourceCode: unformattedCode,
+      modulePath: modulePath,
+      resolvedModule: module.result,
+    });
     const { errors } = formattedModule;
     if (errors.length) {
-      renderErrors(errors);
+      renderErrors(errors, "error");
       process.exit(1);
     }
-    pathToFormatResult.set(editableModule.fullPath, {
+    const fullPath = Paths.join(srcDir, modulePath);
+    pathToFormatResult.set(fullPath, {
       formattedCode: formattedModule.newSourceCode,
       alreadyFormatted: formattedModule.newSourceCode === unformattedCode,
     });
   }
   let numFilesNotFormatted = 0;
+  const writeTasks: Promise<void>[] = [];
   for (const [path, result] of pathToFormatResult) {
     const relativePath = Paths.relative(srcDir, path).replace(/\\/g, "/");
     if (mode === "fix") {
       if (result.alreadyFormatted) {
         console.log(`${makeGray(relativePath)} (unchanged)`);
       } else {
-        REAL_FILE_SYSTEM.writeTextFile(path, result.formattedCode);
+        writeTasks.push(
+          FileSystem.writeFile(path, result.formattedCode, "utf-8"),
+        );
         console.log(makeGray(relativePath));
       }
     } else {
@@ -333,6 +352,7 @@ async function format(srcDir: string, mode: "fix" | "check"): Promise<void> {
       }
     }
   }
+  await Promise.all(writeTasks);
   if (numFilesNotFormatted) {
     console.log();
     console.log(
@@ -375,9 +395,9 @@ async function getDependencies(
       }
     }
     // Validate: compile the dependencies to check for errors.
-    const depModuleSet = ModuleSet.compile(moduleMap);
+    const depModuleSet = ModuleSet.compile(moduleMap, "no-cache", "strict");
     if (depModuleSet.errors.length) {
-      renderErrors(depModuleSet.errors);
+      renderErrors(depModuleSet.errors, "error");
       process.exit(1);
     }
     return depModuleSet;
@@ -480,7 +500,12 @@ async function main(): Promise<void> {
   switch (args.kind) {
     case "format": {
       // Check or fix the formatting to the .skir files in the source directory.
-      await format(srcDir, args.subcommand === "ci" ? "check" : "fix");
+      await format(
+        skirConfig,
+        root,
+        srcDir,
+        args.subcommand === "ci" ? "check" : "fix",
+      );
       break;
     }
     case "gen": {

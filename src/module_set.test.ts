@@ -4,7 +4,7 @@ import { ModuleSet } from "./module_set.js";
 
 class Input {
   readonly pathToCode = new Map<string, string>();
-  cache?: ModuleSet;
+  cache: ModuleSet | "no-cache" = "no-cache";
   parseMode: "strict" | "lenient" = "strict";
 
   doCompile(): ModuleSet {
@@ -467,7 +467,7 @@ describe("module set", () => {
             }
 
             enum Enum {
-              MONDAY;
+              monday;
             }
 
             struct UserHistory {
@@ -560,6 +560,8 @@ describe("module set", () => {
             },
           },
         },
+        errors: [],
+        warnings: [],
       });
     });
 
@@ -700,7 +702,7 @@ describe("module set", () => {
       input.pathToCode.set(
         "path/to/module",
         `
-          enum Enum { MONDAY; }
+          enum Enum { monday; }
           struct Foo {
             users: [Enum|key];
           }
@@ -1724,7 +1726,7 @@ describe("module set", () => {
           K;
         }
 
-        const ENUM: Enum = "Z";
+        const ENUM: Enum = "k";
       `,
       );
       const moduleSet = input.doCompile();
@@ -1733,10 +1735,18 @@ describe("module set", () => {
         errors: [
           {
             token: {
-              text: '"Z"',
+              text: '"k"',
             },
             message: "Variant not found in enum Enum",
             expectedNames: [{ name: "UNKNOWN" }, { name: "K" }],
+          },
+        ],
+        warnings: [
+          {
+            token: {
+              text: "K",
+            },
+            suggestReformat: true,
           },
         ],
       });

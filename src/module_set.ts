@@ -49,8 +49,8 @@ import { ModuleTokens, tokenizeModule } from "./tokenizer.js";
 export class ModuleSet {
   static compile(
     modulePathToContent: ReadonlyMap<string, string>,
-    cache?: ModuleSet,
-    parseMode: "strict" | "lenient" = "strict",
+    cache: ModuleSet | "no-cache",
+    parseMode: "strict" | "lenient",
   ): ModuleSet {
     return new ModuleSet(modulePathToContent, cache, parseMode);
   }
@@ -59,7 +59,7 @@ export class ModuleSet {
     currentModulePath: string,
     currentPosition: number,
     modulePathToContent: ReadonlyMap<string, string>,
-    cache?: ModuleSet,
+    cache: ModuleSet | "no-cache",
   ): Result<Module> {
     if (!modulePathToContent.has(currentModulePath)) {
       throw new Error(`Not found: ${currentModulePath}`);
@@ -71,18 +71,23 @@ export class ModuleSet {
     return moduleSet.modules.get(currentModulePath)!;
   }
 
+  static empty(): ModuleSet {
+    return ModuleSet.compile(new Map(), "no-cache", "strict");
+  }
+
   constructor(
     private readonly modulePathToContent: ReadonlyMap<string, string>,
-    cache: ModuleSet | undefined,
+    cache: ModuleSet | "no-cache",
     private readonly parseMode: "strict" | "lenient",
     private readonly completionMode?: {
       readonly modulePath: string;
       readonly position: number;
     },
   ) {
-    this.cache = cache
-      ? new Cache(modulePathToContent, cache.moduleBundles, cache.registry)
-      : undefined;
+    this.cache =
+      cache !== "no-cache"
+        ? new Cache(modulePathToContent, cache.moduleBundles, cache.registry)
+        : undefined;
     // In completion mode, no need to recompile modules which are not dependencies of
     // the current module.
     const modulePaths = completionMode
@@ -153,15 +158,18 @@ export class ModuleSet {
 
     let module: MutableModule;
     const errors: SkirError[] = [];
+    const warnings: SkirError[] = [];
     {
       const parseResult = parseModule(moduleTokens.result, this.parseMode);
       errors.push(...parseResult.errors);
+      warnings.push(...(parseResult.warnings ?? []));
       module = parseResult.result;
     }
 
     const moduleBundle = new ModuleBundle(moduleTokens, {
       result: module,
       errors: errors,
+      warnings: warnings,
     });
 
     // Process all imports.
@@ -901,7 +909,8 @@ export class ModuleSet {
   finalize(): FinalizationResult {
     type MutableModuleResult = {
       result: Module;
-      errors: SkirError[];
+      readonly errors: SkirError[];
+      readonly warnings: SkirError[];
     };
     const modules = new Map<string, MutableModuleResult>();
 
@@ -911,6 +920,7 @@ export class ModuleSet {
       modules.set(modulePath, {
         result: module.result,
         errors: [...moduleErrors],
+        warnings: [...(module.warnings ?? [])],
       });
     }
 
@@ -961,12 +971,15 @@ export class ModuleSet {
 
     // Aggregate errors across all modules.
     const errors: SkirError[] = [];
+    const warnings: SkirError[] = [];
     for (const moduleBundle of modules.values()) {
       errors.push(...moduleBundle.errors);
+      warnings.push(...moduleBundle.warnings);
     }
     return {
       modules: modules,
       errors: errors,
+      warnings: warnings,
     };
   }
 
@@ -995,6 +1008,10 @@ export class ModuleSet {
 
   get errors(): readonly SkirError[] {
     return this.finalizationResult.errors;
+  }
+
+  get warnings(): readonly SkirError[] {
+    return this.finalizationResult.warnings;
   }
 
   get modules(): ReadonlyMap<string, Result<Module>> {
@@ -1459,6 +1476,8 @@ interface FinalizationResult {
   readonly modules: ReadonlyMap<string, Result<Module>>;
   /** Errors aggregated across all modules. */
   readonly errors: readonly SkirError[];
+  /** Warnings aggregated across all modules. */
+  readonly warnings: readonly SkirError[];
 }
 
 function ensureAllImportsAreUsed(

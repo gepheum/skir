@@ -20,9 +20,14 @@ export async function takeSnapshot(args: {
   dependencies: ModuleSet;
   subcommand: "ci" | "dry-run" | undefined;
 }): Promise<boolean> {
-  const newModuleSet = await collectModules(args.srcDir, args.dependencies);
+  const newModuleSet = await collectModules(
+    args.srcDir,
+    args.dependencies,
+    undefined,
+    "strict",
+  );
   if (newModuleSet.errors.length) {
-    renderErrors(newModuleSet.errors);
+    renderErrors(newModuleSet.errors, "error");
     return false;
   }
   const snapshotPath = join(args.rootDir, "skir-snapshot.json");
@@ -113,7 +118,7 @@ async function readLastSnapshot(
     const isNotFoundError =
       error instanceof Error && "code" in error && error.code === "ENOENT";
     if (isNotFoundError) {
-      return ModuleSet.compile(new Map<string, string>());
+      return ModuleSet.empty();
     } else {
       // Rethrow I/O error
       throw error;
@@ -150,9 +155,9 @@ export function snapshotFileContentToModuleSet(
       error: error,
     };
   }
-  const moduleSet = ModuleSet.compile(pathToSourceCode);
+  const moduleSet = ModuleSet.compile(pathToSourceCode, "no-cache", "strict");
   if (moduleSet.errors.length) {
-    const firstError = formatError(moduleSet.errors[0]!);
+    const firstError = formatError(moduleSet.errors[0]!, "error");
     return {
       kind: "corrupted",
       error: new Error(`errors in modules; first error: ${firstError}`),

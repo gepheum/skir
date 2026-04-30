@@ -208,15 +208,19 @@ describe("getModuleFromGithubUrl", () => {
         undefined,
       );
 
-      expect(result.kind).toMatch("success");
-      if (result.kind === "success") {
-        expect(result.record.name).toMatch({
-          text: "Spell",
-          line: {
-            modulePath: "@gepheum/skir-fantasy-game-example/fantasy_game.skir",
+      expect(result).toMatch({
+        kind: "success",
+        record: {
+          name: {
+            text: "Spell",
+            line: {
+              modulePath:
+                "@gepheum/skir-fantasy-game-example/fantasy_game.skir",
+            },
           },
-        });
-      }
+        },
+        message: undefined,
+      });
     }
   });
 });

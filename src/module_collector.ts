@@ -11,7 +11,8 @@ import { ModuleSet } from "./module_set.js";
 export async function collectModules(
   srcDir: string,
   dependencies: ModuleSet,
-  cache?: ModuleSet,
+  cache: ModuleSet | undefined,
+  parseMode: "strict" | "lenient",
 ): Promise<ModuleSet> {
   const modulePathToContent = new Map<string, string>();
   for (const [modulePath, module] of dependencies.modules) {
@@ -21,16 +22,19 @@ export async function collectModules(
   for (const { modulePath, content } of editableModules) {
     modulePathToContent.set(modulePath, content);
   }
-  return ModuleSet.compile(modulePathToContent, cache ?? dependencies);
+  return ModuleSet.compile(
+    modulePathToContent,
+    cache ?? dependencies,
+    parseMode,
+  );
 }
 
-export interface EditableModule {
-  readonly fullPath: string;
+interface EditableModule {
   readonly modulePath: string;
   readonly content: string;
 }
 
-export async function collectEditableModules(
+async function collectEditableModules(
   srcDir: string,
 ): Promise<ReadonlyArray<EditableModule>> {
   const skirFiles = await glob(Paths.join(srcDir, "**/*.skir"), {
@@ -57,7 +61,6 @@ export async function collectEditableModules(
         throw new ExitError("Cannot read " + rewritePathForRendering(fullPath));
       }
       return {
-        fullPath: fullPath,
         modulePath: relativePath,
         content: content,
       };

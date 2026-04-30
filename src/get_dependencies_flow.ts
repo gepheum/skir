@@ -168,7 +168,11 @@ export async function getModuleFromGithubUrl(
     }
   }
 
-  const moduleSet = ModuleSet.compile(modulePathToContent);
+  const moduleSet = ModuleSet.compile(
+    modulePathToContent,
+    "no-cache",
+    "strict",
+  );
   if (moduleSet.errors.length > 0) {
     return {
       kind: "error",

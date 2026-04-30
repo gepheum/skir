@@ -1,6 +1,8 @@
 import { expect } from "buckwheat";
 import { describe, it } from "mocha";
+import { Module } from "skir-internal";
 import { formatModule, FormattedModule } from "./formatter.js";
+import { ModuleSet } from "./module_set.js";
 import { parseModule } from "./parser.js";
 import { tokenizeModule } from "./tokenizer.js";
 
@@ -10,14 +12,15 @@ import { tokenizeModule } from "./tokenizer.js";
  * in every new test so that a formatter bug producing syntactically invalid
  * output is caught immediately.
  */
-function formatModuleAndCheck(
-  sourceCode: string,
-  modulePath: string,
-  randomGenerator?: () => number,
-): FormattedModule {
-  const formatted = formatModule(sourceCode, modulePath, randomGenerator);
+function formatModuleAndCheck(args: {
+  sourceCode: string;
+  modulePath: string;
+  resolvedModule?: Module;
+  randomGenerator?: () => number;
+}): FormattedModule {
+  const formatted = formatModule(args);
   if (formatted.errors.length === 0) {
-    const tokens = tokenizeModule(formatted.newSourceCode, modulePath);
+    const tokens = tokenizeModule(formatted.newSourceCode, args.modulePath);
     if (tokens.errors.length > 0) {
       throw new Error(
         `Formatted output failed to tokenize: ${tokens.errors.map((e) => e.message).join(", ")}\n\nFormatted source:\n${formatted.newSourceCode}`,
@@ -303,11 +306,11 @@ const EXPECTED_FORMATTED_MODULE = [
 
 describe("formatModule", () => {
   it("works", () => {
-    const formatted = formatModule(
-      UNFORMATTED_MODULE,
-      "path/to/module",
-      () => 0.5,
-    );
+    const formatted = formatModule({
+      sourceCode: UNFORMATTED_MODULE,
+      modulePath: "path/to/module",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({
       newSourceCode: EXPECTED_FORMATTED_MODULE,
       textEdits: [
@@ -478,7 +481,11 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModule(input, "test.skir", () => 0.5);
+    const formatted = formatModule({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({
       newSourceCode: expected,
       errors: [],
@@ -506,7 +513,11 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModule(input, "test.skir", () => 0.5);
+    const formatted = formatModule({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({
       newSourceCode: expected,
       errors: [],
@@ -522,7 +533,10 @@ describe("formatModule", () => {
     const expected = ["struct Foo {", "  users: [User|id];", "}", ""].join(
       "\n",
     );
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -531,7 +545,10 @@ describe("formatModule", () => {
     const expected = ["struct Foo {", "  items: [Item|a.b.c];", "}", ""].join(
       "\n",
     );
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -543,7 +560,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -552,7 +572,10 @@ describe("formatModule", () => {
     const expected = ["struct Foo {", "  users: [User|id]?;", "}", ""].join(
       "\n",
     );
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -570,7 +593,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -588,7 +614,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -606,7 +635,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -621,7 +653,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -635,7 +670,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -652,7 +690,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -661,7 +702,10 @@ describe("formatModule", () => {
     const expected = ["enum E {", "  A;", "  removed;", "  B;", "}", ""].join(
       "\n",
     );
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -684,7 +728,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -695,21 +742,33 @@ describe("formatModule", () => {
   it("replaces ? stable id in struct", () => {
     const input = "struct Foo(?) { x: int32; }";
     const expected = "struct Foo(500000) {\n  x: int32;\n}\n";
-    const formatted = formatModuleAndCheck(input, "test.skir", () => 0.5);
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
   it("replaces ? stable id in enum", () => {
     const input = "enum Foo(?) { A; }";
     const expected = "enum Foo(500000) {\n  A;\n}\n";
-    const formatted = formatModuleAndCheck(input, "test.skir", () => 0.5);
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
   it("replaces ? stable id in method", () => {
     const input = "method Foo(bool): bool = ?;";
     const expected = "method Foo(\n  bool\n): bool = 500000;\n";
-    const formatted = formatModuleAndCheck(input, "test.skir", () => 0.5);
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -723,14 +782,22 @@ describe("formatModule", () => {
       "): bool = 500000;",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir", () => 0.5);
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
   it("does not replace ? used as optional type marker", () => {
     const input = "struct Foo { x: int32?; }";
     const expected = "struct Foo {\n  x: int32?;\n}\n";
-    const formatted = formatModuleAndCheck(input, "test.skir", () => 0.5);
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -741,21 +808,30 @@ describe("formatModule", () => {
   it("adds space after /// when missing", () => {
     const input = "///my comment\nstruct Foo {}";
     const expected = "/// my comment\nstruct Foo {}\n";
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
   it("adds space after // when missing", () => {
     const input = "//my comment\nstruct Foo {}";
     const expected = "// my comment\nstruct Foo {}\n";
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
   it("does not alter empty /// comment", () => {
     const input = "///\nstruct Foo {}";
     const expected = "///\nstruct Foo {}\n";
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -772,7 +848,10 @@ describe("formatModule", () => {
       "|};",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -789,7 +868,10 @@ describe("formatModule", () => {
       "];",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -811,7 +893,10 @@ describe("formatModule", () => {
       "];",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -820,7 +905,10 @@ describe("formatModule", () => {
     const expected = ["struct Foo {", "  matrix: [[string]];", "}", ""].join(
       "\n",
     );
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -839,7 +927,10 @@ describe("formatModule", () => {
       "} = 42;",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -858,7 +949,10 @@ describe("formatModule", () => {
       "} = 42;",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -878,7 +972,10 @@ describe("formatModule", () => {
       "): bool = 1;",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -895,7 +992,10 @@ describe("formatModule", () => {
       "} = 1;",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -914,7 +1014,10 @@ describe("formatModule", () => {
       "} = 5;",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -930,7 +1033,10 @@ describe("formatModule", () => {
       "): MyResponse = 1;",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -951,7 +1057,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -967,7 +1076,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -983,7 +1095,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -1010,7 +1125,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -1035,7 +1153,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -1050,7 +1171,10 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -1060,7 +1184,11 @@ describe("formatModule", () => {
 
   it("is idempotent for struct with keyed array field", () => {
     const input = "struct Foo {\n  users: [User|id];\n}\n";
-    const formatted = formatModuleAndCheck(input, "test.skir", () => 0.5);
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({ newSourceCode: input, errors: [] });
   });
 
@@ -1077,7 +1205,11 @@ describe("formatModule", () => {
       "} = 42;",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir", () => 0.5);
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({ newSourceCode: input, errors: [] });
   });
 
@@ -1094,7 +1226,11 @@ describe("formatModule", () => {
       "];",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir", () => 0.5);
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({ newSourceCode: input, errors: [] });
   });
 
@@ -1107,7 +1243,11 @@ describe("formatModule", () => {
       "];",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir", () => 0.5);
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({ newSourceCode: input, errors: [] });
   });
 
@@ -1121,7 +1261,11 @@ describe("formatModule", () => {
       "} = 42;",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir", () => 0.5);
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({ newSourceCode: input, errors: [] });
   });
 
@@ -1134,7 +1278,11 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir", () => 0.5);
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({ newSourceCode: input, errors: [] });
   });
 
@@ -1147,7 +1295,11 @@ describe("formatModule", () => {
       "}",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir", () => 0.5);
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({ newSourceCode: input, errors: [] });
   });
 
@@ -1155,7 +1307,11 @@ describe("formatModule", () => {
     const input = ["enum E {", "  A;", "  removed;", "  B;", "}", ""].join(
       "\n",
     );
-    const formatted = formatModuleAndCheck(input, "test.skir", () => 0.5);
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({ newSourceCode: input, errors: [] });
   });
 
@@ -1173,7 +1329,11 @@ describe("formatModule", () => {
       "): bool = 1;",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir", () => 0.5);
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+      randomGenerator: () => 0.5,
+    });
     expect(formatted).toMatch({ newSourceCode: input, errors: [] });
   });
 
@@ -1195,7 +1355,10 @@ describe("formatModule", () => {
       "= 42;",
       "",
     ].join("\n");
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
   });
 
@@ -1205,7 +1368,10 @@ describe("formatModule", () => {
 
   it("strips leading spaces before the first token and emits a delete textEdit", () => {
     const input = "   struct Foo {}";
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ errors: [] });
     // The first textEdit must delete exactly the 3 leading spaces.
     expect(formatted.textEdits[0]).toMatch({
@@ -1223,7 +1389,10 @@ describe("formatModule", () => {
 
   it("strips leading newlines before the first token and emits a delete textEdit", () => {
     const input = "\n\nimport * as foo from 'foo.skir';";
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ errors: [] });
     // The first textEdit must delete exactly the 2 leading newlines.
     expect(formatted.textEdits[0]).toMatch({
@@ -1242,7 +1411,10 @@ describe("formatModule", () => {
     // firstBlockStart == 0, so the `if (firstBlockStart > 0)` branch is not
     // taken and no delete edit should be pushed for position 0.
     const input = "struct Foo {}";
-    const formatted = formatModuleAndCheck(input, "test.skir");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
     expect(formatted).toMatch({ errors: [] });
     const hasLeadingDeleteEdit = formatted.textEdits.some(
       (e) => e.oldStart === 0 && e.oldEnd > 0 && e.newText === "",
@@ -1251,4 +1423,107 @@ describe("formatModule", () => {
       throw new Error("Expected no leading-delete textEdit but found one");
     }
   });
+
+  // ---------------------------------------------------------------------------
+  // Constant variant legacy format
+  // ---------------------------------------------------------------------------
+
+  it("converts constant variants with legacy format", () => {
+    const moduleSetBuilder = new ModuleSetBuilder();
+    const sourceCodeA = `
+      /// Foo [Weekday.MONDAY] and [Zoo.Weekday.TUESDAY] and [Weekday]
+      struct Zoo {
+        enum Weekday {
+          MONDAY;
+          TUESDAY;
+        }
+      }
+
+      /// Foo [Zoo.Weekday.MONDAY]
+      method GetSchedule(Zoo.Weekday): string = 1;
+      `;
+    const sourceCodeB = `
+      import { Foo } from "@gepheum/foo/bar.skir";
+      import { Zoo } from "path/to/a.skir";
+
+      /// Foo [Foo.A]
+      const FOO_A: Foo = "A";
+      const WEEKDAYS: [Zoo.Weekday?] = ["MONDAY", null, "TUESDAY"];
+      `;
+    moduleSetBuilder.pathToCode.set("path/to/a.skir", sourceCodeA);
+    moduleSetBuilder.pathToCode.set("path/to/b.skir", sourceCodeB);
+    moduleSetBuilder.pathToCode.set(
+      "@gepheum/foo/bar.skir",
+      `
+      enum Foo {
+        A;
+        B;
+      }
+    `,
+    );
+    const moduleSet = moduleSetBuilder.doCompile();
+
+    const resolvedModuleA = moduleSet.modules.get("path/to/a.skir")!;
+    expect(resolvedModuleA.errors).toMatch([]);
+    const resolvedModuleB = moduleSet.modules.get("path/to/b.skir")!;
+    expect(resolvedModuleB.errors).toMatch([]);
+
+    expect(
+      formatModuleAndCheck({
+        sourceCode: sourceCodeA,
+        modulePath: "path/to/a.skir",
+        resolvedModule: resolvedModuleA.result,
+      }),
+    ).toMatch({
+      newSourceCode: [
+        "/// Foo [Weekday.monday] and [Zoo.Weekday.tuesday] and [Weekday]",
+        "struct Zoo {",
+        "  enum Weekday {",
+        "    monday;",
+        "    tuesday;",
+        "  }",
+        "}",
+        "",
+        "/// Foo [Zoo.Weekday.monday]",
+        "method GetSchedule(",
+        "  Zoo.Weekday",
+        "): string = 1;",
+        "",
+      ].join("\n"),
+      errors: [],
+    });
+    expect(
+      formatModuleAndCheck({
+        sourceCode: sourceCodeB,
+        modulePath: "path/to/b.skir",
+        resolvedModule: resolvedModuleB.result,
+      }),
+    ).toMatch({
+      newSourceCode: [
+        'import { Foo } from "@gepheum/foo/bar.skir";',
+        "",
+        'import { Zoo } from "path/to/a.skir";',
+        "",
+        "/// Foo [Foo.A]",
+        'const FOO_A: Foo = "A";',
+        "const WEEKDAYS: [Zoo.Weekday?] = [",
+        '  "monday",',
+        "  null,",
+        '  "tuesday",',
+        "];",
+        "",
+      ].join("\n"),
+      errors: [],
+    });
+  });
 });
+
+class ModuleSetBuilder {
+  readonly pathToCode = new Map<string, string>();
+  cache: ModuleSet | "no-cache" = "no-cache";
+  parseMode: "strict" | "lenient" = "lenient";
+
+  doCompile(): ModuleSet {
+    return ModuleSet.compile(this.pathToCode, this.cache, this.parseMode);
+  }
+}

@@ -230,6 +230,69 @@ describe("module parser", () => {
   it("simple enum", () => {
     const actualModule = parse(`
       enum Enum {
+        constant;
+        removed;
+        /// Doc comment
+        value_field: bool;
+      }`);
+
+    expect(actualModule).toMatch({
+      result: {
+        nameToDeclaration: {
+          Enum: {
+            kind: "record",
+            name: {
+              text: "Enum",
+            },
+            recordType: "enum",
+            nameToDeclaration: {
+              constant: {
+                kind: "field",
+                name: {
+                  text: "constant",
+                },
+                number: 1,
+              },
+              value_field: {
+                kind: "field",
+                name: {
+                  text: "value_field",
+                },
+                number: 3,
+                doc: {},
+                unresolvedType: {
+                  kind: "primitive",
+                },
+                isRecursive: false,
+              },
+            },
+            fields: [
+              {
+                kind: "field",
+                name: {
+                  text: "constant",
+                },
+              },
+              {
+                kind: "field",
+                name: {
+                  text: "value_field",
+                },
+              },
+            ],
+            numSlots: 0,
+            numSlotsInclRemovedNumbers: 0,
+          },
+        },
+      },
+      errors: [],
+      warnings: [],
+    });
+  });
+
+  it("simple enum with legacy format", () => {
+    const actualModule = parse(`
+      enum Enum {
         CONSTANT;
         removed;
         /// Doc comment
@@ -253,39 +316,30 @@ describe("module parser", () => {
                 },
                 number: 1,
               },
-              value_field: {
-                kind: "field",
-                name: {
-                  text: "value_field",
-                },
-                number: 3,
-                doc: {},
-                unresolvedType: {
-                  kind: "primitive",
-                },
-                isRecursive: false,
-              },
             },
-            fields: [
-              {
-                kind: "field",
-                name: {
-                  text: "CONSTANT",
-                },
-              },
-              {
-                kind: "field",
-                name: {
-                  text: "value_field",
-                },
-              },
-            ],
-            numSlots: 0,
-            numSlotsInclRemovedNumbers: 0,
           },
         },
       },
       errors: [],
+      warnings: [
+        {
+          token: {
+            text: "CONSTANT",
+            originalText: "CONSTANT",
+            position: 27,
+            line: {
+              lineNumber: 2,
+              line: "        CONSTANT;",
+              position: 19,
+              modulePath: "path/to/module",
+            },
+            colNumber: 8,
+          },
+          message:
+            "Constant variants should be spelled in lowercase; uppercase format is legacy",
+          suggestReformat: true,
+        },
+      ],
     });
   });
 
@@ -735,7 +789,7 @@ describe("module parser", () => {
   it("enum with sparse numbers", () => {
     const actualModule = parse(`
       enum Enum {
-        CONSTANT = 2;
+        constant = 2;
         removed 10, 11;
         removed 12..14;
         removed 30..32, 50, 60..62;
@@ -752,10 +806,10 @@ describe("module parser", () => {
             },
             recordType: "enum",
             nameToDeclaration: {
-              CONSTANT: {
+              constant: {
                 kind: "field",
                 name: {
-                  text: "CONSTANT",
+                  text: "constant",
                 },
                 number: 2,
               },
@@ -989,8 +1043,11 @@ describe("module parser", () => {
   it("enum with invalid casing", () => {
     const actualModule = parse(`
       enum a {
-        foo = 1;
+        Foo = 1;
         BAR: string = 100;
+        zoo = 2;
+        zee: bool = 3;
+        ZAA = 4;
       }`);
 
     expect(actualModule).toMatch({
@@ -1003,15 +1060,31 @@ describe("module parser", () => {
         },
         {
           token: {
-            text: "foo",
+            text: "Foo",
           },
-          expected: "UPPER_UNDERSCORE",
+          expected: "lower_underscore",
         },
         {
           token: {
             text: "BAR",
           },
           expected: "lower_underscore",
+        },
+        {
+          token: {
+            text: "ZAA",
+          },
+          message: "Cannot mix legacy format and lowercase format",
+        },
+      ],
+      warnings: [
+        {
+          token: {
+            text: "ZAA",
+          },
+          message:
+            "Constant variants should be spelled in lowercase; uppercase format is legacy",
+          suggestReformat: true,
         },
       ],
     });
@@ -1141,7 +1214,25 @@ describe("module parser", () => {
           token: {
             text: "UNKNOWN",
           },
-          message: "Cannot name field of enum: UNKNOWN",
+          message: "Cannot name field of enum: unknown",
+        },
+      ],
+    });
+  });
+
+  it("enum with field named unknown", () => {
+    const actualModule = parse(`
+    enum Enum {
+      unknown = 1;
+    }`);
+
+    expect(actualModule).toMatch({
+      errors: [
+        {
+          token: {
+            text: "unknown",
+          },
+          message: "Cannot name field of enum: unknown",
         },
       ],
     });
@@ -1150,14 +1241,14 @@ describe("module parser", () => {
   it("enum with field number set to zero", () => {
     const actualModule = parse(`
     enum Enum {
-      A = 0;
+      a = 0;
     }`);
 
     expect(actualModule).toMatch({
       errors: [
         {
           token: {
-            text: "A",
+            text: "a",
           },
           message: "Number 0 is reserved for UNKNOWN field",
         },
