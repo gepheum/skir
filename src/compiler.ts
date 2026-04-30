@@ -144,8 +144,7 @@ class WatchModeMainLoop {
           throw e;
         }
       }
-      const errors = moduleSet.errors.filter((e) => !e.errorIsInOtherModule);
-      const { warnings } = moduleSet;
+      const { errors, warnings } = moduleSet;
       if (errors.length) {
         renderErrors(errors, "error");
         return false;
@@ -303,15 +302,24 @@ async function format(
   srcDir: string,
   mode: "fix" | "check",
 ): Promise<void> {
+  const dependencies = await getDependencies(
+    skirConfig.dependencies,
+    root,
+    skirConfig.githubTokenEnvVar,
+  );
   const moduleSet = await collectModules(
     srcDir,
-    ModuleSet.empty(),
+    dependencies,
     undefined,
     "lenient",
   );
 
   const pathToFormatResult = new Map<string, ModuleFormatResult>();
   for await (const [modulePath, module] of moduleSet.modules) {
+    if (modulePath.startsWith("@")) {
+      // Skip external dependencies
+      continue;
+    }
     const unformattedCode = module.result.sourceCode;
     const formattedModule = formatModule({
       sourceCode: unformattedCode,

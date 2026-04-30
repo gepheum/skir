@@ -17,6 +17,7 @@ export function renderErrors(
   errors: readonly SkirError[],
   severity: "error" | "warning",
 ): void {
+  errors = errors.filter((e) => !e.errorIsInOtherModule);
   const MAX_ERRORS = 10;
   for (let i = 0; i < errors.length && i < MAX_ERRORS; ++i) {
     const error = errors[i];
