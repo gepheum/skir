@@ -285,7 +285,7 @@ describe("completion_helper", () => {
     const input = new Input();
     input.moduleContent = [
       "enum Status {",
-      "  OK;",
+      "  ok;",
       "  error: string;",
       "}",
       "",
@@ -296,7 +296,7 @@ describe("completion_helper", () => {
     expect(input.doProvide()).toMatch({
       placeholderStartPos: 64,
       placeholderEndPos: 64,
-      items: [{ name: "UNKNOWN" }, { name: "OK" }],
+      items: [{ name: "unknown" }, { name: "ok" }],
     });
   });
 
@@ -315,7 +315,7 @@ describe("completion_helper", () => {
     expect(input.doProvide()).toMatch({
       placeholderStartPos: 64,
       placeholderEndPos: 67,
-      items: [{ name: "UNKNOWN" }, { name: "OK" }],
+      items: [{ name: "unknown" }, { name: "OK" }],
     });
   });
 

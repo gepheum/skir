@@ -748,7 +748,7 @@ export class ModuleSet {
       // The value is a string.
       // It must match the name of one of the constants defined in the enum.
       const fieldName = unquoteAndUnescape(token.text);
-      if (fieldName === "UNKNOWN") {
+      if (["unknown", "UNKNOWN"].includes(fieldName)) {
         // Present on every enum.
         return 0;
       }
@@ -757,7 +757,7 @@ export class ModuleSet {
         errors.push({
           token: token,
           message: `Variant not found in enum ${expectedEnum.name.text}`,
-          expectedNames: [{ name: "UNKNOWN" }].concat(
+          expectedNames: [{ name: "unknown" }].concat(
             declarationsToExpectedNames(
               expectedEnum.nameToDeclaration,
               (d) => d.kind === "field" && !d.type,

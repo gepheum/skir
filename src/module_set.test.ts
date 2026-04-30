@@ -1477,8 +1477,8 @@ describe("module set", () => {
         "path/to/module",
         `
         enum Enum {
-          A;
-          B;
+          a;
+          b;
           c: string;
         }
         struct EnumWrapper {
@@ -1495,13 +1495,13 @@ describe("module set", () => {
         const FOO: Foo = {
           enums: [
             {
-              e: "A",
+              e: "a",
             },
             {
-              e: "B",
+              e: "b",
             },
             {
-              e: "UNKNOWN",
+              e: "unknown",
             },
             {
               e: {
@@ -1738,7 +1738,7 @@ describe("module set", () => {
               text: '"k"',
             },
             message: "Variant not found in enum Enum",
-            expectedNames: [{ name: "UNKNOWN" }, { name: "K" }],
+            expectedNames: [{ name: "unknown" }, { name: "K" }],
           },
         ],
         warnings: [
