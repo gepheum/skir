@@ -78,6 +78,15 @@ generators:
       writeGoogleTestHeaders: false
 
   # # --------------------------------------------------------------------------
+  # # C# code generator
+  # # Home: https://github.com/gepheum/skir-csharp-gen
+  # # To install runtime dependencies: 
+  # # --------------------------------------------------------------------------
+  # - mod: skir-csharp-gen
+  #   outDir: ./skirout
+  #   config: {}
+
+  # # --------------------------------------------------------------------------
   # # Dart code generator
   # # Home: https://github.com/gepheum/skir-dart-gen
   # # To install runtime dependencies: dart pub add skir_client

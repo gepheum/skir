@@ -1,4 +1,5 @@
 import * as CcGen from "skir-cc-gen";
+import * as CSharpGen from "skir-csharp-gen";
 import * as DartGen from "skir-dart-gen";
 import * as GleamGen from "skir-gleam-gen";
 import * as GoGen from "skir-go-gen";
@@ -284,6 +285,7 @@ async function parseSkirConfigInternalAsync(
 
 const STATIC_GENERATORS: Record<string, CodeGenerator<unknown>> = {
   "skir-cc-gen": CcGen.GENERATOR as any as CodeGenerator<unknown>,
+  "skir-csharp-gen": CSharpGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-dart-gen": DartGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-gleam-gen": GleamGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-go-gen": GoGen.GENERATOR as any as CodeGenerator<unknown>,

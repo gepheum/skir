@@ -1,6 +1,6 @@
 {
   "name": "skir",
-  "version": "1.2.13",
+  "version": "1.2.14",
   "description": "",
   "homepage": "https://skir.build/",
   "bugs": {
@@ -43,6 +43,7 @@
   "dependencies": {
     "glob": "^13.0.6",
     "skir-cc-gen": "^1.0.16",
+    "skir-csharp-gen": "^0.1.1",
     "skir-dart-gen": "^1.0.7",
     "skir-gleam-gen": "^0.1.2",
     "skir-go-gen": "^0.1.7",
@@ -51,7 +52,7 @@
     "skir-kotlin-gen": "^1.0.11",
     "skir-python-gen": "^1.0.9",
     "skir-rust-gen": "^0.1.5",
-    "skir-swift-gen": "^0.1.6",
+    "skir-swift-gen": "^0.1.7",
     "skir-typescript-gen": "^1.0.11",
     "skir-zig-gen": "^0.1.8",
     "watcher": "^2.3.1",
