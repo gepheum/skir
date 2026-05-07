@@ -21,7 +21,7 @@ Write your schema once in a `.skir` file and generate idiomatic, type-safe code 
 
 ## ✨ Features
 
-- 🧩 **One schema, eleven languages, zero friction** - One YAML config, one command, and watch mode that refreshes generated code on every change.
+- 🧩 **One schema, twelve languages, zero friction** - One YAML config, one command, and watch mode that refreshes generated code on every change.
 - 🛡️ **End-to-end type safety** - Shared method and type definitions keep client/server contracts aligned before runtime.
 - ⚡ **SkirRPC + Studio** - Lightweight HTTP RPC with a built-in Studio app for browsing and testing methods.
 - 📦 **GitHub imports** - Import types directly from GitHub repositories to share data structures across projects.
@@ -94,6 +94,7 @@ assert(restored == point)
 | 🐍 **Python** | [Documentation](https://skir.build/docs/python) | [Example](https://github.com/gepheum/skir-python-example) |
 | ⚡ **C++** | [Documentation](https://skir.build/docs/cpp) | [Example](https://github.com/gepheum/skir-cc-example) |
 | ☕ **Java** | [Documentation](https://skir.build/docs/java) | [Example](https://github.com/gepheum/skir-java-example) |
+| #️⃣ **C#** | [Documentation](https://skir.build/docs/csharp) | [Example](https://github.com/gepheum/skir-csharp-example) |
 | 💜 **Kotlin** | [Documentation](https://skir.build/docs/kotlin) | [Example](https://github.com/gepheum/skir-kotlin-example) |
 | 🦀 **Rust** | [Documentation](https://skir.build/docs/rust) | [Example](https://github.com/gepheum/skir-rust-example) |
 | 🐹 **Go** | [Documentation](https://skir.build/docs/go) | [Example](https://github.com/gepheum/skir-go-example) |
