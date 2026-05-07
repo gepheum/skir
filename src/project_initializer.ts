@@ -80,7 +80,7 @@ generators:
   # # --------------------------------------------------------------------------
   # # C# code generator
   # # Home: https://github.com/gepheum/skir-csharp-gen
-  # # To install runtime dependencies: 
+  # # To install runtime dependencies: dotnet add package skir_client
   # # --------------------------------------------------------------------------
   # - mod: skir-csharp-gen
   #   outDir: ./skirout
