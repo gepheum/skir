@@ -27,8 +27,8 @@ Write your schema once in a `.skir` file and generate idiomatic, type-safe code 
 - 📦 **GitHub imports** - Import types directly from GitHub repositories to share data structures across projects.
 - 🔁 **Serialization modes** - Dense JSON for APIs/DBs, readable JSON for debugging, and binary for raw performance.
 - 🕰️ **Safe schema evolution** - Built-in checks and clear rules so old and new data remain deserializable.
-- 🧬 **Rust-like enums** - Variants can be constants or carry typed payloads for clean polymorphism.
-- 🔒 **Immutable generated models** - Deep immutability (except C++) with required fields at construction time.
+- 🧬 **Polymorphism done right** - Sum types let variants be constants or carry typed payloads for clean, explicit polymorphism.
+- 🔒 **Prioritizes immutability** - Skir generates deeply immutable types with all fields required at construction time.
 - 🗂️ **Key-indexed arrays** - Declare arrays like `[User|user_id]` and get fast key-based lookup APIs.
 - 🛠️ **First-class tooling** - VS Code extension + LSP with validation, completion, and auto-formatting.
 - 🧱 **Easy to extend** - Generators are regular NPM modules, so custom generators plug in cleanly.
