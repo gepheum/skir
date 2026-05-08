@@ -105,10 +105,30 @@ async function fetchWithRetry(
     if (attempt === maxRetries) {
       break;
     }
+    // Primary rate limit is fully exhausted: X-RateLimit-Remaining is 0 and a
+    // future reset time is known. Retrying within the cap won't help since the
+    // window won't reset for potentially hours. Fail fast with a clear error.
+    if (isPrimaryRateLimitExhausted(response)) {
+      break;
+    }
     const waitMs = getRetryWaitMs(response, attempt);
     await new Promise((resolve) => setTimeout(resolve, waitMs));
   }
   return lastResponse!;
+}
+
+function isPrimaryRateLimitExhausted(response: Response): boolean {
+  const remaining = parseHeaderInt(
+    response.headers.get("X-RateLimit-Remaining"),
+  );
+  const resetEpochSeconds = parseHeaderInt(
+    response.headers.get("X-RateLimit-Reset"),
+  );
+  return (
+    remaining === 0 &&
+    resetEpochSeconds !== undefined &&
+    resetEpochSeconds > Date.now() / 1000
+  );
 }
 
 function getRetryWaitMs(response: Response, attempt: number): number {
