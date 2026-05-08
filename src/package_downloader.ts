@@ -93,7 +93,7 @@ export async function downloadPackage(
 async function fetchWithRetry(
   url: string,
   headers: Record<string, string>,
-  maxRetries = 3,
+  maxRetries = 8,
 ): Promise<Response> {
   let lastResponse: Response | undefined;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -203,9 +203,7 @@ async function getGithubTree(
         };
       }
     } else {
-      throw new Error(
-        `Github API request failed: ${response.status} ${response.statusText}`,
-      );
+      throw await buildGithubApiError(response, githubToken);
     }
   }
 
@@ -225,9 +223,7 @@ async function downloadFileContent(
   const response = await fetchWithRetry(url, makeHeaders(githubToken));
 
   if (!response.ok) {
-    throw new Error(
-      `Failed to download file: ${response.status} ${response.statusText}`,
-    );
+    throw await buildGithubApiError(response, githubToken);
   }
 
   const data = (await response.json()) as {
@@ -397,3 +393,87 @@ type GithubTreeResult =
   | DependencyError;
 
 const MAX_RETRY_WAIT_MS = 60 * 1000;
+
+async function buildGithubApiError(
+  response: Response,
+  githubToken?: string,
+): Promise<Error> {
+  const statusPrefix = `Github API request failed: ${response.status} ${response.statusText}`;
+  const githubMessage = await readGithubErrorMessage(response);
+
+  if (response.status === 401) {
+    return new Error(
+      `${statusPrefix} (invalid or expired Github token).${formatGithubMessageSuffix(githubMessage)}`,
+    );
+  }
+
+  if (response.status === 403 || response.status === 429) {
+    const remaining = parseHeaderInt(
+      response.headers.get("X-RateLimit-Remaining"),
+    );
+    const resetEpochSeconds = parseHeaderInt(
+      response.headers.get("X-RateLimit-Reset"),
+    );
+    const resetIso =
+      resetEpochSeconds !== undefined
+        ? new Date(resetEpochSeconds * 1000).toISOString()
+        : undefined;
+
+    const missingTokenHint = githubToken
+      ? ""
+      : " No Github token configured; CI jobs without GITHUB_TOKEN are limited to a much lower unauthenticated quota.";
+
+    const resetHint =
+      remaining === 0 && resetIso ? ` Rate limit resets at ${resetIso}.` : "";
+
+    const secondaryRateLimitHint =
+      remaining !== 0
+        ? " This may be a Github secondary rate limit; reduce parallel requests or add jitter between requests."
+        : "";
+
+    return new Error(
+      `${statusPrefix} (Github rate limit exceeded).${missingTokenHint}${resetHint}${secondaryRateLimitHint}${formatGithubMessageSuffix(githubMessage)}`,
+    );
+  }
+
+  return new Error(
+    `${statusPrefix}${formatGithubMessageSuffix(githubMessage)}`,
+  );
+}
+
+async function readGithubErrorMessage(
+  response: Response,
+): Promise<string | undefined> {
+  let bodyText: string;
+  try {
+    bodyText = await response.text();
+  } catch {
+    return undefined;
+  }
+
+  const trimmed = bodyText.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as { message?: unknown };
+    if (
+      typeof parsed.message === "string" &&
+      parsed.message.trim().length > 0
+    ) {
+      return parsed.message.trim();
+    }
+  } catch {
+    // Fall through to plain text message when the body is not JSON.
+  }
+
+  return trimmed;
+}
+
+function formatGithubMessageSuffix(message: string | undefined): string {
+  if (!message) {
+    return "";
+  }
+  return ` Github response: ${message}`;
+}
