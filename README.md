@@ -83,7 +83,7 @@ assert(restored == point)
 - [Serialization](https://skir.build/docs/serialization)
 - [Schema evolution](https://skir.build/docs/schema-evolution)
 - [SkirRPC](https://skir.build/docs/skirrpc)
-- [External dependencies](https://skir.build/docs/dependencies)
+- [Github imports](https://skir.build/docs/github-imports)
 - [Coming from Protocol Buffer](https://skir.build/docs/protobuf)
 
 ## 🌍 Supported languages
