@@ -381,6 +381,7 @@ function shouldAddTrailingComma(
   return (
     first.kind !== "import-block" &&
     nextNonComment.kind !== "import-block" &&
+    !blockIsComment(first) &&
     context.context === "in-value" &&
     ["]", "}", "|}"].includes(nextNonComment.token.text) &&
     !["[", "{", "{|", ","].includes(first.token.text)

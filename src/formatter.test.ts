@@ -233,7 +233,7 @@ const EXPECTED_FORMATTED_MODULE = [
   "    c: 'n\\\\\"',",
   "    d: 'n\\\"',",
   "    // c doc",
-  "    e: [],  // c,",
+  "    e: [],  // c",
   "  },",
   "  {||},",
   "  {|",
@@ -451,7 +451,6 @@ describe("formatModule", () => {
         {},
         {},
         {},
-        {},
       ],
       errors: [],
     });
@@ -520,6 +519,107 @@ describe("formatModule", () => {
     });
     expect(formatted).toMatch({
       newSourceCode: expected,
+      errors: [],
+    });
+  });
+
+  for (const { type, open, close, item } of [
+    { type: "[int32]", open: "[", close: "]", item: "1" },
+    { type: "Foo", open: "{", close: "}", item: "a: 1" },
+    { type: "Foo", open: "{|", close: "|}", item: "a: 1" },
+  ]) {
+    for (const comment of ["// one", "/* one */"]) {
+      for (const hasComma of [false, true]) {
+        it(`formats ${open} value with ${comment} and ${hasComma ? "a" : "no"} trailing comma`, () => {
+          const input = [
+            `const X: ${type} = ${open}`,
+            `  ${item}${hasComma ? "," : ""}  ${comment}`,
+            `${close};`,
+            "",
+          ].join("\n");
+          const expected = [
+            `const X: ${type} = ${open}`,
+            `  ${item},  ${comment}`,
+            `${close};`,
+            "",
+          ].join("\n");
+          const formatted = formatModuleAndCheck({
+            sourceCode: input,
+            modulePath: "test.skir",
+          });
+          expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
+          const edited = formatted.textEdits.reduceRight(
+            (source, edit) =>
+              source.slice(0, edit.oldStart) +
+              edit.newText +
+              source.slice(edit.oldEnd),
+            input,
+          );
+          expect(edited).toMatch(expected);
+
+          const reformatted = formatModuleAndCheck({
+            sourceCode: formatted.newSourceCode,
+            modulePath: "test.skir",
+          });
+          expect(reformatted).toMatch({
+            newSourceCode: expected,
+            textEdits: [],
+            errors: [],
+          });
+        });
+      }
+
+      it(`formats empty ${open} value with ${comment}`, () => {
+        const input = [
+          `const X: ${type} = ${open}`,
+          `  ${comment}`,
+          `${close};`,
+          "",
+        ].join("\n");
+        const formatted = formatModuleAndCheck({
+          sourceCode: input,
+          modulePath: "test.skir",
+        });
+        expect(formatted).toMatch({
+          newSourceCode: input,
+          textEdits: [],
+          errors: [],
+        });
+      });
+    }
+  }
+
+  it("adds commas before trailing comments in nested values", () => {
+    const input = [
+      "const X: [[int32]] = [",
+      "  [",
+      "    1  /* inner */",
+      "    // another comment",
+      "  ]  // outer",
+      "];",
+      "",
+    ].join("\n");
+    const expected = [
+      "const X: [[int32]] = [",
+      "  [",
+      "    1,  /* inner */",
+      "    // another comment",
+      "  ],  // outer",
+      "];",
+      "",
+    ].join("\n");
+    const formatted = formatModuleAndCheck({
+      sourceCode: input,
+      modulePath: "test.skir",
+    });
+    expect(formatted).toMatch({ newSourceCode: expected, errors: [] });
+    const reformatted = formatModuleAndCheck({
+      sourceCode: formatted.newSourceCode,
+      modulePath: "test.skir",
+    });
+    expect(reformatted).toMatch({
+      newSourceCode: expected,
+      textEdits: [],
       errors: [],
     });
   });
