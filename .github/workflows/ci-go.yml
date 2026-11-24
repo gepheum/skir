@@ -1,0 +1,32 @@
+name: "CI: Go"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci-go:
+    name: Verify Go Client & E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Install & build Skir compiler
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+      - name: Verify Go client library formatting, build & unit tests
+        working-directory: client-libraries/go
+        run: |
+          test -z "$(gofmt -l .)"
+          go build ./...
+          go test ./...
+      - name: Verify Go E2E tests formatting & test suite
+        run: |
+          (cd e2e-tests/go && test -z "$(gofmt -l .)")
+          ./e2e-tests/test.sh --lang=go

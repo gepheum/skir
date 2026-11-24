@@ -1,0 +1,41 @@
+name: "CI: MoonBit"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci-moonbit:
+    name: Verify MoonBit Client & E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: hustcer/setup-moonbit@v1
+        with:
+          version: latest
+      - name: Install & build Skir compiler
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+      - name: Verify MoonBit client library (check, test & format)
+        working-directory: client-libraries/moonbit
+        run: |
+          moon update
+          moon install
+          moon fmt --check
+          moon check
+          moon test
+      - name: Verify MoonBit async client library (check & test)
+        working-directory: client-libraries/moonbit-async
+        run: |
+          moon update
+          moon install
+          moon fmt --check
+          moon check
+      - name: Run MoonBit E2E tests
+        run: |
+          (cd e2e-tests/moonbit && moon update)
+          ./e2e-tests/test.sh --lang=moonbit

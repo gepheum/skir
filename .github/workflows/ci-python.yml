@@ -1,0 +1,45 @@
+name: "CI: Python"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci-python:
+    name: Verify Python Clients & E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python linters & test tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install black flake8 isort pytest
+      - name: Install & build Skir compiler
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+      - name: Verify Python client library (formatting, flake8 & unit tests)
+        working-directory: client-libraries/python
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          black --check --diff .
+          flake8 . --count --ignore=E203,E704,W503 --show-source --max-line-length=127 --statistics
+          python3 -m unittest discover -s tests -p "test_*.py"
+      - name: Verify Python SQLAlchemy library (formatting, flake8 & unit tests)
+        working-directory: client-libraries/python-sqlalchemy
+        run: |
+          pip install -e ../python
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          black --check --diff .
+          flake8 . --count --ignore=E203,E704,W503 --show-source --max-line-length=127 --statistics
+          python3 -m unittest discover -s tests -p "test_*.py"
+      - name: Verify Python E2E tests formatting & test suite
+        run: |
+          black --check --diff e2e-tests/python/tests
+          ./e2e-tests/test.sh --lang=python

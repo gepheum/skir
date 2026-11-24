@@ -1,0 +1,33 @@
+name: "CI: C#"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci-csharp:
+    name: Verify C# Client & E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Install & build Skir compiler
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+      - name: Verify C# client library formatting, build & unit tests
+        working-directory: client-libraries/csharp
+        run: |
+          dotnet restore SkirClient.csproj
+          dotnet format SkirClient.csproj --verify-no-changes
+          dotnet build SkirClient.csproj -c Release --no-restore -warnaserror
+          dotnet test SkirClientTest/SkirClientTest.csproj -c Release
+      - name: Verify C# E2E tests formatting & test suite
+        run: |
+          ./e2e-tests/test.sh --lang=csharp
+          (cd e2e-tests/csharp && dotnet format CsharpE2eTest.csproj --verify-no-changes && dotnet format SkirClientTest/SkirClientTest.csproj --verify-no-changes)

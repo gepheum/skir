@@ -1,0 +1,26 @@
+name: "CI: Java"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci-java:
+    name: Verify Java E2E Tests & JVM Client
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+      - uses: gradle/actions/setup-gradle@v3
+      - name: Install & build Skir compiler
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+      - name: Run Java E2E tests & Spotless formatting check
+        run: ./e2e-tests/test.sh --lang=java

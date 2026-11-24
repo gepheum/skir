@@ -1,0 +1,33 @@
+name: "CI: Zig"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci-zig:
+    name: Verify Zig Client & E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+      - name: Install & build Skir compiler
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+      - name: Verify Zig client library formatting, build & unit tests
+        working-directory: client-libraries/zig
+        run: |
+          zig fmt --check src/skir_client.zig build.zig
+          zig build -Doptimize=Debug
+          zig build test -Doptimize=Debug
+          zig build test -Doptimize=ReleaseSafe
+      - name: Verify Zig E2E tests formatting & test suite
+        run: |
+          (cd e2e-tests/zig && zig fmt --check $(find src -name '*.zig' -not -path '*/skirout/*') build.zig)
+          ./e2e-tests/test.sh --lang=zig

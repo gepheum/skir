@@ -1,0 +1,31 @@
+name: "CI: Kotlin"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci-kotlin:
+    name: Verify Kotlin Client & E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+      - uses: gradle/actions/setup-gradle@v3
+      - name: Install & build Skir compiler
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+      - name: Verify Kotlin client library formatting & unit tests
+        working-directory: client-libraries/kotlin
+        run: |
+          ./gradlew ktlintCheck
+          ./gradlew test
+      - name: Run Kotlin E2E tests & ktlint formatting check
+        run: ./e2e-tests/test.sh --lang=kotlin

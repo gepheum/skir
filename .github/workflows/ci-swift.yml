@@ -1,0 +1,29 @@
+name: "CI: Swift"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci-swift:
+    name: Verify Swift Client & E2E Tests
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install & build Skir compiler
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+      - name: Verify Swift client library formatting, build & unit tests
+        working-directory: client-libraries/swift
+        run: |
+          find Sources Tests -name "*.swift" -exec xcrun swift-format lint --strict {} +
+          swift build
+          swift test
+      - name: Verify Swift E2E tests formatting & test suite
+        run: |
+          xcrun swift-format lint --strict e2e-tests/swift/Tests/*.swift
+          ./e2e-tests/test.sh --lang=swift

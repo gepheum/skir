@@ -1,0 +1,32 @@
+name: "CI: Rust"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci-rust:
+    name: Verify Rust Client & E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Install & build Skir compiler
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+      - name: Verify Rust client library (rustfmt, clippy & unit tests)
+        working-directory: client-libraries/rust
+        run: |
+          cargo fmt --check
+          cargo clippy -- -D warnings
+          cargo test
+      - name: Verify Rust E2E tests formatting & test suite
+        run: |
+          ./e2e-tests/test.sh --lang=rust
+          (cd e2e-tests/rust && cargo fmt --check)

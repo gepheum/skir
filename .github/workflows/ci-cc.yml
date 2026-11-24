@@ -1,0 +1,32 @@
+name: "CI: C++"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci-cc:
+    name: Verify C++ Client & E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format cmake
+      - name: Install & build Skir compiler
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+      - name: Check C++ formatting (client & E2E tests)
+        run: |
+          find client-libraries/cc -maxdepth 1 \( -name '*.cc' -o -name '*.h' \) -exec clang-format --dry-run --Werror {} +
+          find e2e-tests/cc -maxdepth 1 \( -name '*.cc' -o -name '*.h' \) -exec clang-format --dry-run --Werror {} +
+      - name: Build C++ client library standalone
+        working-directory: client-libraries/cc
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build
+      - name: Run C++ E2E tests
+        run: ./e2e-tests/test.sh --lang=cc

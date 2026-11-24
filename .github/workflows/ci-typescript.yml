@@ -1,0 +1,28 @@
+name: "CI: TypeScript"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci-typescript:
+    name: Verify TypeScript Client & E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install & build Skir workspaces
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+      - name: Verify TypeScript client library (formatting, lint & unit tests)
+        run: |
+          npm run format:check --workspace=skir-client
+          npm run lint --workspace=skir-client
+          npm test --workspace=skir-client
+      - name: Verify TypeScript E2E tests formatting & test suite
+        run: |
+          npx prettier --check "e2e-tests/typescript/src/**/*.ts"
+          ./e2e-tests/test.sh --lang=typescript

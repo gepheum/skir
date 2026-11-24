@@ -1,0 +1,34 @@
+name: "CI: Gleam"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci-gleam:
+    name: Verify Gleam Client & E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27"
+          rebar3-version: "3"
+          gleam-version: "1.15.0"
+      - name: Install & build Skir compiler
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+      - name: Verify Gleam client library formatting, build & unit tests
+        working-directory: client-libraries/gleam
+        run: |
+          gleam format --check src test
+          gleam build
+          gleam test
+      - name: Verify Gleam E2E tests formatting & test suite
+        run: |
+          (cd e2e-tests/gleam && gleam format --check test)
+          ./e2e-tests/test.sh --lang=gleam

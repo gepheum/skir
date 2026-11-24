@@ -1,0 +1,33 @@
+name: "CI: Dart"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci-dart:
+    name: Verify Dart Client & E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - name: Install & build Skir compiler
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+      - name: Verify Dart client library formatting, analysis & unit tests
+        working-directory: client-libraries/dart
+        run: |
+          dart pub get
+          dart format --output=none --set-exit-if-changed .
+          dart analyze --fatal-infos
+          dart test
+      - name: Run Dart E2E tests & check formatting
+        run: |
+          (cd e2e-tests/dart && dart format --output=none --set-exit-if-changed test)
+          ./e2e-tests/test.sh --lang=dart
