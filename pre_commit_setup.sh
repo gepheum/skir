@@ -13,7 +13,7 @@ cat > .git/hooks/pre-commit << 'EOF'
 #!/bin/bash
 
 # Run the pre-commit script.
-./pre_commit.sh
+./pre_commit.sh --fast
 
 # If the script fails, prevent the commit.
 if [ $? -ne 0 ]; then
