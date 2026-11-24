@@ -36,9 +36,10 @@ jobs:
         run: |
           pip install -e ../python
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -e .
           black --check --diff .
           flake8 . --count --ignore=E203,E704,W503 --show-source --max-line-length=127 --statistics
-          python3 -m unittest discover -s tests -p "test_*.py"
+          PYTHONPATH=src python3 -m unittest discover -s tests -p "test_*.py"
       - name: Verify Python E2E tests formatting & test suite
         run: |
           black --check --diff e2e-tests/python/tests
