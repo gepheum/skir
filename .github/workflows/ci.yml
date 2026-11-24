@@ -16,6 +16,6 @@ jobs:
       - run: npm ci --legacy-peer-deps
       - run: npm run build
       - run: npm test
-      # - run: ./e2e-tests/test.sh --lang=typescript
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: ./e2e-tests/test.sh --lang=typescript
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
