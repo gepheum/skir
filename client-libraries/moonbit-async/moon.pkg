@@ -1,0 +1,12 @@
+import {
+  "moonbitlang/core/json",
+  "moonbitlang/core/hashmap",
+  "moonbitlang/core/string",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/async/http",
+  "gepheum/skir-client" @client,
+}
+
+options(
+  targets: { "service_client.mbt": [ "native", "js" ] },
+)

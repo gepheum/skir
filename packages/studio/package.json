@@ -1,0 +1,76 @@
+{
+  "name": "skir-studio",
+  "version": "1.10.3",
+  "description": "",
+  "homepage": "https://github.com/gepheum/skir-studio#readme",
+  "bugs": {
+    "url": "https://github.com/gepheum/skir-studio/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gepheum/skir.git",
+    "directory": "packages/studio"
+  },
+  "files": [
+    "dist/skir-studio-standalone.js",
+    "src/",
+    "README.md"
+  ],
+  "license": "ISC",
+  "author": "Tyler Fibonacci <gepheum@gmail.com>",
+  "main": "app.js",
+  "module": "app.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rimraf my-element.{d.ts,d.ts.map,js,js.map} test/my-element.{d.ts,d.ts.map,js,js.map} test/my-element_test.{d.ts,d.ts.map,js,js.map}",
+    "lint": "eslint src/**/*.ts && lit-analyzer",
+    "format": "prettier \"src/**/*.{cjs,html,js,json,md,ts}\" --ignore-path ./.prettierignore --write",
+    "format:check": "prettier \"src/**/*.{cjs,html,js,json,md,ts}\" --ignore-path ./.prettierignore --check",
+    "bundle": "npm run build && rollup -c rollup.standalone.config.js",
+    "analyze": "cem analyze --litelement --globs \"src/**/*.ts\"",
+    "analyze:watch": "cem analyze --litelement --globs \"src/**/*.ts\" --watch",
+    "serve": "npm run build && wds --watch",
+    "test": "mocha",
+    "prepublishOnly": "npm run bundle"
+  },
+  "dependencies": {
+    "lit": "^3.2.0",
+    "nanoevents": "^9.1.0",
+    "skir-client": "^1.0.17",
+    "skir-codemirror-plugin": "^1.0.5"
+  },
+  "devDependencies": {
+    "@custom-elements-manifest/analyzer": "^0.6.3",
+    "@eslint/js": "^9.39.2",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-replace": "^5.0.7",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@types/mocha": "^10.0.1",
+    "@web/dev-server": "^0.4.6",
+    "@web/dev-server-import-maps": "^0.2.1",
+    "@web/dev-server-legacy": "^1.0.0",
+    "@webcomponents/webcomponentsjs": "^2.8.0",
+    "buckwheat": "^1.1.2",
+    "eslint": "^10.0.1",
+    "lit-analyzer": "^2.0.3",
+    "mocha": "^11.7.5",
+    "prettier": "^3.8.1",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "rimraf": "^6.1.3",
+    "rollup": "^4.18.0",
+    "rollup-plugin-postcss": "^4.0.2",
+    "rollup-plugin-summary": "^2.0.1",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "~5.5.0",
+    "typescript-eslint": "^8.56.0"
+  },
+  "overrides": {
+    "diff": "^8.0.3",
+    "minimatch": "^10.2.1",
+    "serialize-javascript": "^7.0.4"
+  },
+  "customElements": "custom-elements.json"
+}

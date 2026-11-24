@@ -1,0 +1,553 @@
+{
+  "schemaVersion": "1.0.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "src/app.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "App",
+          "members": [
+            {
+              "kind": "method",
+              "name": "renderContent",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderServiceUrlSelector",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "renderMethodSelector",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "TemplateResult"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "methods",
+                  "type": {
+                    "text": "readonly MethodBundle[]"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "fetchMethodList",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              }
+            },
+            {
+              "kind": "method",
+              "name": "selectMethod",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "void"
+                }
+              },
+              "parameters": [
+                {
+                  "name": "method",
+                  "type": {
+                    "text": "MethodBundle"
+                  }
+                }
+              ]
+            },
+            {
+              "kind": "method",
+              "name": "onSend",
+              "privacy": "private",
+              "return": {
+                "type": {
+                  "text": "Promise<void>"
+                }
+              }
+            },
+            {
+              "kind": "field",
+              "name": "serviceSpec",
+              "type": {
+                "text": "ServiceSpec"
+              },
+              "privacy": "private",
+              "default": "{\n    serviceUrl: getDefaultServiceUrl(),\n    authorizationHeader: \"\",\n  }"
+            },
+            {
+              "kind": "field",
+              "name": "methodList",
+              "type": {
+                "text": "MethodListState"
+              },
+              "privacy": "private",
+              "default": "{ kind: \"zero-state\" }"
+            },
+            {
+              "kind": "field",
+              "name": "selectedMethod",
+              "type": {
+                "text": "MethodBundle | undefined"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "requestEditor",
+              "type": {
+                "text": "Editor | null"
+              },
+              "privacy": "private"
+            },
+            {
+              "kind": "field",
+              "name": "responseEditor",
+              "type": {
+                "text": "Editor | null"
+              },
+              "privacy": "private"
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "tagName": "skir-studio-app",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "App",
+          "declaration": {
+            "name": "App",
+            "module": "src/app.ts"
+          }
+        },
+        {
+          "kind": "custom-element-definition",
+          "name": "skir-studio-app",
+          "declaration": {
+            "name": "App",
+            "module": "src/app.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/editor.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "description": "",
+          "name": "Editor",
+          "members": [
+            {
+              "kind": "field",
+              "name": "state",
+              "type": {
+                "text": "EditorState"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "editor",
+              "type": {
+                "text": "| {\n        kind: \"view\";\n        value: EditorView;\n      }\n    | {\n        kind: \"state\";\n        value: EditorState;\n      }"
+              },
+              "privacy": "private",
+              "default": "{\n    kind: \"state\",\n    value: EditorState.create({}),\n  }"
+            }
+          ],
+          "superclass": {
+            "name": "LitElement",
+            "package": "lit"
+          },
+          "tagName": "skir-studio-editor",
+          "customElement": true
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "Editor",
+          "declaration": {
+            "name": "Editor",
+            "module": "src/editor.ts"
+          }
+        },
+        {
+          "kind": "custom-element-definition",
+          "name": "skir-studio-editor",
+          "declaration": {
+            "name": "Editor",
+            "module": "src/editor.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/codemirror/create_editor_state.ts",
+      "declarations": [
+        {
+          "kind": "function",
+          "name": "createReqEditorState",
+          "return": {
+            "type": {
+              "text": "EditorState"
+            }
+          },
+          "parameters": [
+            {
+              "name": "schema",
+              "type": {
+                "text": "TypeDefinition"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "function",
+          "name": "createRespEditorState",
+          "return": {
+            "type": {
+              "text": "EditorState"
+            }
+          },
+          "parameters": [
+            {
+              "name": "respJson",
+              "type": {
+                "text": "Json"
+              }
+            },
+            {
+              "name": "schema",
+              "type": {
+                "text": "TypeDefinition"
+              }
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "createReqEditorState",
+          "declaration": {
+            "name": "createReqEditorState",
+            "module": "src/codemirror/create_editor_state.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "createRespEditorState",
+          "declaration": {
+            "name": "createRespEditorState",
+            "module": "src/codemirror/create_editor_state.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/codemirror/enter_key_handler.ts",
+      "declarations": [
+        {
+          "kind": "function",
+          "name": "enterKeyHandler",
+          "parameters": [
+            {
+              "name": "schema",
+              "type": {
+                "text": "TypeDefinition"
+              }
+            }
+          ],
+          "description": "Triggered when the Enter key is pressed between 2 consecutive curly braces or\nsquare brackets."
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "enterKeyHandler",
+          "declaration": {
+            "name": "enterKeyHandler",
+            "module": "src/codemirror/enter_key_handler.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/codemirror/json_completion.ts",
+      "declarations": [
+        {
+          "kind": "function",
+          "name": "jsonCompletion",
+          "return": {
+            "type": {
+              "text": "(context: CompletionContext) => CompletionResult | null"
+            }
+          },
+          "parameters": [
+            {
+              "name": "schema",
+              "type": {
+                "text": "TypeDefinition"
+              }
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "jsonCompletion",
+          "declaration": {
+            "name": "jsonCompletion",
+            "module": "src/codemirror/json_completion.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/codemirror/json_linter.ts",
+      "declarations": [
+        {
+          "kind": "function",
+          "name": "jsonLinter",
+          "return": {
+            "type": {
+              "text": "(view: EditorView) => Diagnostic[]"
+            }
+          },
+          "parameters": [
+            {
+              "name": "schema",
+              "type": {
+                "text": "TypeDefinition"
+              }
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "jsonLinter",
+          "declaration": {
+            "name": "jsonLinter",
+            "module": "src/codemirror/json_linter.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/json/json_parser.ts",
+      "declarations": [
+        {
+          "kind": "function",
+          "name": "parseJsonValue",
+          "return": {
+            "type": {
+              "text": "JsonValue | JsonErrors"
+            }
+          },
+          "parameters": [
+            {
+              "name": "input",
+              "type": {
+                "text": "string"
+              }
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "parseJsonValue",
+          "declaration": {
+            "name": "parseJsonValue",
+            "module": "src/json/json_parser.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/json/schema_validator.ts",
+      "declarations": [
+        {
+          "kind": "function",
+          "name": "validateSchema",
+          "return": {
+            "type": {
+              "text": "ValidationResult"
+            }
+          },
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "text": "JsonValue"
+              }
+            },
+            {
+              "name": "schema",
+              "type": {
+                "text": "TypeDefinition"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "function",
+          "name": "validateOrThrowError",
+          "return": {
+            "type": {
+              "text": "void"
+            }
+          },
+          "parameters": [
+            {
+              "name": "jsonCode",
+              "type": {
+                "text": "string"
+              }
+            },
+            {
+              "name": "schema",
+              "type": {
+                "text": "TypeDefinition"
+              }
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "validateSchema",
+          "declaration": {
+            "name": "validateSchema",
+            "module": "src/json/schema_validator.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "validateOrThrowError",
+          "declaration": {
+            "name": "validateOrThrowError",
+            "module": "src/json/schema_validator.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/json/to_json.ts",
+      "declarations": [
+        {
+          "kind": "function",
+          "name": "toJson",
+          "return": {
+            "type": {
+              "text": "Json"
+            }
+          },
+          "parameters": [
+            {
+              "name": "value",
+              "type": {
+                "text": "JsonValue"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "function",
+          "name": "makeJsonTemplate",
+          "return": {
+            "type": {
+              "text": "Json"
+            }
+          },
+          "parameters": [
+            {
+              "name": "type",
+              "type": {
+                "text": "TypeSignature"
+              }
+            },
+            {
+              "name": "idToRecordDef",
+              "type": {
+                "text": "{ [id: string]: RecordDefinition }"
+              }
+            },
+            {
+              "name": "depth",
+              "optional": true,
+              "type": {
+                "text": "\"depth\""
+              }
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "toJson",
+          "declaration": {
+            "name": "toJson",
+            "module": "src/json/to_json.ts"
+          }
+        },
+        {
+          "kind": "js",
+          "name": "makeJsonTemplate",
+          "declaration": {
+            "name": "makeJsonTemplate",
+            "module": "src/json/to_json.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/json/types.ts",
+      "declarations": [],
+      "exports": []
+    }
+  ]
+}

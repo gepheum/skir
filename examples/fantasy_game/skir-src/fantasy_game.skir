@@ -1,0 +1,384 @@
+// A fantasy RPG game state management system
+
+import * as loot from "items/loot.skir";
+
+/// Represents a point in 2D space
+struct Point2D {
+  x: float32 = 0;
+  y: float32 = 1;
+}
+
+/// The primary attributes that define a character's capabilities
+struct Attributes(891234) {
+  /// Physical power affecting melee damage
+  strength: int32 = 0;
+  /// Agility affecting dodge chance and critical hits
+  dexterity: int32 = 1;
+  /// Mental fortitude affecting mana pool
+  intelligence: int32 = 2;
+  /// Life force determining hit points
+  vitality: int32 = 3;
+}
+
+/// Character class determines available abilities and stat bonuses
+enum CharacterClass(445231) {
+  warrior = 1;
+  mage = 2;
+  rogue = 3;
+  cleric = 4;
+}
+
+/// Elemental damage types for spells and enchantments
+enum Element(778899) {
+  fire = 1;
+  ice = 2;
+  lightning = 3;
+  poison = 4;
+  holy = 5;
+  shadow = 6;
+}
+
+/// A spell that can be cast by players or NPCs
+struct Spell(334455) {
+  spell_id: int32 = 0;
+  /// Display name shown in the UI
+  name: string = 1;
+  /// Mana cost to cast this spell
+  mana_cost: int32 = 2;
+  /// Base damage before modifiers
+  base_damage: float32 = 3;
+  /// Elemental type for resistance calculations
+  element: Element = 4;
+  /// Cooldown in milliseconds
+  cooldown_ms: int64 = 5;
+  /// Area of effect radius, or null for single-target spells
+  aoe_radius: float32? = 6;
+}
+
+/// Equipment slot where an item can be equipped
+enum EquipmentSlot(556677) {
+  head = 1;
+  chest = 2;
+  legs = 3;
+  feet = 4;
+  main_hand = 5;
+  off_hand = 6;
+  ring = 7;
+  amulet = 8;
+}
+
+/// A piece of equipment that can be worn by a character
+struct Equipment(223344) {
+  item_id: hash64 = 0;
+  name: string = 1;
+  slot: EquipmentSlot = 2;
+  /// Level requirement to equip this item
+  required_level: int32 = 3;
+  /// Bonus attributes granted when equipped
+  stat_bonuses: Attributes = 4;
+
+  struct ElementalResistance {
+    element: Element = 0;
+    resistance_value: float32 = 1;
+  }
+  /// Optional elemental resistance (0.0 = no resistance, 1.0 = immunity)
+  elemental_resistance: ElementalResistance? = 5;
+
+  /// Item rarity affects drop rates and vendor prices
+  rarity: enum {
+    common = 1;
+    uncommon = 2;
+    rare = 3;
+    epic = 4;
+    legendary = 5;
+  } = 6;
+}
+
+/// Status effects that can be applied to characters
+enum StatusEffect(667788) {
+  /// Character takes damage over time
+  burning: struct {
+    damage_per_second: float32 = 0;
+    duration_ms: int64 = 1;
+  } = 1;
+
+  /// Character movement speed reduced
+  frozen: struct {
+    slow_percentage: float32 = 0;
+    duration_ms: int64 = 1;
+  } = 2;
+
+  /// Character cannot take actions
+  stunned: struct {
+    duration_ms: int64;
+  } = 3;
+
+  /// Character is immune to damage
+  invulnerable: struct {
+    duration_ms: int64;
+  } = 4;
+}
+
+/// Represents a player character or NPC in the game world
+struct Character(112233) {
+  character_id: hash64 = 0;
+  name: string = 1;
+  level: int32 = 2;
+  class: CharacterClass = 3;
+
+  /// Current and maximum health points
+  health: struct {
+    current: float32 = 0;
+    maximum: float32 = 1;
+  } = 4;
+
+  /// Current and maximum mana points
+  mana: struct {
+    current: float32 = 0;
+    maximum: float32 = 1;
+  } = 5;
+
+  /// Base attributes before equipment bonuses
+  base_attributes: Attributes = 6;
+
+  /// Current position in the world
+  position: Point2D = 7;
+
+  /// All learned spells, keyed by spell_id
+  learned_spells: [Spell|spell_id] = 8;
+
+  /// Currently equipped items
+  equipment: [Equipment|slot.kind] = 9;
+
+  /// Active status effects affecting this character
+  active_effects: [StatusEffect] = 10;
+
+  /// Experience points toward next level
+  experience: int64 = 11;
+
+  /// Timestamp of character creation
+  created_at: timestamp = 12;
+
+  /// Timestamp of last login (null for NPCs)
+  last_login: timestamp? = 13;
+
+  removed 14..16;
+}
+
+/// A quest that can be accepted and completed by players
+struct Quest(998877) {
+  quest_id: int32 = 0;
+  title: string = 1;
+  description: string = 2;
+  /// Minimum level required to accept this quest
+  required_level: int32 = 3;
+
+  struct Objective {
+    objective_id: int32 = 0;
+    description: string = 1;
+    /// Current progress (e.g., 5 out of 10 items collected)
+    current_progress: int32 = 2;
+    required_progress: int32 = 3;
+  }
+  /// Quest objectives that must be completed
+  objectives: [Objective|objective_id] = 4;
+
+  /// Quest completion status
+  status: enum {
+    available = 1;
+    in_progress = 2;
+    completed = 3;
+    failed = 4;
+  } = 5;
+
+  /// Rewards granted upon completion
+  rewards: struct {
+    experience: int64 = 0;
+    gold: int32 = 1;
+    items: [loot.Item] = 2;
+  } = 6;
+}
+
+/// A guild that players can join for social and gameplay benefits
+struct Guild(334422) {
+  guild_id: hash64 = 0;
+  name: string = 1;
+  /// Guild leader's character ID
+  leader_id: hash64 = 2;
+
+  struct Member {
+    character_id: hash64 = 0;
+    rank: enum {
+      member = 1;
+      officer = 2;
+      leader = 3;
+    } = 1;
+    joined_at: timestamp = 2;
+  }
+  /// All guild members, keyed by character_id
+  members: [Member|character_id] = 3;
+  /// Guild level affects available perks
+  level: int32 = 4;
+  created_at: timestamp = 5;
+}
+
+/// Decision tree AI for NPC behavior
+struct AIDecisionNode(445566) {
+  question: string = 0;
+  /// Condition that determines which branch to take
+  yes: AIDecisionTree = 1;
+  no: AIDecisionTree = 2;
+}
+
+/// Recursive AI behavior tree
+enum AIDecisionTree(778800) {
+  /// Leaf action: attack the player
+  attack_action: string = 1;
+  /// Leaf action: flee from danger
+  flee_action: string = 2;
+  /// Leaf action: use a healing potion
+  heal_action: string = 3;
+  /// Branch node with conditional logic
+  decision_node: AIDecisionNode = 4;
+}
+
+/// Combat action performed by a character
+enum CombatAction(889900) {
+  /// Basic melee attack
+  melee_attack = 1;
+  /// Cast a spell targeting one or more characters
+  spell_cast: struct {
+    spell_id: int32 = 0;
+    /// IDs of affected targets
+    target_ids: [hash64] = 1;
+  } = 2;
+  /// Use a consumable item
+  item_use: struct {
+    item_id: hash64;
+  } = 3;
+  /// Defend to reduce incoming damage
+  defend = 4;
+  /// Attempt to flee from combat
+  flee = 5;
+}
+
+// === RPC Methods ===
+
+/// Request to create a new character
+method CreateCharacter(
+  struct {
+    name: string = 0;
+    class: CharacterClass = 1;
+  }
+): struct {
+  /// The newly created character, or null if name was taken
+  character: Character? = 0;
+  /// Error message if character creation failed
+  error: string? = 1;
+} = 100001;
+
+/// Request to execute a combat action
+method PerformCombatAction(
+  struct {
+    character_id: hash64 = 0;
+    action: CombatAction = 1;
+  }
+): struct {
+  /// Whether the action succeeded
+  success: bool = 0;
+  /// Detailed combat log entries
+  combat_log: [string] = 1;
+  /// Updated character state after the action
+  updated_character: Character = 2;
+} = 100002;
+
+/// Request to join a guild
+method JoinGuild(
+  struct {
+    character_id: hash64 = 0;
+    guild_id: hash64 = 1;
+  }
+): struct {
+  success: bool = 0;
+  error_message: string? = 1;
+} = 100003;
+
+/// Get the leaderboard of top players
+method GetLeaderboard(
+  struct {
+    /// Filter by character class, or null for all classes
+    class_filter: CharacterClass? = 0;
+    /// Maximum number of entries to return
+    limit: int32 = 1;
+  }
+): struct {
+  struct Entry {
+    rank: int32 = 0;
+    character_name: string = 1;
+    level: int32 = 2;
+    class: CharacterClass = 3;
+  }
+  entries: [Entry] = 0;
+} = 100004;
+
+// === Constants ===
+
+/// Default starting attributes for new characters
+const DEFAULT_STARTING_ATTRIBUTES: Attributes = {
+  strength: 10,
+  dexterity: 10,
+  intelligence: 10,
+  vitality: 10,
+};
+
+/// A legendary sword with exceptional stats
+const EXCALIBUR: Equipment = {
+  item_id: 999999,
+  name: "Excalibur, Blade of Kings",
+  slot: "main_hand",
+  required_level: 50,
+  stat_bonuses: {
+    strength: 100,
+    dexterity: 50,
+    intelligence: 25,
+    vitality: 75,
+  },
+  elemental_resistance: {
+    element: "holy",
+    resistance_value: 0.8,
+  },
+  rarity: "legendary",
+};
+
+/// Basic fireball spell available to all mages
+const FIREBALL: Spell = {
+  spell_id: 1001,
+  name: "Fireball",
+  mana_cost: 30,
+  base_damage: 150.0,
+  element: "fire",
+  cooldown_ms: 5000,
+  aoe_radius: 10.0,
+};
+
+/// Starter quest for new players
+const TUTORIAL_QUEST: Quest = {
+  quest_id: 1,
+  title: "Welcome to the Realm",
+  description: "Learn the basics of combat by defeating 5 slimes.",
+  required_level: 1,
+  objectives: [
+    {
+      objective_id: 1,
+      description: "Defeat slimes",
+      current_progress: 0,
+      required_progress: 5,
+    },
+  ],
+  status: "available",
+  rewards: {
+    experience: 100,
+    gold: 50,
+    items: [],
+  },
+};

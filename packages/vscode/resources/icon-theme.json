@@ -1,0 +1,10 @@
+{
+  "iconDefinitions": {
+    "skir": {
+      "iconPath": "./octopus-icon.png"
+    }
+  },
+  "fileExtensions": {
+    "skir": "skir"
+  }
+}

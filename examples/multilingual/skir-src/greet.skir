@@ -1,0 +1,18 @@
+// 'greet.skir' on Monday
+
+struct GreetRequest {
+  name: string;
+  temperature_c: float32;
+}
+
+struct GreetResponse {
+  enum Action {
+    wave;
+    say: string;
+  }
+  actions: [Action];
+}
+
+method Greet(
+  GreetRequest
+): GreetResponse = 102787;

@@ -1,0 +1,33 @@
+/// A point in 2D space.
+struct Point {
+  x: int32;
+  y: int32;
+}
+
+/// A color in the RGB color space.
+struct Color {
+  r: int32;
+  g: int32;
+  b: int32;
+}
+
+/// A triangle with a color and three corners.
+struct Triangle {
+  color: Color;
+  /// A corner of the triangle.
+  struct Corner {
+    point: Point;
+  }
+  corners: [Corner];
+}
+
+/// A day of the week.
+enum Weekday {
+  monday;
+  tuesday;
+  wednesday;
+  thursday;
+  friday;
+  saturday;
+  sunday;
+}

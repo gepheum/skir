@@ -1,0 +1,5 @@
+generators:
+  - mod: skir-go-gen
+    outDir: ./skirout
+    config:
+      goModuleName: "github.com/gepheum/skir-go-example"

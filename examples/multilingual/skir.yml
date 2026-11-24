@@ -1,0 +1,10 @@
+generators:
+  - mod: skir-python-gen
+    outDir: backend/skirout
+    config:
+      packagePrefix: ""
+  - mod: skir-typescript-gen
+    outDir: frontend/skirout
+    config:
+      importPathExtension: ".js"
+dependencies: {}

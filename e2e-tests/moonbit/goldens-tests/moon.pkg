@@ -1,0 +1,10 @@
+import {
+	"moonbitlang/core/builtin" @builtin,
+	"moonbitlang/core/debug" @debug,
+	"moonbitlang/core/json" @json,
+	"moonbitlang/core/immut/vector" @immut_vector,
+	"gepheum/skir-client" @client,
+	"skir/e2e-tests/skirout/full_name" @full_name,
+	"skir/e2e-tests/skirout/methods" @methods,
+	"skir/e2e-tests/skirout/@gepheum/skir-golden-tests/goldens" @goldens,
+}

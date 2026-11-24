@@ -1,0 +1,66 @@
+{
+  "name": "skir-client",
+  "version": "1.0.22",
+  "description": "",
+  "homepage": "https://github.com/gepheum/skir-typescript-client#readme",
+  "bugs": {
+    "url": "https://github.com/gepheum/skir-typescript-client/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gepheum/skir.git",
+    "directory": "packages/typescript-client"
+  },
+  "license": "ISC",
+  "author": "Tyler Fibonacci <gepheum@gmail.com>",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/skir-client.js",
+      "require": "./dist/cjs/skir-client.js"
+    }
+  },
+  "main": "./dist/cjs/skir-client.js",
+  "module": "./dist/esm/skir-client.js",
+  "files": [
+    "dist/cjs",
+    "dist/esm",
+    "src"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && npm run build:cjs && npm run build:esm",
+    "build:cjs": "tsc -p ./tsconfig.cjs.json && cp static/package-cjs.json dist/cjs/package.json",
+    "build:esm": "tsc -p ./tsconfig.esm.json && cp static/package-esm.json dist/esm/package.json",
+    "format": "prettier --write \"{src,tests}/**/*.ts\"",
+    "format:check": "prettier --check \"{src,tests}/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck && mocha",
+    "lint": "eslint \"{src,tests}/**/*.ts\"",
+    "lint:fix": "eslint \"{src,tests}/**/*.ts\" --fix"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.6.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.0",
+    "@typescript-eslint/parser": "^8.56.0",
+    "buckwheat": "^1.1.2",
+    "eslint": "^10.0.1",
+    "express": "^5.1.0",
+    "mocha": "^11.7.5",
+    "prettier": "^3.8.1",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.2.2",
+    "typescript-eslint": "^8.56.0"
+  },
+  "overrides": {
+    "diff": "^8.0.3",
+    "minimatch": "^10.2.2",
+    "serialize-javascript": "^7.0.4"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.1"
+  }
+}

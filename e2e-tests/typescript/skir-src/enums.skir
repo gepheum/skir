@@ -1,0 +1,32 @@
+/// A day of the week.
+enum Weekday {
+  monday;
+  tuesday;
+  wednesday;
+  thursday;
+  friday;
+  saturday;
+  /// Fun day
+  sunday;
+}
+
+enum JsonValue {
+  null = 1;
+  /// true or
+  /// false
+  boolean: bool = 100;
+  number: float64 = 6;
+  string: string = 3;
+  array: [JsonValue] = 4;
+  struct Pair {
+    name: string = 0;
+    value: JsonValue = 1;
+  }
+  object: [Pair|name] = 5;
+}
+
+enum EmptyEnum {}
+
+enum EnumWithNameConflict {
+  serializer;
+}

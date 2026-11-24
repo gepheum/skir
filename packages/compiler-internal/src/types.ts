@@ -1,0 +1,738 @@
+/**
+ * @fileoverview Public types present in the interface between the compiler and
+ * language plugins.
+ */
+import type { z } from "zod";
+
+// -----------------------------------------------------------------------------
+// CODE GENERATION
+// -----------------------------------------------------------------------------
+
+/**
+ * Generates code in one programming language from a set of parsed Skir modules.
+ */
+export interface CodeGenerator<Config = unknown> {
+  readonly id: string;
+  readonly configType: z.ZodType<Config>;
+  generateCode(input: CodeGenerator.Input<Config>): CodeGenerator.Output;
+  /**
+   * Describes how code outside the generated modules references the
+   * declarations that `generateCode` emits for the same input and config.
+   * Every symbol must match the generated code exactly. Generators that do not
+   * support companion code omit this method.
+   */
+  symbols?(input: CodeGenerator.Input<Config>): CodeGenerator.SymbolProvider;
+}
+
+export declare namespace CodeGenerator {
+  export interface Input<Config> {
+    readonly modules: readonly Module[];
+    readonly recordMap: ReadonlyMap<RecordKey, RecordLocation>;
+    readonly config: Config;
+  }
+
+  export interface Output {
+    readonly files: readonly OutputFile[];
+  }
+
+  export interface OutputFile {
+    readonly path: string;
+    readonly code: string;
+  }
+
+  /**
+   * A reference to one generated declaration, written from a source file
+   * outside the generated module.
+   */
+  export interface Symbol {
+    /**
+     * Code that compiles once `imports` are present, e.g. the Dart reference
+     * `_lib_user.User`. Templates mark where the caller's code goes with
+     * `{value}`.
+     */
+    readonly reference: string;
+    /**
+     * Import statements in the target language's own syntax, e.g.
+     * `import "package:app/skirout/user.dart" as _lib_user;`.
+     */
+    readonly imports: readonly string[];
+  }
+
+  /**
+   * Names the declarations that `generateCode` emits, so that companion code
+   * (RPC adapters, framework bindings, routing tables) can reference them
+   * without copying the generator's naming rules.
+   */
+  export interface SymbolProvider {
+    /** The generated type of a struct or enum. */
+    record(location: RecordLocation): Symbol;
+    /**
+     * The generated method descriptor, as a value expression, e.g. Kotlin
+     * `skirout.service.GetUser`, Rust
+     * `crate::skirout::base::service::get_user_method()`.
+     */
+    method(module: Module, method: Method): Symbol;
+    /**
+     * The pattern or constant that matches one enum variant in an exhaustive
+     * match over the variant kind, e.g. Kotlin `Status.Kind.ERROR_WRAPPER`,
+     * Rust `Status::Error(_)`.
+     */
+    variant(location: RecordLocation, variant: Field): Symbol;
+    /**
+     * The expression that constructs one enum variant. For a wrapper variant,
+     * the reference is a template whose `{value}` stands for the wrapped
+     * value, e.g. Kotlin `Status.ErrorWrapper({value})`.
+     */
+    variantConstructor(location: RecordLocation, variant: Field): Symbol;
+    /**
+     * The expression that reads the value wrapped by one wrapper variant. The
+     * reference is a template whose `{value}` stands for an enum value already
+     * known to hold this variant, e.g. Kotlin
+     * `({value} as Status.ErrorWrapper).value`. In Rust, `{value}` is a
+     * reference to the enum and the expression borrows the wrapped value.
+     */
+    variantValue(location: RecordLocation, variant: Field): Symbol;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// LEXICAL ANALYSIS
+// -----------------------------------------------------------------------------
+
+/** One line in a module. */
+export interface CodeLine {
+  /** Zero-based. */
+  readonly lineNumber: number;
+  readonly line: string;
+  readonly position: number;
+  readonly modulePath: string;
+}
+
+/** A lexical token. */
+export interface Token {
+  /**
+   * Empty if the token is the special token for EOF.
+   *
+   * In the case of the the name of a record declared inline, 'text' is the
+   * transformed name ('Foo') and 'originalText' is the original name ('foo').
+   */
+  readonly text: string;
+  /** Same as 'text' unless the token is the name of an inline record. */
+  readonly originalText: string;
+  /** Measured in number of characters from the start of the module. */
+  readonly position: number;
+  readonly line: CodeLine;
+  /** Zero-based. */
+  readonly colNumber: number;
+}
+
+export type Casing =
+  "lowerCamel" | "lower_underscore" | "UpperCamel" | "UPPER_UNDERSCORE";
+
+export interface Range {
+  /** Measured in number of characters from the start of the module. */
+  readonly start: number;
+  /** Measured in number of characters from the start of the module. */
+  readonly end: number;
+}
+
+// -----------------------------------------------------------------------------
+// ERROR HANDLING
+// -----------------------------------------------------------------------------
+
+/** A user error in a module. */
+export type SkirError =
+  | {
+      readonly token: Token;
+      /** Convention: starts with a capital letter. */
+      readonly message: string;
+      readonly expected?: undefined;
+      /** If set, the compiler was expecting one of these names. */
+      readonly expectedNames?: readonly ExpectedName[];
+      readonly errorIsInOtherModule?: true;
+      readonly suggestReformat?: boolean;
+    }
+  | {
+      readonly token: Token;
+      /** Convention: starts with a lowercase letter. */
+      readonly expected: string;
+      readonly message?: undefined;
+      readonly expectedNames?: readonly ExpectedName[];
+      readonly errorIsInOtherModule?: undefined;
+      readonly suggestReformat?: undefined;
+    };
+
+export interface ErrorSink {
+  push(error: SkirError): void;
+}
+
+export interface ExpectedName {
+  readonly name: string;
+  readonly doc?: Doc;
+  /** Set if the name needs to be imported from another module. */
+  readonly modulePath?: string;
+}
+
+/**
+ * Holds a value of type T and possible errors registered during the computation
+ * of the value.
+ */
+export interface Result<T> {
+  readonly result: T;
+  readonly errors: readonly SkirError[];
+  readonly warnings?: readonly SkirError[];
+}
+
+// -----------------------------------------------------------------------------
+// SYNTACTIC ANALYSIS
+// -----------------------------------------------------------------------------
+
+export type Primitive =
+  | "bool"
+  | "int32"
+  | "int64"
+  | "hash64"
+  | "float32"
+  | "float64"
+  | "timestamp"
+  | "string"
+  | "bytes";
+
+export interface PrimitiveType {
+  readonly kind: "primitive";
+  readonly primitive: Primitive;
+}
+
+/**
+ * A reference to a record, e.g. 'Foobar' or 'foo.Bar' or '.Foo.Bar'.
+ * One of the possible unresolved value types. The corresponding resolved value
+ * type is `ResolvedRecordRef`.
+ */
+export interface UnresolvedRecordRef {
+  readonly kind: "record";
+
+  /**
+   * The different pieces in the name, e.g. ['Foo', 'Bar'].
+   * Cannot be empty.
+   */
+  readonly nameParts: readonly Token[];
+
+  /**
+   * True if the reference starts with a dot, e.g. ".Foo.Bar".
+   * In this example, "Foo" is to be found at the top-level of the module.
+   */
+  readonly absolute: boolean;
+}
+
+/** Uniquely identifies a record within a module set. */
+export type RecordKey = string;
+
+export interface ResolvedRecordRef {
+  readonly kind: "record";
+  readonly key: RecordKey;
+  readonly recordType: "struct" | "enum";
+
+  readonly nameParts: ReadonlyArray<ResolvedRecordRefName>;
+
+  /**
+   * Last token in the type reference. For example, if the type reference is
+   * ".Foo.Bar", this is the token for "Bar".
+   */
+  readonly refToken: Token;
+}
+
+export interface ResolvedRecordRefName {
+  /**
+   * A single name in the type reference.
+   * Can refer to either a record or a module alias.
+   */
+  readonly token: Token;
+  /** Either the definition of the record or the aliased import declaration. */
+  readonly declaration: Record | ImportAlias;
+}
+
+export interface MutableFieldPathItem {
+  /** The field name token in the field path. */
+  readonly name: Token;
+  /** The field declaration in the record definition. */
+  declaration?: Field;
+}
+
+/** A field or a sequence of field for keying items in an array. */
+export interface MutableFieldPath<Mutable extends boolean = true> {
+  /** The "|" token. */
+  readonly pipeToken: Token;
+  /**
+   * A non-empty sequence of field names.
+   * If the key type is an enum type, the last field name is guaranteed to be
+   * "kind".
+   */
+  readonly path: ReadonlyArray<
+    Mutable extends true ? MutableFieldPathItem : Readonly<MutableFieldPathItem>
+  >;
+  /** The type used to key every item: either a primitive or an enum. */
+  keyType: PrimitiveType | ResolvedRecordRef;
+}
+
+export type FieldPath<Mutable extends boolean = boolean> =
+  //
+  Mutable extends true //
+    ? MutableFieldPath
+    : Readonly<MutableFieldPath<boolean>>;
+
+export interface ArrayType<
+  Type = ResolvedType,
+  Mutable extends boolean = boolean,
+> {
+  readonly kind: "array";
+  readonly item: Type;
+  /**
+   * If set, the value obtained by following the field path from an item can be
+   * used as a unique key for the item. The user takes responsibility for
+   * ensuring that not two items in the array have the same key.
+   * The item type must be a struct type.
+   */
+  readonly key: FieldPath<Mutable> | undefined;
+}
+
+export type UnresolvedArrayType = ArrayType<UnresolvedType>;
+export type MutableArrayType = ArrayType<ResolvedType, true>;
+
+export interface OptionalType<Type = ResolvedType> {
+  readonly kind: "optional";
+  readonly other: Type;
+}
+
+/**
+ * Result of parsing a type from a `.skir` file, without resolving the record
+ * references.
+ */
+export type UnresolvedType =
+  | PrimitiveType
+  | UnresolvedRecordRef
+  | UnresolvedArrayType
+  | OptionalType<UnresolvedType>;
+
+/**
+ * Result of recursively resolving the record references in an unresolved type.
+ * When Mutable is true, the optional field path of an array type can be
+ * modified.
+ */
+export type ResolvedType<Mutable extends boolean = boolean> =
+  | PrimitiveType
+  | ResolvedRecordRef
+  | ArrayType<ResolvedType, Mutable>
+  | OptionalType<ResolvedType<Mutable>>;
+
+export type MutableResolvedType = ResolvedType<true>;
+
+/**
+ * A field in a struct or a variant in an enum.
+ * Although fields and variants are conceptually different, they share the same
+ * structure, so they are represented using the same interface and we use the
+ * name 'field' for simplicity.
+ */
+export interface MutableField<Mutable extends boolean = true> {
+  readonly kind: "field";
+  readonly name: Token;
+  readonly number: number;
+  readonly doc: Doc<Mutable>;
+  /** May only be undefined if the field is a constant in an enum. */
+  readonly unresolvedType: UnresolvedType | undefined;
+  /**
+   * Set if the type of the field/variant is a record declared inline:
+   *   bar: struct Bar { ... };
+   */
+  readonly inlineRecord: Record<Mutable> | undefined;
+  /** May only be undefined if the field is a constant in an enum. */
+  type: ResolvedType<Mutable> | undefined;
+  /**
+   * Evaluates to true if the value type of the field/variant depends on the
+   * record where it is defined.
+   * There are 3 levels.
+   *   - If S.DEFAULT is or appears in the value of S.DEFAULT.f, then the
+   *     dependency is "hard".
+   *   - If the type of S.f is T?, T is a struct and S.DEFAULT is or appears in
+   *     T.DEFAULT, then the dependency is "via-optional".
+   *   - Otherwise, the dependency is "soft".
+   *
+   * Examples:
+   *   struct A { s: string; }  // false
+   *   struct B { b: B; }       // "hard"
+   *   struct C { c: C?; }      // "via-optional"
+   *   struct D { d: [D]; }     // "soft"
+   *   struct E { f: F; }       // "hard"
+   *   struct F { e: E; }       // "hard"
+   *   struct G { b: B; }       // false
+   *   struct H { i: I; }       // "soft"
+   *   enum I { h: H; }         // "soft"
+   *   struct J { k: K?; }      // "via-optional"
+   *   struct K { j: J; }       // "soft"
+   */
+  isRecursive: false | "soft" | "via-optional" | "hard";
+}
+
+/**
+ * A field in a struct or a variant in an enum.
+ * Although fields and variants are conceptually different, they share the same
+ * structure, so they are represented using the same interface and we use the
+ * name 'field' for simplicity.
+ */
+export type Field<Mutable extends boolean = boolean> =
+  //
+  Mutable extends true ? MutableField : Readonly<MutableField<boolean>>;
+
+/** A 'removed' declaration in a struct or enum. */
+export interface Removed {
+  readonly kind: "removed";
+  /** The 'removed' keyword. */
+  readonly removedToken: Token;
+  readonly numbers: readonly number[];
+}
+
+/** A declaration within a record. */
+export type RecordLevelDeclaration<Mutable extends boolean = boolean> =
+  Field<Mutable> | Removed | Record<Mutable>;
+
+export type MutableRecordLevelDeclaration = RecordLevelDeclaration<true>;
+
+/** Definition of a struct or enum type. */
+export interface Record<Mutable extends boolean = boolean> {
+  readonly kind: "record";
+  /** Uniquely identifies the record within the module set. */
+  readonly key: RecordKey;
+  readonly name: Token;
+  readonly recordType: "struct" | "enum";
+  readonly doc: Doc<Mutable>;
+  /**
+   * Maps a field name, variant name or nested record name to the corresponding
+   * declaration.
+   */
+  readonly nameToDeclaration: Readonly<{
+    [n: string]: RecordLevelDeclaration<Mutable>;
+  }>;
+  readonly declarations: ReadonlyArray<RecordLevelDeclaration<Mutable>>;
+  /** Fields of the struct or variants of the enum. */
+  readonly fields: ReadonlyArray<Field<Mutable>>;
+  readonly nestedRecords: ReadonlyArray<Record<Mutable>>;
+  readonly removedNumbers: readonly number[];
+  /**
+   * A number which uniquely identifies this record, if specified.
+   * Syntax: `struct Foo(123) { ... }`
+   */
+  readonly recordNumber: number | null;
+  /**
+   * If the record is a struct, 1 + the maximum field number.
+   * Zero if the record is an enum.
+   */
+  readonly numSlots: number;
+  /**
+   * If the record is a struct, 1 + the maximum of all field numbers and removed
+   * numbers.
+   * Zero if the record is an enum.
+   */
+  readonly numSlotsInclRemovedNumbers: number;
+}
+
+export type MutableRecord = Record<true>;
+
+export interface MutableImport {
+  readonly kind: "import";
+  /** The 'import' keyword. */
+  readonly importToken: Token;
+  readonly importedNames: Token[];
+  /** The token corresponding to the quoted string. */
+  readonly modulePath: Token;
+  /** Range spanning the whole declaration. */
+  readonly range: Range;
+  resolvedModulePath?: string;
+}
+
+export type Import<Mutable extends boolean = boolean> = Mutable extends true
+  ? MutableImport
+  : Readonly<MutableImport>;
+
+export interface MutableImportAlias {
+  readonly kind: "import-alias";
+  /** The 'import' keyword. */
+  readonly importToken: Token;
+  /** The alias. */
+  readonly name: Token;
+  /** The token corresponding to the quoted string. */
+  readonly modulePath: Token;
+  /** Range spanning the whole declaration. */
+  readonly range: Range;
+  resolvedModulePath?: string;
+}
+
+export type ImportAlias<Mutable extends boolean = boolean> =
+  Mutable extends true ? MutableImportAlias : Readonly<MutableImportAlias>;
+
+export interface MutableMethod<Mutable extends boolean = true> {
+  readonly kind: "method";
+  readonly name: Token;
+  readonly doc: Doc<Mutable>;
+  readonly unresolvedRequestType: UnresolvedType;
+  readonly inlineRequestRecord: Record<Mutable> | undefined;
+  requestType: ResolvedType<Mutable> | undefined;
+  readonly unresolvedResponseType: UnresolvedType;
+  readonly inlineResponseRecord: Record<Mutable> | undefined;
+  responseType: ResolvedType<Mutable> | undefined;
+  // A hash of the name, or the explicit number specified after "=" if any.
+  // In the uint32 range.
+  readonly number: number;
+}
+
+export type Method<Mutable extends boolean = boolean> =
+  //
+  Mutable extends true ? MutableMethod : Readonly<MutableMethod<boolean>>;
+
+export interface BrokenMethod {
+  readonly kind: "broken-method";
+  readonly unresolvedRequestType: UnresolvedType;
+  readonly inlineRequestRecord: MutableRecord | undefined;
+  readonly unresolvedResponseType: UnresolvedType | undefined;
+  readonly inlineResponseRecord: MutableRecord | undefined;
+}
+
+/** A `const` declaration. */
+export interface MutableConstant<Mutable extends boolean = true> {
+  readonly kind: "constant";
+  readonly name: Token;
+  readonly doc: Doc<Mutable>;
+  readonly unresolvedType: UnresolvedType;
+  type: ResolvedType<Mutable> | undefined;
+  readonly value: Value;
+  valueAsDenseJson: DenseJson | undefined;
+}
+
+export type Constant<Mutable extends boolean = boolean> =
+  //
+  Mutable extends true //
+    ? MutableConstant //
+    : Readonly<MutableConstant<boolean>>;
+
+export interface BrokenConstant {
+  readonly kind: "broken-constant";
+  readonly unresolvedType: UnresolvedType;
+}
+
+/** A name:value entry of an object. */
+export interface MutableObjectEntry<Mutable extends boolean = true> {
+  readonly name: Token;
+  readonly value: Value<Mutable>;
+  /**
+   * The field declaration in the struct definition.
+   * Undefined if the record is an enum.
+   */
+  fieldDeclaration?: Field;
+}
+
+export type ObjectEntry<Mutable extends boolean = boolean> =
+  //
+  Mutable extends true //
+    ? MutableObjectEntry //
+    : Readonly<MutableObjectEntry<boolean>>;
+
+/** An object value, for example `{r: 255, g: 0, b: 0}`. */
+export interface MutableObjectValue<Mutable extends boolean = true> {
+  readonly kind: "object";
+  readonly token: Token;
+  readonly entries: Readonly<{ [f: string]: ObjectEntry<Mutable> }>;
+  /** Broken entries containing a name only. */
+  readonly orphanNames: ReadonlyArray<Token>;
+  readonly partial: boolean;
+  record?: Record;
+}
+
+export type ObjectValue<Mutable extends boolean = boolean> =
+  //
+  Mutable extends true //
+    ? MutableObjectValue
+    : Readonly<MutableObjectValue<boolean>>;
+
+/** An array value, for example `[0, 1, 2]`. */
+export interface MutableArrayValue<Mutable extends boolean = true> {
+  readonly kind: "array";
+  readonly token: Token;
+  readonly items: ReadonlyArray<Value<Mutable>>;
+  key?: FieldPath | undefined;
+}
+
+export type ArrayValue<Mutable extends boolean = boolean> =
+  //
+  Mutable extends true //
+    ? MutableArrayValue //
+    : Readonly<MutableArrayValue<boolean>>;
+
+/** One of: a quoted string, a number, `true`, `false`. */
+export interface MutableLiteralValue {
+  readonly kind: "literal";
+  readonly token: Token;
+  type?:
+    | PrimitiveType
+    | { readonly kind: "enum"; readonly enum: Record; readonly variant: Field }
+    | { readonly kind: "null" };
+}
+
+export type LiteralValue<Mutable extends boolean = boolean> =
+  //
+  Mutable extends true //
+    ? MutableLiteralValue //
+    : Readonly<MutableLiteralValue>;
+
+/** The value on the right side of the `=` symbol of a `const` declaration. */
+export type Value<Mutable extends boolean = boolean> =
+  ObjectValue<Mutable> | ArrayValue<Mutable> | LiteralValue<Mutable>;
+
+export type MutableValue = Value<true>;
+
+/** Result of serializing a skir value to dense JSON format. */
+export type DenseJson = null | boolean | number | string | readonly DenseJson[];
+
+/**
+ * User-written documentation associated with a declaration.
+ * Result of parsing the doc comments.
+ */
+export interface Doc<Mutable extends boolean = boolean> {
+  /** The whole text including references. */
+  text: string;
+  /** The whole text split into pieces. */
+  pieces: readonly DocPiece<Mutable>[];
+}
+
+export type MutableDoc = Doc<true>;
+
+export type DocPiece<Mutable extends boolean = boolean> =
+  | {
+      kind: "text";
+      text: string;
+    }
+  | DocReference<Mutable>;
+
+export type MutableDocPiece = DocPiece<true>;
+
+/** Reference to a field or variant within a record. */
+export interface RecordField<Mutable extends boolean = boolean> {
+  readonly kind: "field";
+  readonly record: Record;
+  readonly field: Field<Mutable>;
+}
+
+export type MutableRecordField = RecordField<true>;
+
+export interface MutableDocReference<Mutable extends boolean = true> {
+  readonly kind: "reference";
+  readonly docComment: Token;
+  readonly referenceRange: Token;
+  /** Empty if there was an error. */
+  readonly nameParts: ReadonlyArray<DocReferenceName<Mutable>>;
+  /**
+   * True if the reference starts with a dot.
+   * Means that the first symbol is to be found at the top-level of the module.
+   */
+  readonly absolute: boolean;
+  referee: Record | Method | Constant | RecordField | undefined;
+}
+
+/** Reference to a symbol from a doc comment ( [...] ). */
+export type DocReference<Mutable extends boolean = boolean> =
+  //
+  Mutable extends true //
+    ? MutableDocReference
+    : Readonly<MutableDocReference<boolean>>;
+
+export interface MutableDocReferenceName {
+  readonly token: Token;
+  /** What declaration the name refers to. */
+  declaration: Constant | Field | ImportAlias | Method | Record | undefined;
+}
+
+/** One single name found in a reference in a doc comment ( [...] ). */
+export type DocReferenceName<Mutable extends boolean = boolean> =
+  Mutable extends true
+    ? MutableDocReferenceName
+    : Readonly<MutableDocReferenceName>;
+
+/** A declaration which can appear at the top-level of a module. */
+export type ModuleLevelDeclaration<Mutable extends boolean = boolean> =
+  | Record<Mutable>
+  | Import<Mutable>
+  | ImportAlias<Mutable>
+  | Method<Mutable>
+  | Constant<Mutable>;
+
+export type MutableModuleLevelDeclaration = ModuleLevelDeclaration<true>;
+
+export type Declaration<Mutable extends boolean = boolean> =
+  RecordLevelDeclaration<Mutable> | ModuleLevelDeclaration<Mutable>;
+
+export type MutableDeclaration = Declaration<true>;
+
+/**
+ * Contains the definition of a record and information about where the record
+ * was defined.
+ */
+export interface RecordLocation<Mutable extends boolean = boolean> {
+  readonly kind: "record-location";
+  readonly record: Record<Mutable>;
+  /**
+   * Chain of records from the top-level record to `record` included.
+   * Every record is nested within the record preceding it in the chain.
+   */
+  readonly recordAncestors: readonly Record[];
+  readonly modulePath: string;
+}
+
+export type MutableRecordLocation = RecordLocation<true>;
+
+/** The set of names from one module imported to another module. */
+export type ImportedNames =
+  | { readonly kind: "all"; readonly alias: string }
+  | { readonly kind: "some"; readonly names: ReadonlySet<string> };
+
+export type PathToImportedNames = { [path: string]: ImportedNames };
+
+export interface Module<Mutable extends boolean = boolean> {
+  readonly kind: "module";
+  readonly path: string;
+  readonly sourceCode: string;
+
+  readonly nameToDeclaration: Readonly<{
+    [n: string]: ModuleLevelDeclaration<Mutable>;
+  }>;
+  readonly declarations: ReadonlyArray<ModuleLevelDeclaration<Mutable>>;
+
+  /**
+   * Maps the path (to another module) to the corresponding import declarations in
+   * this module.
+   */
+  readonly pathToImportedNames: Readonly<PathToImportedNames>;
+
+  /**
+   * Smallest range including all import declarations.
+   * Null if there is no import declaration.
+   */
+  readonly importBlockRange: Range | null;
+
+  /**
+   * All the record declared in the module, at the top-level or not.
+   * Depth-first: "Foo.Bar" will appear before "Foo".
+   */
+  readonly records: Mutable extends true
+    ? MutableRecordLocation[]
+    : readonly RecordLocation[];
+
+  readonly methods: ReadonlyArray<Method<Mutable>>;
+  readonly brokenMethods: Mutable extends true
+    ? ReadonlyArray<BrokenMethod>
+    : unknown;
+
+  readonly constants: ReadonlyArray<Constant<Mutable>>;
+  readonly brokenConstants: Mutable extends true
+    ? ReadonlyArray<BrokenConstant>
+    : unknown;
+}
+
+/** Can be assigned to a `Module`. */
+export type MutableModule = Module<true>;

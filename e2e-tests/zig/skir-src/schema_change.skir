@@ -1,0 +1,88 @@
+enum EnumBefore {
+  a;
+  removed;
+  b;
+  c: string;
+}
+
+enum EnumAfter {
+  a;
+  removed;
+  removed;
+  removed;
+  c: string;
+  d;
+}
+
+struct FooBefore {
+  bars: [BarBefore];
+  n: int32;
+  enums: [EnumBefore];
+}
+
+struct FooAfter {
+  bars: [BarAfter];
+  n: int32;
+  enums: [EnumAfter];
+  bit: bool;
+}
+
+struct BarBefore {
+  x: float32;
+  removed;
+  y: bool;
+}
+
+struct BarAfter {
+  x: float32;
+  removed;
+  removed;
+  s: string;
+}
+
+struct RemovalBefore {
+  a: string;
+  b: string;
+  enum E {
+    c;
+    d;
+    e: string;
+  }
+  es: [E];
+}
+
+struct RemovalAfter {
+  removed;
+  b: string;
+  enum E {
+    c;
+    removed;
+    removed;
+  }
+  es: [E];
+}
+
+struct Zelda {
+  struct StructBefore {}
+  struct Struct {
+    a: int32;
+  }
+  enum EnumBefore {}
+  enum Enum {
+    a;
+  }
+
+  struct StructHolderBefore {
+    s: StructBefore;
+  }
+  struct StructHolder {
+    s: Struct;
+  }
+
+  struct EnumHolderBefore {
+    e: EnumBefore;
+  }
+  struct EnumHolder {
+    e: Enum;
+  }
+}

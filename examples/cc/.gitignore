@@ -1,0 +1,14 @@
+.DS_Store
+.cache
+dist
+node_modules
+skirout
+tsconfig.tsbuildinfo
+
+# CMake build artifacts
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile

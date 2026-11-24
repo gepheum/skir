@@ -1,0 +1,11 @@
+struct User {
+  user_id: int64;
+}
+
+struct UserProfile {
+  user: User;
+}
+
+struct UserProfiles {
+  profiles: [UserProfile|user.user_id];
+}

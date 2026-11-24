@@ -1,0 +1,6086 @@
+# Skir LLM Full Export
+
+This file contains the complete consolidated Skir website documentation for LLM ingestion.
+
+## Reading order
+
+1. Setup & Workflow
+2. Language Reference
+3. Schema Evolution
+4. Serialization
+5. SkirRPC
+6. GitHub imports
+7. Best Practices
+8. Examples & Projects
+9. Skir vs Protobuf
+10. Building Code Generators
+11. Generated Code Guides (per language)
+
+---
+
+## Section: setup
+
+# Quickstart: Setup and Workflow
+
+## Prerequisites
+
+The Skir compiler requires [Node.js](https://nodejs.org) or [Bun](https://bun.sh) to be installed. If you use Bun, replace `npx` with `bunx` in the commands below.
+
+## Setting Up a Project
+
+### Initialize a project
+
+From your project directory, run:
+
+```bash
+npx skir init
+```
+
+This creates:
+- `skir.yml`: the Skir configuration file
+- `skir-src/hello_world.skir`: an example `.skir` file
+
+### Configure code generation
+
+The `skir.yml` file controls how Skir generates code for your project. Here is an example:
+
+```yaml
+# skir.yml
+
+generators:
+  - mod: skir-cc-gen
+    outDir: ./app/src/skirout
+    config:
+      writeGoogleTestHeaders: true
+  - mod: skir-typescript-gen
+    outDir: ./frontend/skirout
+    config: {}
+```
+
+All paths are relative to the directory containing `skir.yml` (the root directory).
+
+Every generator entry has the following properties:
+- **mod**: Identifies the code generator to run (e.g., `skir-python-gen` for Python).
+- **outDir**: The output directory for generated source code (e.g., `./src/skirout`). The directory **must** be named `skirout`. If you specify an array of strings, the generator will write to multiple output directories, which is useful when you have multiple sub-projects in the same language.
+- **config**: Generator-specific configuration. Use `{}` for default settings.
+
+### Output directory location
+
+Typically, you should place the `skirout` directory at the root of your sub-project's source tree. However, placement varies by ecosystem to ensure idiomatic results:
+- **TypeScript**: Often more convenient to place `skirout` adjacent to the `src` directory.
+- **Java / Kotlin / Python / C#**: Place inside your top-level package (e.g., `src/main/java/com/myproject/skirout`). This ensures generated package names (like `com.myproject.skirout.*`) follow standard naming conventions.
+
+Multiple generators can write to the same output directory (it will contain source files in different languages).
+
+> **Warning:** Do not manually edit files inside a `skirout` directory. This directory is managed by Skir. Any manual change will be overwritten during the next generation.
+
+## Core Workflow
+
+Run Skir code generation before compiling your language-specific source code:
+
+```bash
+npx skir gen
+```
+
+This command transpiles your `.skir` files into the target languages specified in your configuration. This creates or updates your `skirout` directories containing the generated source code.
+
+For a more seamless experience, consider using watch mode:
+
+```bash
+npx skir gen --watch
+```
+
+The compiler will monitor your source directory and automatically regenerate code whenever you modify a `.skir` file.
+
+> **Tip:** If your project is a Node project, add `skir gen` to your `package.json` scripts. Using the `prebuild` hook is recommended so code is regenerated automatically before every build.
+
+```json
+{
+  "scripts": {
+    "prebuild": "skir gen",
+    "build": "tsc"
+  }
+}
+```
+
+## Formatting .skir Files
+
+Use `npx skir format` to format all `.skir` files in your project.
+
+## Continuous Integration (GitHub)
+
+We recommend adding `skirout` to `.gitignore` and running Skir code generation in your GitHub workflow. GitHub's hosted runners (Ubuntu, Windows, and macOS) come with Node.js and `npx` pre-installed, so you only need to add one step:
+
+```yaml
+- name: Run Skir codegen
+  run: npx skir gen
+```
+
+If you have a formatting check step, it may fail on Skir-generated code. Either run the formatting check before Skir codegen, or configure your formatter to skip `skirout` directories.
+
+Optional steps for stricter validation:
+
+```yaml
+- name: Run Skir format checker
+  run: npx skir format --ci
+
+- name: Ensure Skir snapshot up-to-date
+  run: npx skir snapshot --ci
+```
+
+The first step ensures `.skir` files are properly formatted. The second step verifies that you ran `npx skir snapshot` before committing. See the Schema evolution & compatibility guide for more information about the snapshot command.
+
+## IDE Support
+
+The official [VS Code extension](https://marketplace.visualstudio.com/items?itemName=TylerFibonacci.skir-language) for Skir provides syntax highlighting, auto-formatting, validation, jump-to-definition, and other language features.
+
+---
+
+## Section: language-reference
+
+# Language Reference
+
+This page serves as a reference for the syntax and features of the Skir language.
+
+## Records
+
+Records are the top-level data definitions in a Skir schema. There are two types of records: structs and enums.
+
+### Structs
+
+Use the keyword `struct` to define a struct, which is a collection of fields of different types.
+
+Fields have a name, but during serialization they are identified by a number, which can either be set explicitly:
+
+```skir
+struct Point {
+  x: int32 = 0;
+  y: int32 = 1;
+  label: string = 2;
+}
+```
+
+or implicitly:
+
+```skir
+struct Point {
+  x: int32;       // = 0
+  y: int32;       // = 1
+  label: string;  // = 2
+}
+```
+
+If you're not explicitly specifying the field numbers, you must be careful not to change the order of the fields or else you won't be able to deserialize old values.
+
+```skir
+// BAD: you can't reorder the fields and keep implicit numbering
+// struct Point {
+//   label: string;
+//   x: int32;
+//   y: int32;
+// }
+
+// GOOD
+struct Point {
+  label: string = 2;
+
+  // Fine to rename fields
+  x_coordinate: int32 = 0;
+  y_coordinate: int32 = 1;
+
+  // Fine to add new fields
+  color: Color = 3;
+}
+```
+
+### Enums
+
+Skir enums are sum types. If you've used modern languages like Rust, Swift, or Zig, you're already familiar with this concept. An enum value is one of several possible variants, and each variant can optionally have data associated with it.
+
+```skir
+// Indicates whether an operation succeeded or failed.
+enum OperationStatus {
+  success;        // a constant variant
+  error: string;  // a wrapper variant
+}
+```
+
+An `OperationStatus` is one of these 3 things:
+- the `SUCCESS` constant
+- an `error` with a string value
+- `UNKNOWN`: a special implicit variant common to all enums
+
+If you need a variant to hold multiple values, wrap them inside a struct:
+
+```skir
+struct MoveAction {
+  x: int32;
+  y: int32;
+}
+
+enum BoardGameTurn {
+  pass;
+  move: MoveAction;
+}
+```
+
+Like the fields of a struct, the variants of an enum have a number, and the numbering can be explicit or implicit.
+
+```skir
+enum ExplicitNumbering {
+  // The numbers don't need to be consecutive.
+  foo = 10;
+  bar: string = 2;
+}
+
+enum ImplicitNumbering {
+  // Implicit numbering is 1-based.
+  // 0 is reserved for the special UNKNOWN variant.
+
+  foo;          // = 1
+  bar: string;  // = 2
+}
+```
+
+The variant numbers identify variants in the serialization format. You must not change the number of a variant. If using implicit numbering, you must not reorder the variants.
+
+It is always fine to rename an enum, rename the variants of an enum, or add new variants to an enum.
+
+### Nesting Records
+
+You can define a record (struct or enum) within another record for namespacing.
+
+```skir
+enum Status {
+  ok;
+
+  struct Error {
+    message: string;
+  }
+  error: Error;
+}
+
+struct Foo {
+  // Dot notation to refer to the nested record.
+  error: Status.Error;
+}
+```
+
+### Inline Records
+
+Skir allows you to define records directly within a field's type definition. The compiler infers the record name by converting the `snake_case` field name into `PascalCase`.
+
+Without inline records:
+
+```skir
+struct Notification {
+  metadata: Metadata;
+  struct Metadata {
+    sent_at: timestamp;
+    sender_id: string;
+  }
+
+  payload: Payload;
+  enum Payload {
+    app_launch;
+
+    message: Message;
+    struct Message {
+      body: string;
+      title: string;
+    }
+  }
+}
+```
+
+Using inline records (strictly equivalent; generates identical code):
+
+```skir
+struct Notification {
+  metadata: struct {
+    sent_at: timestamp;
+    sender_id: string;
+  }
+
+  payload: enum {
+    app_launch;
+    message: struct {
+      body: string;
+      title: string;
+    }
+  }
+}
+```
+
+#### Inline records inside arrays/optionals
+
+Inline records must be used directly as a field type. You can’t wrap an inline record in an array type or an optional type (for example `[struct { ... }]` or `struct { ... }?`).
+
+For example, this is **not allowed**:
+
+```skir
+struct Product {
+  tags: [struct {
+    tag_name: string;
+  }];
+}
+```
+
+Instead, define a nested record and reference it by name:
+
+```skir
+struct Product {
+  struct Tag {
+    tag_name: string;
+  }
+
+  tags: [Tag];
+}
+```
+
+### Removed Numbers
+
+When removing a field from a struct or a variant from an enum, mark the removed number with the `removed` keyword:
+
+```skir
+struct ExplicitNumbering {
+  a: string = 0;
+  b: string = 1;
+  f: string = 5;
+  removed 2..4, 6;  // 2..4 is same as 2, 3, 4
+}
+
+struct ImplicitNumbering {
+  a: string;
+  b: string:
+  removed;
+  removed;
+  removed;
+  f: string;
+  removed;
+}
+```
+
+### Stable Identifiers
+
+Assign a numeric stable identifier to a struct or enum in parentheses after the record name:
+
+```skir
+struct Point(23456) { ... }
+```
+
+Used by `npx skir snapshot` to track record identity across renames and detect breaking changes. No two types can share the same stable identifier.
+
+> **Tip:** Use `?` as a placeholder and run `npx skir format` to auto-generate a random number. This happens automatically on save with the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=TylerFibonacci.skir-language).
+
+### Recursive Records
+
+Records can be recursive (contain a field of their own type). Essential for trees and similar structures.
+
+```skir
+struct DecisionNode {
+  question: string;
+  yes: DecisionTree;
+  no: DecisionTree;
+}
+
+enum DecisionTree {
+  result: string;
+  node: DecisionNode;
+}
+```
+
+Generated code has compile-time constraints to prevent an instance of a recursive type from containing itself.
+
+## Data Types
+
+### Primitive Types
+
+- `bool`: true or false
+- `int32`: signed 32-bit integer
+- `int64`: signed 64-bit integer
+- `hash64`: unsigned 64-bit integer; prefer this for hash codes, `int64` for actual counts
+- `float32`: 32-bit float; can be `NaN`, `Infinity`, `-Infinity`
+- `float64`: 64-bit float; can be `NaN`, `Infinity`, `-Infinity`
+- `string`: Unicode string
+- `bytes`: sequence of bytes
+- `timestamp`: instant in time as milliseconds since Unix epoch (±100M days range)
+
+### Array Type
+
+Wrap the item type in square brackets: `[string]`, `[User]`.
+
+#### Keyed Arrays
+
+If items are structs with a unique key field, use `[Item|key_field]`:
+
+```skir
+struct User {
+  id: int32;
+  name: string;
+}
+
+struct UserRegistry {
+  users: [User|id];
+}
+```
+
+Generates methods for O(1) key lookups via hash table. Example in Python:
+
+```python
+user = user_registry.users.find(user_id)
+```
+
+For nested keys, chain field names: `[Item|a.b.c]`. For enum keys, add `.kind`: `[Item|weekday.kind]`.
+
+Key type must be a primitive or enum type.
+
+### Optional Type
+
+Add `?` to make a type optional: `string?` is either a `string` or null.
+
+## Constants
+
+Define constants of any type with `const`. Syntax is similar to JSON with these differences:
+- Object keys must not be quoted
+- Trailing commas are allowed and encouraged
+- Strings can be single-quoted or double-quoted
+- Strings can span multiple lines by escaping newlines
+
+```skir
+const PI: float64 = 3.14159;
+
+const LARGE_CIRCLE: Circle = {
+  center: {
+    x: 100,
+    y: 100,
+  },
+  radius: 100,
+  color: {
+    r: 255,
+    g: 0,
+    b: 255,
+    label: "fuschia",
+  },
+};
+
+const MULTILINE_STRING: string = 'Hello\
+world\
+!';
+
+const SUPPORTED_LOCALES: [string] = [
+  "en-GB",
+  "en-US",
+  "es-MX",
+];
+
+// Use strings for enum constant variants.
+const REST_DAY: Weekday = "sunday";
+
+// Use { kind: ..., value: ... } for enum wrapper variants.
+const NOT_IMPLEMENTED_ERROR: OperationStatus = {
+  kind: "error",
+  value: "Not implemented",
+};
+```
+
+All struct fields must be specified, unless you use `{| ... |}` instead of `{ ... }`, in which case missing fields are set to their default values.
+
+## Methods (API)
+
+The `method` keyword defines the signature of a service method.
+
+```skir
+struct GetUserProfileRequest {
+  user_id: int32;
+}
+
+struct GetUserProfileResponse {
+  profile: UserProfile?;
+}
+
+method GetUserProfile(
+  GetUserProfileRequest
+): GetUserProfileResponse = 12345;
+```
+
+The request and response can have any type.
+
+### Stable Identifiers
+
+Every method must have a unique integer identifier (e.g. `= 12345`) used for RPC routing. This decouples the method's identity from its name, allowing safe renaming. No two methods can share the same identifier.
+
+> **Tip:** Use `?` as a placeholder and run `npx skir format` to auto-generate a random number.
+
+### Inline Request/Response Records
+
+Skir supports inline record definitions for methods. The compiler generates names by appending `Request` and `Response` to the method name.
+
+```skir
+method GetUserProfile(
+  struct {
+    user_id: int32;
+  }
+): struct {
+  profile: UserProfile?;
+} = 12345;
+```
+
+## Imports
+
+Import types from another module with `import`. You can specify names or import the whole module with `as`:
+
+```skir
+import { Point, Circle } from "geometry/geometry.skir";
+import * as color from "color.skir";
+
+struct Rectangle {
+  top_left: Point;
+  bottom_right: Point;
+}
+
+struct Disk {
+  circle: Circle;
+  fill_color: color.Color;
+}
+```
+
+The path is always relative to the root of the Skir source directory.
+
+## Doc Comments
+
+Doc comments use triple slashes (`///`) and document records, fields, variants, methods, and constants. They are processed as part of the schema definition (unlike regular `//` or `/*` comments).
+
+### Referencing Symbols
+
+Enclose symbol references in square brackets. Missing or misspelled references cause compilation errors:
+
+```skir
+struct Account {
+  /// Same as [User.email]
+  email: string;
+  /// True if the [email] has been confirmed via a verification link.
+  is_verified: bool;
+  created_at: timestamp;
+}
+```
+
+### Integration with Code Generators
+
+Doc comments are copied into generated code. IDE users see them in hover information, code completion, and inlay hints.
+
+### RPC Visibility and Security
+
+Doc comments on types used for RPC request/response may be visible to clients. Do not include confidential information in them.
+
+---
+
+## Section: schema-evolution
+
+# Schema Evolution & Compatibility
+
+Skir includes built-in compatibility checks so you can evolve schemas safely and catch breaking changes before they hit production. It is designed for long-term data persistence and distributed systems, with support for both backward compatibility (new code can read old data) and forward compatibility (old code can read new data when services or clients run different versions).
+
+## Safe schema changes
+
+The following changes are safe and preserve both backward and forward compatibility:
+
+### Adding a field to a struct
+
+New code reading old data will use default values for missing fields:
+
+- Numbers: `0`
+- Booleans: `false`
+- Strings, bytes, arrays: empty
+- Structs: a struct with all fields at their default values
+- Enums: the implicit `unknown` variant
+- Optional: `null`
+
+### Adding a variant to an enum
+
+Old code encountering a new variant will treat it as the implicit `UNKNOWN` variant.
+
+### Renaming a type, field, or variant
+
+Skir uses numeric identifiers (field numbers) in its binary and compact JSON formats, not names. Therefore, renaming any element is safe. Renaming `.skir` files or moving symbols across files is also always safe.
+
+> Note: Names are used in the human-readable JSON format. This format is for debugging only and should not be used for storage or inter-service communication.
+
+### Removing a field or variant
+
+You must mark the field or variant number as `removed`. This is permanent: once a number is marked as removed, it cannot be reused. When removing a variant, new code encoutering the old variant will treat it as `UNKNOWN`.
+
+### Making a compatible type change
+
+You can change a type if the new type is backward-compatible with the old one:
+
+- `bool` → `int32`, `int64`, `hash64`
+- `int32` → `int64`
+- `float32` → `float64`
+- `float64` → `float32` (precision loss possible)
+- `[A]` → `[B]` (if `A` → `B` is valid)
+- `A?` → `B?` (if `A` → `B` is valid)
+
+### Turning an array into a keyed array
+
+You can freely add, remove, or change the key field of a keyed array (the part after `|`). For example, changing `[User]` to `[User|id]` or `[User|id]` to `[User]` is safe. The key annotation is purely a hint for code generation to provide efficient lookup methods. It does not affect the serialization format or data compatibility.
+
+### Converting a constant variant into a wrapper variant
+
+You can safely convert a constant variant into a wrapper variant. New code reading old data with constant variants will treat them as wrapper variants around empty values.
+
+```skir
+// BEFORE
+enum Status {
+  error;
+  ok;
+}
+```
+
+```skir
+// AFTER
+enum Status {
+  // When deserializing old data, the string will be empty.
+  error: string;
+  ok;
+}
+```
+
+### Giving a stable identifier to a record
+
+Giving a stable identifier to a record, for example `struct Foo(123) {...}`, is safe. Stable identifiers are not used during serialization; they are only used by the snapshot tool to track records across time.
+
+## Unsafe changes
+
+The following changes will break compatibility:
+
+- Changing a field/variant number, or reordering fields/variants if using implicit numbering.
+- Changing the type of a field, wrapper variant, method request or method response to an incompatible type.
+- Changing a method's stable identifier.
+- Reusing a `removed` field or variant number.
+- Deleting a field or variant without marking it as `removed`.
+- Converting a wrapper variant into a constant variant.
+
+## Automated compatibility checks
+
+The Skir compiler includes a `snapshot` tool to prevent accidental breaking changes.
+
+### How it works
+
+The `npx skir snapshot` command helps you manage schema evolution by maintaining a history of your schema state. When you run this command, two things happen:
+
+1. **Verification**: Skir checks for a `skir-snapshot.json` file. If it exists, it compares your current `.skir` files against it. If breaking changes are detected, the command reports them and exits.
+2. **Update**: If no breaking changes are found (or if no snapshot exists), Skir creates or updates the `skir-snapshot.json` file to reflect the current schema.
+
+### Tracked types and stable identifiers
+
+To track compatibility across renames, Skir needs a way to identify your types. You can explicitly assign a random integer ID to your top-level types:
+
+```skir
+// Explicitly tracked by ID 500996846
+struct User(500996846) {
+  name: string;
+  pets: [Pet];
+}
+
+// Implicitly tracked through User, no need to assign an ID
+struct Pet {
+  name: string;
+}
+```
+
+If you rename `User` to `Account` but keep the ID `500996846`, Skir knows it's the same type and will validate the change safely.
+
+### Which types to explicitly track
+
+In most projects, only a handful of types need explicit stable identifiers: the top-level records that you store on disk. All records they contain, directly or indirectly, are implicitly tracked through their parents.
+
+In the example above, `Pet` is implicitly tracked through `User`. If you rename `Pet` to `Animal` without changing its structure, Skir will still recognize it as the same type because it is the type of the first field (number `0`) of `User`. But if you then make the following change:
+
+```skir
+struct Animal {
+  name: bool;  // Was string
+}
+```
+
+The snapshot tool will report a breaking change in `Pet`/`Animal` because `string` → `bool` is an incompatible type change.
+
+Types used as service method requests and responses are also implicitly tracked through the method number, so you do not need to give them stable IDs.
+
+```skir
+method GetUser(GetUserRequest): GetUserResponse = 12345;
+
+// Tracked through GetUser
+struct GetUserRequest { }
+
+// Tracked through GetUser
+struct GetUserResponse { }
+```
+
+### Handling intentional breaking changes
+
+If you must make a breaking change (e.g. during early development), simply delete the `skir-snapshot.json` file and run `npx skir snapshot` again to establish a new baseline.
+
+## Recommended workflow
+
+### 1. During development
+
+While drafting a new schema version, use the `--dry-run` flag to check for backward compatibility without updating the snapshot:
+
+```bash
+npx skir snapshot --dry-run
+```
+
+This confirms that your changes are safe relative to the last release (snapshot).
+
+If you are using the official VSCode extension, breaking changes will be highlighted directly in your editor as you type.
+
+### 2. Before release
+
+Run `npx skir snapshot` without flags to verify compatibility and commit the new schema state to the snapshot file.
+
+### 3. Continuous integration
+
+Add the command to your CI pipeline or pre-commit hook to prevent accidental breaking changes. The `--ci` flag ensures the snapshot is up-to-date and compatible:
+
+```yaml
+- name: Ensure Skir snapshot up-to-date
+  run: npx skir snapshot --ci
+```
+
+## Round-tripping unrecognized data
+
+Consider a service in a distributed system that reads a Skir value, modifies it, and writes it back. If the schema has evolved (e.g. new fields were added) but the service is running older code, it may encounter data it doesn't recognize.
+
+When deserializing, you can choose to either **drop** or **preserve** this unrecognized data.
+
+- **Drop (default)**: Unrecognized fields and variants are discarded. This is safer but results in data loss if the object is saved back to storage.
+- **Preserve**: Unrecognized data is kept internally and written back during serialization. This enables round-tripping.
+
+For example, consider a schema evolution where a field and an enum variant are added:
+
+```skir
+struct UserBefore(999) {
+  id: int64;
+  subscription_status: enum {
+    free;
+    premium;
+  };
+}
+```
+
+```skir
+struct UserAfter(999) {
+  id: int64;
+  subscription_status: enum {
+    free;
+    premium;
+    trial;  // Added
+  };
+  name: string;  // Added
+}
+```
+
+### Default behavior: drop
+
+By default, unrecognized data is lost during the round-trip.
+
+```typescript
+// Old code reads and writes the data
+const oldUser = UserBefore.serializer.fromJson(originalJson);
+const roundTrippedJson = UserBefore.serializer.toJson(oldUser);
+
+// New code reads the result
+const result = UserAfter.serializer.fromJson(roundTrippedJson);
+
+assert(result.id === 123);
+assert(result.name === "");  // Lost: reset to default
+assert(result.subscriptionStatus.union.kind === "UNKNOWN");  // Lost: became UNKNOWN
+```
+
+### Preserve behavior
+
+You can configure the deserializer to keep unrecognized values.
+
+```typescript
+// Old code reads with "keep-unrecognized-values"
+const oldUser = UserBefore.serializer.fromJson(
+  originalJson,
+  "keep-unrecognized-values"
+);
+const roundTrippedJson = UserBefore.serializer.toJson(oldUser);
+
+// New code reads the result
+const result = UserAfter.serializer.fromJson(roundTrippedJson);
+
+assert(result.id === 123);
+assert(result.name === "Jane");  // Preserved!
+assert(result.subscriptionStatus.union.kind === "TRIAL");  // Preserved!
+```
+
+> Warning: Only preserve unrecognized data from trusted sources. Malicious actors could inject fields with IDs that you haven't defined yet. If you preserve this data and later define those IDs in a future version of your schema, the injected data could be deserialized as valid fields, potentially leading to security vulnerabilities or data corruption.
+
+---
+
+## Section: serialization
+
+# Serialization
+
+Skir defines a standard for serializing and deserializing data types to JSON and binary. Generated data classes implement this standard for consistent encoding and decoding across all languages.
+
+## Serialization formats
+
+When serializing a data structure, you can choose one of 3 formats:
+
+| Format | Persistable | Space efficiency | Readability |
+|---|---|---|---|
+| Dense JSON | Yes (safe) | High | Low |
+| Readable JSON | No (unsafe) | Low | High |
+| Binary | Yes (safe) | Very High | None |
+
+## Dense JSON
+
+This is the format you should choose in most cases. It is compact and safe for persistence: you can freely rename fields in your schema without breaking compatibility with existing data.
+
+Structs are serialized as JSON arrays, where the field numbers in the index definition match the indexes in the array. Constant variants of enums are serialized as numbers, and wrapper variants are serialized as `[number, value]` arrays.
+
+```skir
+struct User {
+  user_id: int32;
+  removed;
+  name: string;
+  rest_day: Weekday;
+  subscription_status: SubscriptionStatus;
+  pets: [Pet];
+  nickname: string;
+}
+
+const JOHN_DOE: User = {
+  user_id: 400,
+  name: "John Doe",
+  rest_day: "SUNDAY",
+  subscription_status: {
+    kind: "premium_since",
+    value: "2027-01-01:00:00:00Z",
+  },
+  pets: [
+    { name: "Fluffy" },
+    { name: "Fido" },
+  ],
+  nickname = "",
+}
+```
+
+Dense JSON representation of `JOHN_DOE`:
+
+```json
+[400,0,"John Doe",7,[2,1798761600000],[["Fluffy"],["Fido"]]]
+```
+
+- Removed fields are replaced with zeros.
+- Trailing fields with default values are omitted.
+
+The output is compact but not human-friendly. If you query a column storing dense JSON directly with a `SELECT`, what comes back is a terse array of numbers and values with no field names in sight. If you need to inspect a value during debugging, the Converter web app can translate dense JSON into readable JSON instantly.
+
+### Dense JSON encoding rules
+
+| Type | Encoded as | Examples |
+|---|---|---|
+| `bool` | `1` for true, `0` for false | `1` |
+| `int32` | JSON number | `1234` |
+| `int64`, `hash64` | JSON number if within JS safe integer range (±9,007,199,254,740,991), otherwise string | `1234`, `"9007199254740992"` |
+| `float32`, `float64` | Finite: JSON number. `NaN`, `Infinity`, `-Infinity`: strings | `1.23`, `"Infinity"` |
+| `timestamp` | JSON number (milliseconds since Unix epoch) | `1672531200000` |
+| `string` | JSON string | `"Hello"` |
+| `bytes` | Base64 string | `"SGVsbG8="` |
+| `T?` | `null` if missing, otherwise serialized value | `null`, `123` |
+| `[T]` | JSON array | `[1, 2, 3]` |
+| `struct` | JSON array. Index = field number. Removed fields = `0`. Trailing defaults omitted. | `[400, 0, "John"]` |
+| `enum` | Constants: integers. Wrappers: `[variant_number, value]` | `1`, `[2, "value"]` |
+
+## Readable JSON
+
+This format is intended for debugging and human inspection. Structs are serialized as JSON objects and enum constants as strings, making the output easy to read. However, it is not safe for persistence: because Skir allows fields to be renamed, schema evolution will silently break compatibility with old readable JSON data.
+
+```json
+{
+  "user_id": 400,
+  "name": "John Doe",
+  "rest_day": "SUNDAY",
+  "subscription_status": {
+    "kind": "premium_since",
+    "value": {
+      "unix_millis": 1798761600000,
+      "formatted": "2027-01-01:00:00:00Z"
+    }
+  },
+  "pets": [
+    {
+      "name": "Fluffy"
+    },
+    {
+      "name": "Fido"
+    }
+  ]
+}
+```
+
+### Readable JSON encoding rules
+
+| Type | Encoded as | Examples |
+|---|---|---|
+| `bool` | `true` or `false` | `true` |
+| `int32` | JSON number | `1234` |
+| `int64`, `hash64` | JSON number if within JS safe range, otherwise string | `1234`, `"9007199254740992"` |
+| `float32`, `float64` | Finite: JSON number. Special values: strings | `1.23`, `"Infinity"` |
+| `timestamp` | Object with `unix_millis` and `formatted` fields | `{ "unix_millis": 1672531200000, "formatted": "2023-01-01T00:00:00Z" }` |
+| `string` | JSON string | `"Hello"` |
+| `bytes` | `"hex:"` followed by hexadecimal | `"hex:48656c6c6f"` |
+| `T?` | `null` if missing, otherwise serialized value | `null`, `123` |
+| `[T]` | JSON array | `[1, 2, 3]` |
+| `struct` | JSON object with field names. Default values omitted. | `{ "name": "John", "age": 30 }` |
+| `enum` | Constants: strings. Wrappers: `{ "kind": "...", "value": ... }` | `"RED"`, `{ "kind": "rgb", "value": "ff0000" }` |
+
+## Binary format
+
+This format is a bit more compact than JSON, and serialization/deserialization can be faster in languages like C++. Only prefer it over JSON when the small performance gain is likely to matter, which should be rare.
+
+All numeric values are encoded using little-endian byte order.
+
+### Binary encoding rules
+
+| Type | Encoded as | Examples |
+|---|---|---|
+| `bool` | `1` for true, `0` for false | `0x01`, `0x00` |
+| `int32` | `0-231`: single byte `val`; `232-65535`: `0xe8` then `uint16(val)`; `>= 65536`: `0xe9` then `uint32(val)`; `-256 to -1`: `0xeb` then `uint8(val + 256)`; `-65536 to -257`: `0xec` then `uint16(val + 65536)`; `<= -65537`: `0xed` then `int32(val)` | `10 -> 0x0a`, `255 -> 0xe8 0xff 0x00`, `-1 -> 0xeb 0xff` |
+| `int64` | If the value fits in a 32-bit signed integer, use `int32` encoding. Otherwise: marker `0xee` followed by 8 bytes. | |
+| `hash64` | If the value fits in a 32-bit unsigned integer, use `int32` encoding. Otherwise: marker `0xea` followed by 8 bytes. | |
+| `float32` | `0` is encoded as a single byte `0x00`. Otherwise: marker `0xf0` followed by 4 bytes (IEEE 754, little endian). | `0.0 -> 0x00`, `1.5 -> 0xf0 00 00 c0 3f` |
+| `float64` | `0` is encoded as a single byte `0x00`. Otherwise: marker `0xf1` followed by 8 bytes (IEEE 754, little endian). | `0.0 -> 0x00` |
+| `timestamp` | `0` (Epoch) is encoded as a single byte `0x00`. Otherwise: marker `0xef` followed by 8 bytes (int64 millis). | |
+| `string` | Empty string: `0xf2`. Non-empty: marker `0xf3`, then length (encoded as a number), then UTF-8 bytes. | `"Hi" -> 0xf3 0x02 0x48 0x69` |
+| `bytes` | Empty: `0xf4`. Non-empty: marker `0xf5`, then length (encoded as a number), then raw bytes. | |
+| `T?` | `null` is encoded as `0xff`. Otherwise, the value is encoded directly. | `null -> 0xff`, `val -> val_bytes` |
+| `[T]` | Length `0-3`: markers `0xf6`-`0xf9`. Length `> 3`: marker `0xfa` followed by the length. Then items are written sequentially. | `[1, 2] -> 0xf8 ... ...` |
+| `struct` | Same encoding as an array. Array index corresponds to the field number. Removed fields are `0`. Trailing defaults are omitted. | |
+| `enum` | Constant variants are encoded as a number. Wrapper variants use markers `0xfb`-`0xfe` for variant numbers `1-4`, or `0xf8` followed by the variant number, then the value. | |
+
+## Deserialization
+
+### JSON flavors
+
+When Skir deserializes JSON, it knows how to handle both dense and readable flavor. You do not need to specify which flavor is being used.
+
+### Handling of zeros
+
+Both the dense JSON and binary formats use zeros to represent `removed` fields to save space. To preserve forward compatibility, zero is treated as a valid input for any type, even non-numerical ones.
+
+- `string` decodes `0` as `""`
+- Arrays decode `0` as `[]`
+- Optional types (`T?`) decode `0` as the default value of the underlying type, for example `string?` decodes `0` as `""`, not `null`
+
+## Converter web app
+
+Skir provides a hosted converter at `skir.build/converter` to convert values across dense JSON, readable JSON, and binary. You can also reach it from the converter icon in the header of the website.
+
+All processing happens locally in the browser. No data entered into the converter leaves the machine.
+
+### Provide a schema
+
+The converter needs a schema, which can be provided in two ways:
+
+1. A type descriptor JSON from generated code. In Python, for example, this can be obtained from `User.serializer.type_descriptor.as_json_code()`. The syntax is similar in other languages.
+
+  A common pattern is to store the type descriptor JSON as metadata next to serialized data so it is available when inspecting a value.
+
+2. A GitHub URL pointing to a specific line where a record is defined in a `.skir` file, for example `https://github.com/gepheum/skir-fantasy-game-example/blob/v1.0.0/skir-src/fantasy_game.skir#L123`.
+
+### Paste a value
+
+Once the schema is loaded, paste the value to inspect. The converter accepts dense JSON, readable JSON, and binary (`base16` or `base64`) and detects the format automatically.
+
+It then shows the value converted to all three formats.
+
+---
+
+## Section: skirrpc
+
+# SkirRPC
+
+A **SkirRPC service** is a typesafe HTTP API: a server and a client communicate using shared Skir data types.
+Your schema defines each method’s signature (request type and response type), and both the server code and the client code refer to the same schema-defined signatures—so both sides agree on the contract at compile time.
+
+SkirRPC services work equally well for communication between microservices, or between a frontend (browser/mobile app) and a backend. The protocol is lightweight and easy to integrate: you can attach a SkirRPC service handler to almost any HTTP server framework.
+
+## Core Concepts
+
+### API Definition
+
+Define methods in your `.skir` schema:
+
+```skir
+// calculator.skir
+
+method Square(float32): float32 = 1001;
+method SquareRoot(float32): float32 = 1002;
+```
+
+A method definition specifies the request type (input), the response type (output), and a stable numeric identifier.
+
+Methods are defined globally in the schema. Skir does not group methods into `service` blocks like Protocol Buffer does. You decide how to group and implement methods in your application code.
+
+### Implement the Service
+
+The Skir runtime provides a `Service` class that handles deserialization, routing, and serialization.
+
+#### Registering Methods
+
+Link abstract method definitions to your functions:
+
+```python
+from skirout.calc import Square, SquareRoot
+import math
+
+async def square_impl(val: float, meta: RequestMeta) -> float:
+    return val * val
+
+async def sqrt_impl(val: float, meta: RequestMeta) -> float:
+    if val < 0:
+        raise ValueError("Cannot calculate square root of negative number")
+    return math.sqrt(val)
+
+service = skir.ServiceAsync[RequestMeta]
+service.add_method(Square, square_impl)
+service.add_method(SquareRoot, sqrt_impl)
+```
+
+#### Request Context
+
+`RequestMeta` is a custom type you define to pass context (auth tokens, user IDs) from the HTTP layer into method logic:
+
+```python
+from dataclasses import dataclass
+import skir
+
+@dataclass
+class RequestMeta:
+    auth_token: str
+    client_ip: str
+
+service = skir.ServiceAsync[RequestMeta]
+```
+
+If no context is needed, define an empty class.
+
+### Running the Service
+
+Skir does not start its own HTTP server. It provides a `handle_request` method you call from your existing framework (FastAPI, Flask, Express, etc.), letting you leverage existing middleware for logging, auth, and rate limiting.
+
+```python
+# FastAPI example
+from fastapi import FastAPI, Request
+from fastapi.responses import Response
+
+app = FastAPI()
+
+@app.api_route("/myapi", methods=["GET", "POST"])
+async def myapi(request: Request):
+    if request.method == "POST":
+        req_body = (await request.body()).decode("utf-8")
+    else:
+        req_body = urllib.parse.unquote(
+            request.url.query.encode("utf-8").decode("utf-8")
+        )
+
+    req_meta = extract_meta_from_request(request)
+    raw_response = await service.handle_request(req_body, req_meta)
+
+    return Response(
+        content=raw_response.data,
+        status_code=raw_response.status_code,
+        media_type=raw_response.content_type,
+    )
+```
+
+### Call the Service
+
+Use the `ServiceClient` class to invoke methods:
+
+```python
+from skir import ServiceClient
+import aiohttp
+from skirout.calc import Square
+
+client = ServiceClient("http://localhost:8000/api")
+
+async def main():
+    async with aiohttp.ClientSession() as session:
+        response = await client.invoke_remote_async(
+            session,
+            Square,
+            5.0,
+            headers={"Authorization": "Bearer token"}
+        )
+        print(response)  # 25.0
+```
+
+## Code Examples
+
+| Language | Server | Client |
+|---|---|---|
+| TypeScript | [Express](https://github.com/gepheum/skir-typescript-example/blob/main/src/server.ts) | [Client](https://github.com/gepheum/skir-typescript-example/blob/main/src/client.ts) |
+| Python | [Flask](https://github.com/gepheum/skir-python-example/blob/main/start_service_flask.py), [FastAPI](https://github.com/gepheum/skir-python-example/blob/main/start_service_fastapi.py), [Litestar](https://github.com/gepheum/skir-python-example/blob/main/start_service_starlite.py) | [Client](https://github.com/gepheum/skir-python-example/blob/main/call_service.py) |
+| Elixir | [Plug + Bandit](https://github.com/mishmish-dev/skir-elixir-example/blob/main/lib/skir_example/router.ex) | [Client](https://github.com/mishmish-dev/skir-elixir-example/blob/main/scripts/call_service.exs) |
+| C++ | [cpp-httplib](https://github.com/gepheum/skir-cc-example/blob/main/service_start.cc) | [Client](https://github.com/gepheum/skir-cc-example/blob/main/service_client.cc) |
+| Java | [Spring Boot](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/StartService.java) | [Client](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/CallService.java) |
+| C# | [ASP.NET Core](https://github.com/gepheum/skir-csharp-example/blob/main/StartService.cs) | [Client](https://github.com/gepheum/skir-csharp-example/blob/main/CallService.cs) |
+| Kotlin | [Ktor](https://github.com/gepheum/skir-kotlin-example/blob/main/src/main/kotlin/startservice/StartService.kt) | [Client](https://github.com/gepheum/skir-kotlin-example/blob/main/src/main/kotlin/callservice/CallService.kt) |
+| MoonBit | [moonbit/http](https://github.com/gepheum/skir-moonbit-example/blob/main/src/start_service.mbt) | [Client](https://github.com/gepheum/skir-moonbit-example/blob/main/src/call_service.mbt) |
+| Dart | [Shelf](https://github.com/gepheum/skir-dart-example/blob/main/bin/start_service.dart) | [Client](https://github.com/gepheum/skir-dart-example/blob/main/bin/call_service.dart) |
+| Swift | [Vapor](https://github.com/gepheum/skir-swift-example/blob/main/Sources/StartService/main.swift) | [Client](https://github.com/gepheum/skir-swift-example/blob/main/Sources/CallService/main.swift) |
+
+## Why Use SkirRPC services?
+
+In a traditional REST API, the contract between client and server is implicit and fragile. Skir enforces the contract at compile time. Both server and client are generated from the same source of truth.
+
+### Versus Traditional REST APIs
+
+| Feature | REST | SkirRPC service (RPC) |
+|---|---|---|
+| Endpoint | Resource-based (`/users/123`) | Single URL (`/api`) |
+| Operations | Endpoint + HTTP verb | Methods in `.skir` file |
+| Input | Path params, query params, JSON body | Strongly-typed request |
+| Output | JSON with implicit structure | Strongly-typed response |
+| Client | Manual fetch/axios calls | Typesafe, handles serialization |
+
+> Skir solves the same problem as [tRPC](https://trpc.io), but is **language-agnostic**. While tRPC is excellent for full-stack TypeScript, Skir brings the same safety to polyglot environments (e.g., TypeScript frontend talking to a Kotlin or Python backend).
+
+## Tooling
+
+### Skir Studio
+
+Every SkirRPC service comes with Skir Studio, a built-in interactive documentation and testing tool. Visit your API endpoint with `?studio` (e.g., `http://localhost:8000/api?studio`). It lists all methods and lets you send requests and view responses.
+
+Try the demo:
+
+```bash
+npx skir-studio-demo
+```
+
+> Similar to Swagger UI in the FastAPI ecosystem.
+
+### Sending Requests with cURL
+
+Skir runs over standard HTTP. Requests are POSTs with a JSON body:
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"method": "Square", "request": 5.0}' \
+  http://localhost:8000/api
+```
+
+---
+
+## Section: dependencies
+
+# GitHub imports
+
+Skir allows you to import and use types defined in other Skir projects. GitHub imports are regular GitHub repositories containing Skir definitions. This is useful for sharing common data structures across multiple repositories.
+
+## Configuring Dependencies
+
+Add entries to the `dependencies` section of `skir.yml`. The key is the GitHub repository identifier (`@owner/repo`), the value is the Git tag:
+
+```yaml
+# skir.yml
+dependencies:
+  "@gepheum/skir-fantasy-game-example": v1.0.0
+  "@my-org/user-service-skir": v3.5.0
+```
+
+When you run `npx skir gen`, Skir automatically fetches dependencies and caches them in `skir-external/`.
+
+> Add `skir-external/` to your `.gitignore`.
+
+### Transitive Dependencies
+
+Dependencies are transitive: if A depends on B and B depends on C, then A implicitly depends on C. Skir downloads all transitive dependencies automatically.
+
+Skir strictly forbids version conflicts. If two dependencies require different versions of the same package, the compiler reports an error. You must resolve this by aligning on a single version.
+
+## Importing Types
+
+Once configured, import types using the full path prefixed with the package identifier:
+
+```skir
+import { Quest } from "@gepheum/skir-fantasy-game-example/fantasy_game.skir";
+
+struct QuestCollection {
+  collection_name: string;
+  quests: [Quest|quest_id];
+}
+```
+
+## Code Generation
+
+For languages allowing `@` in directory names (JavaScript):
+
+```javascript
+import { Quest } from "../skirout/@gepheum/skir-fantasy-game-example/fantasy_game.js"
+```
+
+For languages requiring valid identifiers (Python), with dashes replaced by underscores:
+
+```python
+from skirout.external.gepheum.skir_fantasy_game_example import fantasy_game_skir
+```
+
+## Private Repositories
+
+If dependencies are in private GitHub repositories, provide a Personal Access Token.
+
+### 1. Generate a Token
+
+Go to [GitHub settings](https://github.com/settings/tokens) and generate a Personal Access Token (Classic) with the `repo` scope.
+
+### 2. Set the Environment Variable
+
+```bash
+export MY_GITHUB_TOKEN=ghp_...
+```
+
+### 3. Configure skir.yml
+
+```yaml
+# skir.yml
+githubTokenEnvVar: MY_GITHUB_TOKEN
+```
+
+### 4. GitHub Actions CI
+
+Use `${{ secrets.GITHUB_TOKEN }}` for repos in the same organization, or a repository secret for broader access:
+
+```yaml
+steps:
+  - uses: actions/checkout@v3
+  - name: Install dependencies and generate code
+    run: npx skir gen
+    env:
+      MY_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+> If the dependency is in a different private repo that the default `GITHUB_TOKEN` cannot access, create a Personal Access Token, store it as a Repository Secret, and use that instead.
+
+---
+
+## Section: best-practices
+
+````plaintext
+# Schema design: best practices
+
+This section contains an opinionated list of rules for writing good Skir schemas.
+
+When followed, these practices will help you design APIs that are robust, consistent, easy to evolve, and safe to use across different languages.
+
+## When in doubt, wrap it in a struct
+
+A wrapper struct costs almost nothing, but it gives you an evolution escape hatch.
+
+### Wrap elements of arrays
+
+Primitive arrays are hard to extend later. If you might want to attach metadata to each element in the future, start with a wrapper.
+
+DON'T:
+
+```skir
+struct Product {
+	// ...
+	tags: [string];
+}
+```
+
+DO:
+
+```skir
+struct Product {
+	// ...
+	struct Tag {
+		value: string;
+		// added_at: timestamp;   // easy future evolution
+	}
+
+	tags: [Tag];
+}
+```
+
+### Wrap method inputs and outputs
+
+DON'T:
+
+```skir
+method IsPalindrome(string): bool = 2000;
+```
+
+DO:
+
+```skir
+method IsPalindrome(
+	struct {
+		word: string;
+	}
+): struct {
+	result: bool;
+} = 2000;
+```
+
+Later evolution becomes trivial:
+
+```skir
+method AnalyzeWord(
+	struct {
+		word: string;
+		case_sensitive: bool;  // New field
+	}
+): struct {
+	is_palindrome: bool;
+	is_semordnilap: bool;  // New field
+} = 2000;
+```
+
+## Prefer wrapper structs for enriched views
+
+If a type `A` exists in multiple stages of a flow, you will often end up with an enriched version of it: you start with `A`, then later attach some extra data `B` (permissions, computed pricing, resolved references, cache metadata, etc.).
+
+It can look tempting to add a `B?` field directly on `A` and explain in a comment that it is only populated in some parts of the flow. Avoid that.
+
+DON'T:
+
+```skir
+struct Permissions {
+	can_edit: bool;
+	can_delete: bool;
+}
+
+struct User {
+	id: hash64;
+	name: string;
+
+	// Only populated after an authorization step.
+	permissions: Permissions?;
+}
+```
+
+Prefer defining a new wrapper type that makes the enrichment explicit:
+
+DO:
+
+```skir
+struct Permissions {
+	can_edit: bool;
+	can_delete: bool;
+}
+
+struct User {
+	id: hash64;
+	name: string;
+}
+
+struct UserWithPermissions {
+	user: User;
+	permissions: Permissions;
+}
+```
+
+This is more type-safe, reads better at call sites, and scales well over time.
+
+## Don't overuse optional types
+
+Optional types (`T?`) are great when "missing" is a distinct state. But if the default value of `T` is a fine representation of "not set" (for example, "" for strings, 0 for numbers, [] for arrays), prefer non-optional fields and document the convention.
+
+```skir
+struct Product {
+  /// Can be empty.
+	description: string;
+}
+```
+
+Use `T?` when you must distinguish "not provided" from "provided with a default value".
+
+## Use the `timestamp` type for instants
+
+If a field represents an instant in time, use `timestamp` instead of a numeric type.
+
+DON'T:
+
+```skir
+struct User {
+	// Is this seconds? milliseconds? microseconds?
+	last_visit: int64;
+}
+```
+
+DO:
+
+```skir
+struct User {
+	last_visit: timestamp;
+}
+```
+
+This makes unit mistakes (seconds vs milliseconds) much harder - a surprisingly common pitfall that often slips past compile-time checks.
+
+## Prefer good names over doc comments
+
+Good documentation starts with good names.
+
+If a symbol name can carry the key information (units, meaning, constraints) without being absurdly long, put it in the name.
+
+Doc comments should be added when they provide extra value (examples, rationale, edge cases, invariants) - not just to restate what a better name could have said.
+
+DON'T:
+
+```skir
+struct Telemetry {
+	/// Duration in milliseconds.
+	request_timeout: int64;
+
+	/// Speed in kilometers per hour.
+	max_speed: int32;
+}
+```
+
+DO:
+
+```skir
+struct Telemetry {
+	request_timeout_millis: int64;
+	max_speed_kmph: int32;
+}
+```
+
+Adding the unit to the name usually only makes it slightly longer, but it carries crucial information and significantly reduces the risk of accidentally mixing up units (which the compiler typically cannot catch).
+
+Once the name is explicit, the doc comment often stops adding value - so it can be removed.
+
+## Keep nested type names short
+
+Nested types keep schemas readable, but users must refer to them as `A.B`. Because the parent name is already present, the nested name should not repeat it.
+
+DON'T:
+
+```skir
+struct UserHistory {
+	struct HistoricalUserAction {
+		// ...
+	}
+
+	actions: [HistoricalUserAction];
+}
+```
+
+DO:
+
+```skir
+struct UserHistory {
+	struct Action {
+		// ...
+	}
+
+	actions: [Action];
+}
+```
+
+## Model expected outcomes in the response type
+
+Use transport errors (HTTP errors, exceptions) for unexpected failures (unauthorized, infrastructure issues).
+
+If an outcome is part of normal operation ("not found", already exists, rate limited, invalid input you want to report precisely), model it in the response type so clients can handle it in a typed, exhaustive way.
+
+DON'T:
+
+```skir
+method GetProduct(
+	struct {
+		product_id: hash64;
+	}
+): Product = 1000;
+// "Not found" would have to be communicated via HTTP errors.
+```
+
+DO:
+
+```skir
+method GetProduct(
+	struct {
+		product_id: string;
+	}
+): enum {
+	ok: Product;
+	not_found;
+	retired;
+	invalid_product_id: string;
+} = 1000;
+```
+````
+
+---
+
+## Section: examples
+
+# Project Examples
+
+A collection of real-world Skir projects and starter repositories.
+
+## Language Starter Projects
+
+Each starter focuses on the same core workflow: setting up Skir, generating code, and running a service.
+
+- **C++**: https://github.com/gepheum/skir-cc-example (cpp-httplib, CMake)
+- **C#**: https://github.com/gepheum/skir-csharp-example (ASP.NET Core, .NET 10)
+- **Dart**: https://github.com/gepheum/skir-dart-example (Shelf, pub)
+- **Elixir**: https://github.com/mishmish-dev/skir-elixir-example (Plug + Bandit, Mix, community generator)
+- **Go**: https://github.com/gepheum/skir-go-example (net/http, standard library)
+- **Java**: https://github.com/gepheum/skir-java-example (Spring Boot, Gradle)
+- **Kotlin**: https://github.com/gepheum/skir-kotlin-example (Ktor, Gradle Kotlin DSL)
+- **MoonBit**: https://github.com/gepheum/skir-moonbit-example (moonbit/http)
+- **Python**: https://github.com/gepheum/skir-python-example (Flask/FastAPI/Litestar)
+- **Rust**: https://github.com/gepheum/skir-rust-example (Axum, Cargo)
+- **Swift**: https://github.com/gepheum/skir-swift-example (Vapor, SwiftPM)
+- **TypeScript**: https://github.com/gepheum/skir-typescript-example (Express, Node + Browser)
+
+## Projects and Demos
+
+Complete applications and specialized projects showing Skir in real usage.
+
+- **Multilingual Skir example** (End-to-end app): https://github.com/gepheum/skir-multilingual-example
+  - Minimal web app with Python backend and TypeScript frontend.
+- **Intergalactic Lost & Found** (End-to-end app): https://github.com/gepheum/skir-lost-and-found-example
+  - Full-stack demo with Kotlin backend and TypeScript frontend.
+- **Fantasy Game schema package** (Schema-only project): https://github.com/gepheum/skir-fantasy-game-example
+  - Standalone schema repository intended to be imported as a dependency.
+- **RPC Studio demo** (Service demo): https://github.com/gepheum/skir-studio-demo
+  - TypeScript geometry service highlighting RPC Studio.
+- **Hello Skir Flutter** (End-to-end mobile app): https://github.com/gepheum/hello-skir-flutter
+  - Mobile application built with Flutter, communicating with a Bun backend via SkirRPC.
+
+---
+
+## Section: protobuf
+
+# Skir vs Protobuf
+
+If you have used [Protocol Buffers](https://protobuf.dev/) (protobuf) before, you will find Skir very familiar. Skir was heavily inspired by protobuf and shares many of its core design principles: efficient binary serialization, schema evolution, and language-agnostic types.
+
+However, Skir was built to address common pain points in the protobuf ecosystem and to provide a superior developer experience. This guide highlights the key differences.
+
+## Polymorphism
+
+In Protocol Buffers, an `enum` represents one of multiple stateless options, and a `oneof` represents one of multiple stateful options. This often leads to awkward patterns when you want a mix of stateless and stateful options, for example:
+
+```protobuf
+// poker.proto
+
+message PokerAction {
+  enum Enum {
+    UNKNOWN = 0;
+    CHECK = 1;
+    BET = 2;
+    CALL = 3;
+    FOLD = 4;
+    RAISE = 5;
+  }
+  Enum action = 1;
+  // Only if action is BET or RAISE
+  int32 amount = 2;
+}
+```
+
+Skir unifies these two concepts into a specific "Rust-like" enum. Variants can be stateless (like a standard enum) or stateful (holding data), and you can mix them freely.
+
+```skir
+enum PokerAction {
+  check;           // Stateless variant
+  bet: int32;      // Stateful variant (holds the amount)
+  fold;
+  call;
+  raise: int32;
+}
+```
+
+## Must all fields be specified at construction time?
+
+This reflects a fundamental difference in code generation philosophy between Skir and Protobuf.
+
+With Protocol Buffers, adding a field to a message is guaranteed **not** to break existing code that constructs instances of that message. If the code isn't updated, the new field simply takes its default value (0, empty string, etc.).
+
+Skir takes the opposite approach: it aims to raise a compile-time error if you add a field to a struct but forget to update the code that constructs it. When you add a field, you usually *want* to update every instantiation site to populate that field correctly. Skir ensures you don't miss any spot by enforcing strict constructors.
+
+```python
+# my_script_with_protobuf.py
+
+# Adding 'email' to User message doesn't break this code.
+user = User()
+user.id = 123
+user.name = "Alice"
+```
+
+```python
+# my_script_with_skir.py
+
+# Static type checkers will raise an error if 'email' is added to User in the
+# schema file and this code is not updated.
+user = User(
+    id=123,
+    name="Alice",
+)
+```
+
+If you need to opt out explicitly, Skir also generates a `partial` constructor. This is useful for test fixtures, where updating every constructor call can become cumbersome when fields are added to a `struct`.
+
+```python
+user = User.partial(
+    id=123,
+    # no name
+)
+```
+
+When deserializing old data that is missing the new field, both Protobuf and Skir behave similarly: the new field is assigned its default value.
+
+## Schema evolution: guidelines vs guarantees
+
+Both Protocol Buffers and Skir are designed to support schema evolution, but they take fundamentally different approaches to ensuring compatibility.
+
+Protocol Buffers provides [guidelines and best practices](https://protobuf.dev/programming-guides/proto3/#updating) for evolving schemas safely. These guidelines tell you which changes are safe (e.g., adding fields, renaming) and which are dangerous (e.g., changing field numbers, incompatible type changes). However, **nothing in the toolchain enforces these rules**. It is entirely up to developers to remember the guidelines, understand the implications, and avoid making breaking changes.
+
+Skir takes a different approach: it provides **automated enforcement** through its built-in snapshot tool. When you run `npx skir snapshot`, Skir analyzes your current schema against a stored snapshot of the previous version and automatically detects breaking changes. If you accidentally change a field number or make an incompatible type change, Skir will catch it and refuse to proceed.
+
+This shift from *guidelines you must remember to follow* to *automated checks that prevent mistakes* provides a much stronger guarantee of compatibility. You can confidently evolve your schema knowing that the tooling will catch any dangerous changes before they reach production. Additionally, when integrated into your CI pipeline or Git pre-commit hooks, the snapshot check ensures that every schema change is validated automatically.
+
+### A note on `buf breaking`
+
+Buf has addressed this gap in the Protobuf ecosystem with its [`buf breaking`](https://buf.build/docs/breaking/) command, which detects backward-incompatible schema changes. However, it identifies types purely by their fully-qualified name. This means renaming a type, even a simple refactor, is treated as a breaking change: the old type is seen as deleted and a new one created, losing all compatibility history.
+
+Skir avoids this by letting you assign a [stable numeric identifier](https://skir.build/docs/schema-evolution#tracked-types-and-stable-identifiers) to your top-level types. This identifier is a meaningless number, purely internal to the compiler, so you can rename a type freely without breaking compatibility. It also lets Skir automatically track all the nested types a top-level type references, without requiring you to annotate each one manually.
+
+## GitHub imports
+
+Protocol Buffers does not come with a built-in package manager. To share types across multiple Git repositories, developers traditionally have to rely on `git submodule`, manual file copying, or external commercial services like `buf`.
+
+Skir supports GitHub imports, like Go and Swift. This allows you to easily share common data structures (like standard currency types or user definitions) across your backend microservices and your frontend applications.
+
+1. Define dependencies in `skir.yml`, pointing to any public or private GitHub repository and a tag.
+2. Import the types you need: `import { User } from "@my-org/common-types/user.skir";`
+3. Run `npx skir gen`.
+
+Skir handles downloading the repositories from GitHub, caching them, and resolving imports automatically. You get a full-featured schema registry experience using just your existing source control.
+
+## Serialization
+
+Protobuf has two serialization formats: Binary and JSON (Proto3 JSON Mapping).
+
+The Protobuf JSON format is readable (uses field names), but is not safe for schema evolution (renaming fields breaks compatibility).
+
+Skir offers three serialization formats:
+
+- **JSON (Dense)**: Structs are serialized as arrays (`[val1, val2]`) rather than objects. It is the default choice offering the best balance between space efficiency, evolution safety, and interoperability.
+- **JSON (Readable)**: Similar to Protobuf's JSON mapping. Useful for debugging but unsafe for persistence as it relies on field names.
+- **Binary**: Equivalent to Protobuf binary. A bit more compact and performant than dense JSON.
+
+Skir can also serialize schemas themselves, so you can store schema metadata alongside your data. This enables generic tooling that can inspect serialized payloads. For example, the [Skir converter web app](https://skir.build/converter.html) can load a schema from a type descriptor JSON or from a GitHub URL, then convert a pasted value between dense JSON, readable JSON, and binary formats.
+
+## Constants
+
+Skir lets you define constants directly in your schema files. You can define complex values (structs, lists, maps, primitives) in your `.skir` file and they will be compiled into native code constants in your target language.
+
+```skir
+struct Config {
+  timeout_ms: int32;
+  retries: int32;
+  supported_locales: [string];
+}
+
+const DEFAULT_CONFIG: Config = {
+  timeout_ms = 5000,
+  retries = 3,
+  supported_locales = ["en-US", "ja-JP", "fr-FR"],
+};
+```
+
+The `DEFAULT_CONFIG` constant is compiled into native code, ensuring your frontend and backend share the exact same configuration values.
+
+## Keyed arrays vs maps
+
+Protocol Buffer 3 introduced the `map<K, V>` type with the goal of preventing developers from having to manually iterate through lists to find items. Such manual iteration is cumbersome and inefficient if multiple lookups have to be performed.
+
+Unfortunately, `map` comes with a trade-off: in the majority of cases, the key used for indexing is already stored inside the value type.
+
+```protobuf
+message User {
+  string id = 1;
+  string name = 2;
+}
+
+message UserRegistry {
+  // Redundant: 'id' is stored in the map key AND the User
+  map<string, User> users = 1;
+}
+```
+
+This forces you to store the ID twice and creates an implicit contract: the code constructing the map must ensure the key matches the ID inside the value.
+
+Skir introduces *Keyed Arrays* to solve this problem. You define an array and tell the compiler which field of the value acts as the key.
+
+```skir
+struct User {
+  id: string;
+  name: string;
+}
+
+struct UserRegistry {
+  // Serialized as a list, but indexed by 'id' in generated code
+  users: [User|id];
+}
+```
+
+On the wire, `users` is serialized as a plain list of `User` objects. In the generated code, Skir automatically creates methods to perform O(1) lookups by `id`.
+
+## SkirRPC vs gRPC
+
+Protobuf is typically paired with gRPC. While efficient, gRPC requires specific tooling for debugging (like `grpcui`) and often needs a proxy (gRPC-Web) to be called from a browser.
+
+SkirRPC services run over standard HTTP and are designed to be embedded into your existing application (Express, Flask, Spring Boot, etc.). This makes them naturally compatible with web clients and easy to inspect with standard tools like cURL.
+
+Additionally, every SkirRPC service comes with **Skir Studio** out of the box. This built-in interactive debugging interface allows you to explore your API and test methods directly in your browser, without needing to install or configure any external tools.
+
+## Other differences
+
+### Implicit UNKNOWN variant
+
+The Protobuf Style Guide requires you to manually add an `UNSPECIFIED` value as the first entry of every enum to handle default values safely:
+
+> The first listed value should be a zero value enum and have the suffix of either `_UNSPECIFIED` or `_UNKNOWN`. This value may be used as an unknown/default value and should be distinct from any of the semantic values you expect to be explicitly set. For more information on the unspecified enum value, see the Proto Best Practices page.
+
+Skir does this automatically. Every enum in Skir has an implicit `UNKNOWN` variant (with index 0). This serves as the default value and captures unrecognized variants deserialized from newer schema versions.
+
+### Field numbering
+
+In Skir, fields in a `struct` are numbered starting from 0, and they must use sequential integers (no gaps allowed). With Protobuf, field numbers must be greater than 0, and can be sparse (you can skip numbers).
+
+### Imports
+
+Protobuf imports work like C includes: importing a `.proto` file brings all of its symbols into scope without any explicit listing. If you encounter a type like `Foo` that is not defined in the current file, you cannot tell which imported file it comes from without opening each one. Skir uses named imports, similar to TypeScript and Python: you explicitly list which names you are importing and from which module, making every dependency immediately traceable.
+
+### API definitions
+
+- In Protocol Buffers, service methods are grouped into `service` blocks. In Skir, methods are defined globally in the schema, and grouping is decided in the application code.
+- In Protocol Buffers, service methods are identified by their name. In Skir, methods are identified by a numeric ID. This makes it safe to rename methods without breaking compatibility.
+
+### Immutability
+
+Skir leans toward immutable generated data types, even in languages where that pattern is less common. In Python and TypeScript, for example, it generates two versions of each type: a deeply immutable one and a mutable one, with conversion methods between them. Protobuf generates only mutable data classes in these languages.
+
+## Final note on Buf
+
+Both Skir and [Buf](https://buf.build/) were created to solve the same fundamental gaps in the Protobuf ecosystem: providing a seamless workflow with integrated dependency management, linting, formatting, and breaking-change detection.
+
+The difference lies in philosophy. Buf builds the best possible ecosystem around the Protobuf language as it exists today. Skir, however, operates on the belief that Protobuf's core design flaws are significant enough to justify a new language. This mirrors recurring industry "evolution vs. revolution" debates, much like TypeScript vs. Dart or Carbon vs. Rust. While introducing a new language adds adoption cost, one can argue that without moving beyond legacy constraints, meaningful progress in developer experience remains limited.
+
+
+---
+
+## Section: code-generators
+
+# Building a Code Generator
+
+Skir code generators are regular NPM modules loaded by the compiler.
+
+This guide focuses on the compiler/generator contract:
+- what your package must export,
+- what input object the compiler passes to your generator,
+- and what output format your generator must return.
+
+## How generators are loaded
+
+In `skir.yml`, each generator is declared with a `mod` field:
+
+```yaml
+generators:
+  - mod: my-company-skir-gen
+    out:
+      path: generated/my-target
+    config:
+      myOption: true
+```
+
+The `mod` value is an NPM module name. Publish your generator package to NPM, then set that package name in `skir.yml`.
+
+## Dependencies
+
+Your generator package should depend on `skir-internal`, which defines the compiler/plugin contract types (`CodeGenerator`, `CodeGenerator.Input`, `Module`, `RecordLocation`, etc.).
+
+Most generators also depend on `zod` for `configType` validation.
+
+```bash
+npm i skir-internal zod
+```
+
+## Required export
+
+Your module should export `GENERATOR`, implementing `CodeGenerator<Config>`:
+
+```ts
+import { type CodeGenerator } from "skir-internal";
+import { z } from "zod";
+
+const Config = z.strictObject({
+  // generator-specific options
+  myOption: z.boolean(),
+});
+
+type Config = z.infer<typeof Config>;
+
+class MyGenerator implements CodeGenerator<Config> {
+  readonly id = "my-company-skir-gen";
+  readonly configType = Config;
+
+  generateCode(input: CodeGenerator.Input<Config>): CodeGenerator.Output {
+    return {
+      files: [{ path: "example.txt", code: "generated" }],
+    };
+  }
+}
+
+export const GENERATOR = new MyGenerator();
+```
+
+## Input contract
+
+The compiler calls `generateCode(input)`, where `input` has this structure:
+
+```ts
+interface CodeGeneratorInput<Config> {
+  readonly modules: readonly Module[];
+  readonly recordMap: ReadonlyMap<RecordKey, RecordLocation>;
+  readonly config: Config;
+}
+```
+
+### modules
+
+`modules` contains resolved schema modules. For each module you can access:
+- `path` (example: `foo/bar.skir`)
+- `records` (structs/enums, including nested records)
+- `methods` (with resolved request/response types)
+- `constants` (with resolved types and dense JSON values)
+- `pathToImportedNames` (map keyed by imported module path; values indicate imported names, or an all-import alias)
+
+### recordMap
+
+`recordMap` maps each `RecordKey` to a `RecordLocation`.
+
+This lookup is important because `ResolvedType` identifies record types with `RecordKey`, not `RecordLocation`.
+
+Use `recordMap` to resolve a key into full record metadata, including cross-module references. A `RecordLocation` gives:
+- `record` (definition)
+- `recordAncestors` (nesting chain)
+- `modulePath` (source module path)
+
+### config
+
+`config` is your generator-specific configuration, validated by your `configType` Zod schema.
+
+## Output contract
+
+Return generated files in this shape:
+
+```ts
+interface CodeGeneratorOutput {
+  readonly files: readonly {
+    readonly path: string;
+    readonly code: string;
+  }[];
+}
+```
+
+Each file entry has:
+- `path`: output relative path
+- `code`: file content
+
+Generators do not write files to disk directly. They return the `(path, code)` list, and the compiler writes the files.
+
+## Scope
+
+This contract covers compiler input/output only.
+
+How you render language-specific code (class layout, naming, idioms, etc.) is generator-specific and intentionally outside this contract.
+
+Reference implementation:
+- https://github.com/gepheum/skir-rust-gen
+
+---
+
+## Generated Code Guides
+
+### Guide: typescript
+
+# TypeScript
+
+Guide for using Skir-generated TypeScript code. Works on Node, Deno, and in the browser.
+
+## Set Up
+
+In `skir.yml`, add under `generators`:
+
+```yaml
+- mod: skir-typescript-gen
+  outDir: ./skirout
+  config: {}
+```
+
+The generated TypeScript code has a runtime dependency on the `skir_client` library. Install it with:
+
+```shell
+npm i skir-client
+```
+
+Example project: [skir-typescript-example](https://github.com/gepheum/skir-typescript-example)
+
+## Generated Code Guide
+
+Examples below are for code generated from [this .skir file](https://github.com/gepheum/skir-typescript-example/blob/main/skir_src/user.skir).
+
+### Referring to Generated Symbols
+
+```typescript
+import { TARZAN, SubscriptionStatus, User, UserHistory, UserRegistry } from "../skirout/user";
+```
+
+### Structs
+
+For every struct `S`, Skir generates a frozen (deeply immutable) class `S` and a mutable class `S.Mutable`.
+
+#### Frozen structs
+
+```typescript
+// Construct a frozen User with User.create({...})
+const john = User.create({
+  userId: 42,
+  name: "John Doe",
+  quote: "Coffee is just a socially acceptable form of rage.",
+  pets: [
+    {
+      name: "Dumbo",
+      heightInMeters: 1.0,
+      picture: "🐘",
+    },
+  ],
+  subscriptionStatus: "FREE",
+  // foo: "bar",
+  // ^ Does not compile: 'foo' is not a field of User
+});
+
+assert(john.name === "John Doe");
+
+// john.name = "John Smith";
+// ^ Does not compile: all the properties are read-only
+
+// With create<"partial">({...}), you don't need to specify all the fields.
+const jane = User.create<"partial">({
+  userId: 43,
+  name: "Jane Doe",
+  pets: [{ name: "Fluffy" }, { name: "Fido" }],
+});
+
+// Missing fields are initialized to their default values.
+assert(jane.quote === "");
+
+const defaultUser = User.DEFAULT;
+assert(defaultUser.name === "");
+// User.DEFAULT is same as User.create<"partial">({});
+```
+
+#### Mutable structs
+
+```typescript
+const lylaMut = new User.Mutable();
+lylaMut.userId = 44;
+lylaMut.name = "Lyla Doe";
+
+const jolyMut = new User.Mutable({ userId: 45 });
+jolyMut.name = "Joly Doe";
+
+const jolyHistoryMut = new UserHistory.Mutable();
+jolyHistoryMut.user = jolyMut;
+// ^ Right-hand side can be either frozen or mutable.
+
+// mutableUser() checks if 'user' is already mutable; if not, assigns a
+// mutable shallow copy and returns it.
+jolyHistoryMut.mutableUser.quote = "I am Joly.";
+
+// mutablePets() works the same way for arrays.
+lylaMut.mutablePets.push(User.Pet.create<"partial">({ name: "Cupcake" }));
+lylaMut.mutablePets.push(new User.Pet.Mutable({ name: "Simba" }));
+```
+
+#### Converting Between Frozen and Mutable
+
+```typescript
+// toMutable() does a shallow copy (cheap).
+const evilJaneMut = jane.toMutable();
+evilJaneMut.name = "Evil Jane";
+
+// toFrozen() recursively copies mutable values.
+const evilJane: User = evilJaneMut.toFrozen();
+```
+
+#### Writing Logic Agnostic of Mutability
+
+```typescript
+// 'User.OrMutable' is a type alias for 'User | User.Mutable'.
+function greet(user: User.OrMutable) {
+  console.log(`Hello, ${user.name}`);
+}
+```
+
+### Enums
+
+```skir
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+}
+```
+
+#### Creating enum values
+
+```typescript
+const johnStatus = SubscriptionStatus.FREE;
+const janeStatus = SubscriptionStatus.PREMIUM;
+const lylaStatus = SubscriptionStatus.create("PREMIUM");
+const jolyStatus = SubscriptionStatus.UNKNOWN;
+
+// Wrapper variants use create({kind: ..., value: ...})
+const roniStatus = SubscriptionStatus.create({
+  kind: "trial",
+  value: {
+    startTime: Timestamp.fromUnixMillis(1234),
+  },
+});
+```
+
+#### Conditions on Enums
+
+```typescript
+// Use 'union.kind' to check the variant.
+assert(johnStatus.union.kind === "FREE");
+assert(jolyStatus.union.kind === "UNKNOWN");
+assert(roniStatus.union.kind === "trial");
+assert(roniStatus.union.value.startTime.unixMillis === 1234);
+
+function getSubscriptionInfoText(status: SubscriptionStatus): string {
+  switch (status.union.kind) {
+    case "UNKNOWN": return "Unknown subscription status";
+    case "FREE": return "Free user";
+    case "PREMIUM": return "Premium user";
+    case "trial": return "On trial since " + status.union.value.startTime;
+  }
+}
+```
+
+### Serialization
+
+Every frozen struct/enum class has a static readonly `serializer` property.
+
+```typescript
+const serializer = User.serializer;
+
+// Dense JSON (default, safe for persistence)
+const johnDenseJson = serializer.toJson(john);
+assert(Array.isArray(johnDenseJson));
+const johnDenseJsonCode = serializer.toJsonCode(john);
+
+// Readable JSON (debugging only)
+console.log(serializer.toJsonCode(john, "readable"));
+// {
+//   "user_id": 42,
+//   "name": "John Doe",
+//   ...
+// }
+
+// Binary format
+const johnBytes = serializer.toBytes(john);
+```
+
+#### Deserialization
+
+```typescript
+const reserializedJohn = serializer.fromJsonCode(johnDenseJsonCode);
+assert(reserializedJohn.name === "John Doe");
+
+assert(serializer.fromJson(johnDenseJson).name === "John Doe");
+assert(serializer.fromBytes(johnBytes.toBuffer()).name === "John Doe");
+```
+
+#### Primitive Serializers
+
+```typescript
+assert(primitiveSerializer("bool").toJson(true) === 1);
+assert(primitiveSerializer("int32").toJson(3) === 3);
+assert(
+  primitiveSerializer("int64").toJson(BigInt("9223372036854775807")) ===
+    "9223372036854775807",
+);
+assert(
+  primitiveSerializer("hash64").toJson(BigInt("18446744073709551615")) ===
+    "18446744073709551615",
+);
+assert(
+  primitiveSerializer("timestamp").toJson(
+    Timestamp.fromUnixMillis(1743682787000),
+  ) === 1743682787000,
+);
+assert(primitiveSerializer("float32").toJson(3.14) === 3.14);
+assert(primitiveSerializer("float64").toJson(3.14) === 3.14);
+assert(primitiveSerializer("string").toJson("Foo") === "Foo");
+assert(
+  primitiveSerializer("bytes").toJson(
+    ByteString.sliceOf(new Uint8Array([1, 2, 3]).buffer),
+  ) === "AQID",
+);
+```
+
+#### Composite Serializers
+
+```typescript
+assert(
+  optionalSerializer(primitiveSerializer("string")).toJson("foo") === "foo",
+);
+assert(optionalSerializer(primitiveSerializer("string")).toJson(null) === null);
+
+console.log(arraySerializer(primitiveSerializer("bool")).toJson([true, false]));
+// [1, 0]
+```
+
+### Frozen arrays and copies
+
+```typescript
+const pets = [
+  User.Pet.create<"partial">({ name: "Fluffy" }),
+  User.Pet.create<"partial">({ name: "Fido" }),
+];
+
+const jade = User.create<"partial">({
+  pets: pets,
+  // ^ makes a copy because 'pets' is mutable
+});
+assert(jade.pets !== pets);
+
+const jack = User.create<"partial">({
+  pets: jade.pets,
+  // ^ doesn't copy because 'jade.pets' is frozen
+});
+assert(jack.pets === jade.pets);
+```
+
+## Keyed arrays
+
+```typescript
+const userRegistry = UserRegistry.create({
+  users: [john, jane, lylaMut, evilJane],
+});
+
+// First lookup O(N), subsequent O(1).
+assert(userRegistry.searchUsers(42) === john);
+assert(userRegistry.searchUsers(100) === undefined);
+// Duplicates: returns the last one.
+assert(userRegistry.searchUsers(43) === evilJane);
+```
+
+## Constants
+
+```typescript
+console.log(TARZAN);
+// User { userId: 123, name: 'Tarzan', ... }
+```
+
+## SkirRPC services
+
+- **Server**: [Express example](https://github.com/gepheum/skir-typescript-example/blob/main/src/server.ts)
+- **Client**: [Client example](https://github.com/gepheum/skir-typescript-example/blob/main/src/client.ts)
+
+## Reflection
+
+```typescript
+const fieldNames: string[] = [];
+for (const field of User.serializer.typeDescriptor.fields) {
+  const { name, number, property, type } = field;
+  fieldNames.push(name);
+}
+// [ 'user_id', 'name', 'quote', 'pets', 'subscription_status' ]
+
+// TypeDescriptor can be serialized/deserialized.
+const typeDescriptor = parseTypeDescriptorFromJson(
+  User.serializer.typeDescriptor.asJson(),
+);
+```
+
+### Writing Unit Tests
+
+With mocha and [buckwheat](https://github.com/gepheum/buckwheat):
+
+```typescript
+expect(tarzan).toMatch({
+  name: "Tarzan",
+  quote: /^A/,
+  pets: [
+    {
+      name: "Cheeta",
+      heightInMeters: near(1.6, 0.1),
+    },
+  ],
+  subscriptionStatus: {
+    union: {
+      kind: "trial",
+      value: {
+        startTime: Timestamp.fromUnixMillis(1234),
+      },
+    },
+  },
+});
+```
+
+---
+
+### Guide: python
+
+# Python
+
+Guide for using Skir-generated Python code. Targets Python 3.10+.
+
+## Set Up
+
+In `skir.yml`, add under `generators`:
+
+```yaml
+- mod: skir-python-gen
+  outDir: ./src/skirout
+  config: {}
+```
+
+The generated Python code has a runtime dependency on the `skir-client` library. Install it with:
+
+```shell
+pip install skir-client
+```
+
+Example project: [skir-python-example](https://github.com/gepheum/skir-python-example)
+
+## Generated Code Guide
+
+Examples for code generated from [this .skir file](https://github.com/gepheum/skir-python-example/blob/main/skir_src/user.skir).
+
+### Importing Generated Symbols
+
+```python
+from skirout.user_skir import TARZAN, SubscriptionStatus, User, UserHistory, UserRegistry
+```
+
+### Structs
+
+For every struct `S`, Skir generates a frozen (deeply immutable) class `S` and a mutable class `S.Mutable`.
+
+#### Frozen Structs
+
+```python
+john = User(
+    user_id=42,
+    name="John Doe",
+    quote="Coffee is just a socially acceptable form of rage.",
+    pets=[
+        User.Pet(
+            name="Dumbo",
+            height_in_meters=1.0,
+            picture="🐘",
+        ),
+    ],
+    subscription_status=SubscriptionStatus.FREE,
+)
+
+assert john.name == "John Doe"
+assert isinstance(john.pets, tuple)  # Lists are copied into tuples
+
+# Static type checkers will error on: john.name = "John Smith"
+
+# With partial(), you don't need all fields.
+jane = User.partial(
+    user_id=43,
+    name="Jane Doe",
+)
+assert jane.quote == ""  # Missing fields get default values
+
+assert User.DEFAULT == User.partial()
+```
+
+#### Mutable Structs
+
+```python
+lyla_mut = User.Mutable()
+lyla_mut.user_id = 44
+lyla_mut.name = "Lyla Doe"
+
+joly_mut = User.Mutable(user_id=45)
+joly_mut.name = "Joly Doe"
+
+joly_history_mut = UserHistory.Mutable()
+joly_history_mut.user = joly_mut  # Can be frozen or mutable
+
+# mutable_user: returns mutable version, creating shallow copy if needed
+joly_history_mut.mutable_user.quote = "I am Joly."
+
+# mutable_pets: same pattern for arrays
+lyla_mut.mutable_pets.append(User.Pet.partial(name="Cupcake"))
+```
+
+#### Converting Between Frozen and Mutable
+
+```python
+evil_jane_mut = jane.to_mutable()  # Shallow copy (cheap)
+evil_jane_mut.name = "Evil Jane"
+evil_jane: User = evil_jane_mut.to_frozen()  # Recursively copies mutable values
+
+# Or use replace() on frozen struct:
+evil_jane = evil_jane.replace(name="Evil Jane")
+```
+
+#### Writing Logic Agnostic of Mutability
+
+```python
+# 'User.OrMutable' is a type alias for 'User | User.Mutable'.
+def greet(user: User.OrMutable):
+    print(f"Hello, {user.name}")
+```
+
+### Enums
+
+```skir
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+}
+```
+
+#### Creating Enum Values
+
+```python
+john_status = SubscriptionStatus.FREE
+jane_status = SubscriptionStatus.PREMIUM
+joly_status = SubscriptionStatus.UNKNOWN
+
+# wrap_*() for wrapper variants
+roni_status = SubscriptionStatus.wrap_trial(
+    SubscriptionStatus.Trial(
+        start_time=skir.Timestamp.from_unix_millis(1744974198000),
+    )
+)
+
+# create_*() shorthand when wrapped value is a struct
+assert roni_status == SubscriptionStatus.create_trial(
+    start_time=skir.Timestamp.from_unix_millis(1744974198000)
+)
+```
+
+#### Pattern Matching
+
+```python
+assert john_status.union.kind == "FREE"
+assert joly_status.union.kind == "UNKNOWN"
+assert roni_status.union.kind == "trial"
+assert isinstance(roni_status.union.value, SubscriptionStatus.Trial)
+
+def get_subscription_info_text(status: SubscriptionStatus) -> str:
+    if status.union.kind == "UNKNOWN":
+        return "Unknown subscription status"
+    elif status.union.kind == "FREE":
+        return "Free user"
+    elif status.union.kind == "trial":
+        trial = status.union.value
+        return f"On trial since {trial.start_time}"
+    elif status.union.kind == "PREMIUM":
+        return "Premium user"
+    _: Never = status.union.kind
+    raise AssertionError("Unreachable code")
+```
+
+### Serialization
+
+Every frozen struct/enum class has a `serializer` property.
+
+```python
+serializer = User.serializer
+
+# Dense JSON (default, safe for persistence)
+john_dense_json = serializer.to_json(john)
+assert isinstance(john_dense_json, list)
+john_dense_json_code: str = serializer.to_json_code(john)
+
+# Readable JSON (debugging only)
+print(serializer.to_json_code(john, readable=True))
+# {
+#   "user_id": 42,
+#   "name": "John Doe",
+#   ...
+# }
+```
+
+#### Deserialization
+
+```python
+assert john == serializer.from_json(john_dense_json)
+assert john == serializer.from_json_code(john_dense_json_code)
+# Also works with readable JSON
+assert john == serializer.from_json_code(
+    serializer.to_json_code(john, readable=True)
+)
+```
+
+#### Primitive Serializers
+
+```python
+assert skir.primitive_serializer("bool").to_json(True) == 1
+assert skir.primitive_serializer("int32").to_json(3) == 3
+assert (
+    skir.primitive_serializer("int64").to_json(9223372036854775807)
+    == "9223372036854775807"
+)
+assert (
+    skir.primitive_serializer("hash64").to_json(18446744073709551615)
+    == "18446744073709551615"
+)
+assert (
+    skir.primitive_serializer("timestamp").to_json(
+        skir.Timestamp.from_unix_millis(1743682787000)
+    )
+    == 1743682787000
+)
+assert skir.primitive_serializer("float32").to_json(3.14) == 3.14
+assert skir.primitive_serializer("float64").to_json(3.14) == 3.14
+assert skir.primitive_serializer("string").to_json("Foo") == "Foo"
+assert skir.primitive_serializer("bytes").to_json(bytes([1, 2, 3])) == "AQID"
+```
+
+#### Composite Serializers
+
+```python
+assert (
+    skir.optional_serializer(skir.primitive_serializer("string")).to_json("foo")
+    == "foo"
+)
+assert (
+    skir.optional_serializer(skir.primitive_serializer("string")).to_json(None) is None
+)
+
+assert skir.array_serializer(skir.primitive_serializer("bool")).to_json(
+    (True, False)
+) == [1, 0]
+```
+
+### Keyed Arrays
+
+```python
+user_registry = UserRegistry(users=[john, jane, lyla_mut])
+
+# users is a subclass of tuple with key lookup methods
+assert user_registry.users.find(42) == john
+assert user_registry.users.find(100) is None
+assert user_registry.users.find_or_default(42).name == "John Doe"
+assert user_registry.users.find_or_default(100).name == ""
+# First lookup O(N), subsequent O(1).
+```
+
+### Constants
+
+```python
+print(TARZAN)
+# User(user_id=123, name='Tarzan', ...)
+```
+
+### SkirRPC services
+
+- **Server**: [Flask](https://github.com/gepheum/skir-python-example/blob/main/start_service_flask.py), [FastAPI](https://github.com/gepheum/skir-python-example/blob/main/start_service_fastapi.py), [Litestar](https://github.com/gepheum/skir-python-example/blob/main/start_service_starlite.py)
+- **Client**: [Example](https://github.com/gepheum/skir-python-example/blob/main/call_service.py)
+
+### Reflection
+
+```python
+user_type_descriptor = User.serializer.type_descriptor
+
+print(user_type_descriptor.as_json_code())
+# {
+#   "type": { "kind": "record", "value": "user.skir:User" },
+#   "records": [
+#     {
+#       "kind": "struct",
+#       "id": "user.skir:User",
+#       "fields": [
+#         { "name": "user_id", "type": { "kind": "primitive", "value": "int64" }, "number": 0 },
+#         ...
+#       ]
+#     },
+#     ...
+#   ]
+# }
+
+# TypeDescriptor can be serialized/deserialized.
+assert user_type_descriptor == skir.reflection.TypeDescriptor.from_json_code(
+    user_type_descriptor.as_json_code()
+)
+```
+
+---
+
+### Guide: java
+
+# Java
+
+Guide for using Skir-generated Java code.
+
+## Set Up
+
+In `skir.yml`, add under `generators`:
+
+```yaml
+- mod: skir-java-gen
+  outDir: ./src/main/java/skirout
+  config: {}
+  # Alternatively:
+  # outDir: ./src/main/kotlin/my/project/skirout
+  # config:
+  #   packagePrefix: my.project.
+```
+
+Runtime dependency: add to `build.gradle`:
+
+```gradle
+implementation 'build.skir:skir-client:latest.release'
+```
+
+Example project: [skir-java-example](https://github.com/gepheum/skir-java-example)
+
+## Generated Code Guide
+
+Examples for code generated from [this .skir file](https://github.com/gepheum/skir-java-example/blob/main/skir-src/user.skir).
+
+### Referring to Generated Symbols
+
+```java
+import skirout.user.User;
+import skirout.user.UserRegistry;
+import skirout.user.SubscriptionStatus;
+import skirout.user.Constants;
+```
+
+### Structs
+
+Skir generates a deeply immutable Java class for every struct.
+
+```java
+// Builder pattern with all fields required, in alphabetical order.
+final User john =
+    User.builder()
+        .setName("John Doe")
+        .setPets(List.of(
+            User.Pet.builder()
+                .setHeightInMeters(1.0f)
+                .setName("Dumbo")
+                .setPicture("🐘")
+                .build()))
+        .setQuote("Coffee is just a socially acceptable form of rage.")
+        .setSubscriptionStatus(SubscriptionStatus.FREE)
+        .setUserId(42)
+        .build();
+
+// partialBuilder(): no field order constraint, not all fields required.
+final User jane = User.partialBuilder().setUserId(43).setName("Jane Doe").build();
+assert jane.quote().equals("");  // Default value
+
+assert User.DEFAULT.name().equals("");
+```
+
+#### Creating modified copies
+
+```java
+final User evilJohn =
+    john.toBuilder()
+        .setName("Evil John")
+        .setQuote("I solemnly swear I am up to no good.")
+        .build();
+```
+
+### Enums
+
+Skir generates a deeply immutable Java class (not a Java enum) for every enum.
+
+```skir
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+}
+```
+
+#### Creating enum values
+
+```java
+List.of(
+    SubscriptionStatus.UNKNOWN,
+    SubscriptionStatus.FREE,
+    SubscriptionStatus.PREMIUM,
+    SubscriptionStatus.wrapTrial(
+        SubscriptionStatus.Trial.builder()
+            .setStartTime(Instant.now())
+            .build()));
+```
+
+#### Conditions on enums
+
+```java
+assert john.subscriptionStatus().equals(SubscriptionStatus.FREE);
+assert jane.subscriptionStatus().equals(SubscriptionStatus.UNKNOWN);  // Default
+
+final SubscriptionStatus trialStatus =
+    SubscriptionStatus.wrapTrial(
+        SubscriptionStatus.Trial.builder().setStartTime(now).build());
+assert trialStatus.kind() == SubscriptionStatus.Kind.TRIAL_WRAPPER;
+assert trialStatus.asTrial().startTime() == now;
+```
+
+#### Branching on enum variants
+
+```java
+// Switch on kind()
+switch (status.kind()) {
+  case FREE_CONST -> "Free user";
+  case PREMIUM_CONST -> "Premium user";
+  case TRIAL_WRAPPER -> "On trial since " + status.asTrial().startTime();
+  case UNKNOWN -> "Unknown subscription status";
+  default -> throw new AssertionError("Unreachable");
+};
+
+// Visitor pattern (compile-time safe, all variants must be handled)
+new SubscriptionStatus.Visitor<String>() {
+  @Override public String onFree() { return "Free user"; }
+  @Override public String onPremium() { return "Premium user"; }
+  @Override public String onTrial(SubscriptionStatus.Trial trial) {
+    return "On trial since " + trial.startTime();
+  }
+  @Override public String onUnknown() { return "Unknown"; }
+};
+```
+
+### Serialization
+
+Every frozen struct/enum class has a static `SERIALIZER` property.
+
+```java
+final Serializer<User> serializer = User.SERIALIZER;
+
+// Dense JSON
+final String johnDenseJson = serializer.toJsonCode(john);
+
+// Readable JSON
+System.out.println(serializer.toJsonCode(john, JsonFlavor.READABLE));
+
+// Binary
+final ByteString johnBytes = serializer.toBytes(john);
+```
+
+#### Deserialization
+
+```java
+final User reserializedJohn = serializer.fromJsonCode(johnDenseJson);
+assert reserializedJohn.equals(john);
+
+// fromJsonCode handles both dense and readable JSON
+assert serializer.fromBytes(johnBytes).equals(john);
+```
+
+#### Primitive serializers
+
+```java
+assert Serializers.bool().toJsonCode(true).equals("1");
+assert Serializers.int32().toJsonCode(3).equals("3");
+assert Serializers.int64().toJsonCode(9223372036854775807L).equals("\"9223372036854775807\"");
+assert Serializers.javaHash64()
+    .toJsonCode(new BigInteger("18446744073709551615"))
+    .equals("\"18446744073709551615\"");
+assert Serializers.timestamp()
+    .toJsonCode(Instant.ofEpochMilli(1743682787000L))
+    .equals("1743682787000");
+assert Serializers.float32().toJsonCode(3.14f).equals("3.14");
+assert Serializers.float64().toJsonCode(3.14).equals("3.14");
+assert Serializers.string().toJsonCode("Foo").equals("\"Foo\"");
+assert Serializers.bytes()
+    .toJsonCode(ByteString.of((byte) 1, (byte) 2, (byte) 3))
+    .equals("\"AQID\"");
+```
+
+#### Composite serializers
+
+```java
+assert Serializers.javaOptional(Serializers.string())
+    .toJsonCode(java.util.Optional.of("foo"))
+    .equals("\"foo\"");
+assert Serializers.javaOptional(Serializers.string())
+    .toJsonCode(java.util.Optional.empty())
+    .equals("null");
+
+assert Serializers.list(Serializers.bool())
+    .toJsonCode(List.of(true, false))
+    .equals("[1,0]");
+```
+
+### Frozen lists and copies
+
+```java
+final List<User.Pet> pets = new ArrayList<>();
+// ...
+final User jade = User.partialBuilder().setPets(pets).build();
+// 'pets' is mutable, so Skir makes an immutable shallow copy
+assert pets != jade.pets();
+
+final User jack = User.partialBuilder().setPets(jade.pets()).build();
+// Already immutable, no copy
+assert jack.pets() == jade.pets();
+```
+
+### Keyed lists
+
+```java
+final UserRegistry userRegistry =
+    UserRegistry.builder().setUsers(List.of(john, jane, evilJohn)).build();
+
+assert userRegistry.users().findByKey(43) == jane;
+assert userRegistry.users().findByKey(42) == evilJohn;  // Last duplicate wins
+assert userRegistry.users().findByKey(100) == null;
+// First lookup O(N), subsequent O(1).
+```
+
+### Constants
+
+```java
+System.out.println(Constants.TARZAN);
+```
+
+### SkirRPC services
+
+- **Server**: [Spring Boot](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/StartService.java)
+- **Client**: [Example](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/CallService.java)
+
+### Reflection
+
+```java
+System.out.println(
+    User.TYPE_DESCRIPTOR.getFields().stream()
+        .map(field -> field.getName()).toList());
+// [user_id, name, quote, pets, subscription_status]
+
+// TypeDescriptor can be serialized/deserialized.
+final TypeDescriptor typeDescriptor =
+    TypeDescriptor.Companion.parseFromJsonCode(
+        User.SERIALIZER.typeDescriptor().asJsonCode());
+```
+
+## Java Codegen versus Kotlin Codegen
+
+Skir provides separate code generators for Java and Kotlin to leverage each language's idioms. The Kotlin generator uses named parameters for construction; Java uses the builder pattern.
+
+Although it's technically feasible to use Kotlin-generated code in Java or vice-versa, doing so results in an unnatural API. Use the generator matching your project's primary language.
+
+Both share the same runtime dependency: `build.skir:skir-client`.
+
+---
+
+### Guide: csharp
+
+# C#
+
+Official plugin for generating C# code from [.skir](https://github.com/gepheum/skir) files.
+
+Targets C# 12 on .NET 10 and higher.
+
+## Set up
+
+In your `skir.yml` file, add the following snippet under `generators`:
+
+```yaml
+  - mod: skir-csharp-gen
+    outDir: ./skirout
+    config: {}
+```
+
+The generated C# code has a runtime dependency on the `skir_client` NuGet package. Add it to your `.csproj` file with:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="skir_client" Version="*" />
+</ItemGroup>
+```
+
+For more information, see this C# project [example](https://github.com/gepheum/skir-csharp-example).
+
+## C# generated code guide
+
+The examples below are for the code generated from [this](https://github.com/gepheum/skir-csharp-example/blob/main/skir-src/user.skir) .skir file.
+
+### Referring to generated symbols
+
+```csharp
+using SkirClient;
+using Skirout_Service;
+using Skirout_User;
+
+// Now you can use: User, UserRegistry, SubscriptionStatus, Consts.Tarzan, Methods, etc.
+```
+
+### Struct types
+
+Skir generates a readonly record struct for every struct in the .skir file.
+Every generated field is `required` and `init`-only.
+
+```csharp
+var john = new User
+{
+  UserId = 42,
+  Name = "John Doe",
+  Quote = "Coffee is just a socially acceptable form of rage.",
+  Pets =
+  [
+    new User_Pet { Name = "Dumbo", HeightInMeters = 1.0f, Picture = "🐘" },
+  ],
+  SubscriptionStatus = SubscriptionStatus.Free,
+};
+
+Console.WriteLine(john.Name); // John Doe
+
+// john.Name = "John Smith";
+// ^ Does not compile: init-only properties cannot be set after construction.
+
+Console.WriteLine(User.Default.Name);   // (empty string)
+Console.WriteLine(User.Default.UserId); // 0
+
+var jane = User.Default with { UserId = 43, Name = "Jane Doe" };
+Console.WriteLine(jane.Quote);       // (empty string)
+Console.WriteLine(jane.Pets.Length); // 0
+```
+
+#### Creating modified copies
+
+```csharp
+var evilJohn = john with
+{
+  Name = "Evil John",
+  Quote = "I solemnly swear I am up to no good.",
+};
+
+Console.WriteLine(evilJohn.Name);   // Evil John
+Console.WriteLine(evilJohn.UserId); // 42 (copied from john)
+Console.WriteLine(john.Name);       // John Doe (john is unchanged)
+
+Console.WriteLine(User.Default == (User.Default with { })); // True
+```
+
+### Enum types
+
+Skir generates a sealed C# class for every enum in the .skir file.
+The `Unknown` variant is added automatically and is the default value.
+
+```csharp
+var statuses = new SubscriptionStatus[]
+{
+  SubscriptionStatus.Unknown,
+  SubscriptionStatus.Free,
+  SubscriptionStatus.Premium,
+  SubscriptionStatus.WrapTrial(
+    new SubscriptionStatus_Trial { StartTime = DateTimeOffset.UtcNow }),
+};
+```
+
+#### Conditions on enums
+
+```csharp
+Console.WriteLine(john.SubscriptionStatus == SubscriptionStatus.Free);    // True
+Console.WriteLine(jane.SubscriptionStatus == SubscriptionStatus.Unknown); // True
+
+var now = DateTimeOffset.UtcNow;
+var trialStatus = SubscriptionStatus.WrapTrial(
+  new SubscriptionStatus_Trial { StartTime = now });
+```
+
+#### Branching on enum variants
+
+```csharp
+string GetInfoText(SubscriptionStatus status) => status.Kind switch
+{
+  SubscriptionStatus.KindType.Free         => "Free user",
+  SubscriptionStatus.KindType.Premium      => "Premium user",
+  SubscriptionStatus.KindType.TrialWrapper => $"On trial since {status.AsTrial().StartTime}",
+  _                                        => "Unknown subscription status",
+};
+
+Console.WriteLine(GetInfoText(john.SubscriptionStatus)); // Free user
+```
+
+### Serialization
+
+`User.Serializer` returns a `Serializer<User>` which can serialize and
+deserialize instances of `User`.
+
+```csharp
+var serializer = User.Serializer;
+
+var johnDenseJson = serializer.ToJson(john);
+Console.WriteLine(johnDenseJson);
+// [42,"John Doe",...]
+
+Console.WriteLine(serializer.ToJson(john, readable: true));
+// {
+//   "user_id": 42,
+//   "name": "John Doe",
+//   ...
+// }
+
+var johnReserializedFromJson = serializer.FromJson(johnDenseJson);
+Console.WriteLine(johnReserializedFromJson.Name); // John Doe
+
+var johnBytes = serializer.ToBytes(john);
+var johnReserializedFromBytes = serializer.FromBytes(johnBytes);
+Console.WriteLine(johnReserializedFromBytes.Name); // John Doe
+```
+
+### Primitive serializers
+
+```csharp
+Console.WriteLine(Serializers.Bool.ToJson(true));
+// 1
+
+Console.WriteLine(Serializers.Int32.ToJson(3));
+// 3
+
+Console.WriteLine(Serializers.Int64.ToJson(9_223_372_036_854_775_807L));
+// "9223372036854775807"
+
+Console.WriteLine(Serializers.Hash64.ToJson(18_446_744_073_709_551_615UL));
+// "18446744073709551615"
+
+Console.WriteLine(Serializers.Float32.ToJson(1.5f));
+// 1.5
+
+Console.WriteLine(Serializers.Float64.ToJson(1.5));
+// 1.5
+
+Console.WriteLine(Serializers.String.ToJson("Foo"));
+// "Foo"
+
+var ts = new DateTimeOffset(2023, 12, 31, 0, 53, 48, TimeSpan.Zero);
+Console.WriteLine(Serializers.Timestamp.ToJson(ts));
+// 1703984028000
+
+Console.WriteLine(Serializers.Timestamp.ToJson(ts, readable: true));
+// {"unix_millis":1703984028000,"formatted":"2023-12-31T00:53:48.000Z"}
+
+Console.WriteLine(Serializers.Bytes.ToJson(ImmutableBytes.CopyFrom([0xDE, 0xAD, 0xBE, 0xEF])));
+// "3q2+7w=="
+```
+
+### Composite serializers
+
+```csharp
+Console.WriteLine(Serializers.Optional(Serializers.String).ToJson("foo"));
+// "foo"
+
+Console.WriteLine(Serializers.Optional(Serializers.String).ToJson(null as string));
+// null
+
+Console.WriteLine(Serializers.Array(Serializers.Bool).ToJson(ImmutableArray.Create(true, false)));
+// [1,0]
+```
+
+### Constants
+
+```csharp
+var tarzan = Consts.Tarzan;
+Console.WriteLine(tarzan.Name);  // Tarzan
+Console.WriteLine(tarzan.Quote); // AAAAaAaAaAyAAAAaAaAaAyAAAAaAaAaA
+Console.WriteLine(User.Serializer.ToJson(tarzan, readable: true));
+```
+
+### Keyed arrays
+
+```csharp
+var registry = new UserRegistry { Users = [john, jane, evilJohn] };
+
+var found = registry.Users_FindByUserId(43);
+Console.WriteLine(found != null); // True
+Console.WriteLine(found == jane); // True
+
+var notFound = registry.Users_FindByUserId(999);
+Console.WriteLine(notFound == null); // True
+
+var notFoundOrDefault = registry.Users_FindByUserIdOrDefault(999);
+Console.WriteLine(notFoundOrDefault == User.Default); // True
+```
+
+### SkirRPC services
+
+#### Starting a SkirRPC service on an HTTP server
+
+Full example [here](https://github.com/gepheum/skir-csharp-example/blob/main/StartService.cs).
+
+#### Sending RPCs to a SkirRPC service
+
+Full example [here](https://github.com/gepheum/skir-csharp-example/blob/main/CallService.cs).
+
+### Reflection
+
+Reflection allows you to inspect a Skir type at runtime.
+
+```csharp
+var typeDescriptor = User.Serializer.TypeDescriptor;
+if (typeDescriptor is StructDescriptor sd)
+{
+  var fieldNames = string.Join(", ", sd.Fields.Select(f => f.Name));
+  Console.WriteLine(fieldNames);
+  // user_id, name, quote, pets, subscription_status
+}
+
+var descriptorJson = typeDescriptor.AsJson();
+var descriptorFromJson = TypeDescriptor.ParseFromJson(descriptorJson);
+if (descriptorFromJson is StructDescriptor sd2)
+{
+  Console.WriteLine(sd2.Fields.Count); // 5
+}
+```
+
+### RPC methods
+
+Skir generates a `Method<TRequest, TResponse>` descriptor for every `method`
+declaration in the .skir file.
+
+```csharp
+var getUser = Methods.GetUser;
+Console.WriteLine(getUser.Name);   // GetUser
+Console.WriteLine(getUser.Number); // 12345
+Console.WriteLine(getUser.Doc);    // Returns the user with the given user_id…
+
+var addUser = Methods.AddUser;
+Console.WriteLine(addUser.Name);   // AddUser
+Console.WriteLine(addUser.Number); // 23456
+```
+
+---
+
+### Guide: kotlin
+
+# Kotlin
+
+Guide for using Skir-generated Kotlin code.
+
+## Set Up
+
+In `skir.yml`, add under `generators`:
+
+```yaml
+- mod: skir-kotlin-gen
+  outDir: ./src/main/kotlin/skirout
+  config: {}
+  # Alternatively:
+  # outDir: ./src/main/kotlin/my/project/skirout
+  # config:
+  #   packagePrefix: my.project.
+```
+
+Runtime dependency: add to `build.gradle.kts`:
+
+```kotlin
+implementation("build.skir:skir-client:latest.release")
+```
+
+Example project: [skir-kotlin-example](https://github.com/gepheum/skir-kotlin-example)
+
+## Generated Code Guide
+
+Examples for code generated from [this .skir file](https://github.com/gepheum/skir-kotlin-example/blob/main/skir-src/user.skir).
+
+### Referring to Generated Symbols
+
+```kotlin
+import skirout.user.User
+import skirout.user.UserRegistry
+import skirout.user.SubscriptionStatus
+import skirout.user.TARZAN
+```
+
+### Structs
+
+For every struct `S`, Skir generates a frozen (deeply immutable) class `S` and a mutable class `S.Mutable`.
+
+```kotlin
+val john = User(
+    userId = 42,
+    name = "John Doe",
+    quote = "Coffee is just a socially acceptable form of rage.",
+    pets = listOf(
+        User.Pet(
+            name = "Dumbo",
+            heightInMeters = 1.0f,
+            picture = "🐘",
+        ),
+    ),
+    subscriptionStatus = SubscriptionStatus.FREE,
+)
+
+assert(john.name == "John Doe")
+// john.name = "John Smith"  -- Does not compile: read-only
+```
+
+#### Partial construction
+
+```kotlin
+val jane = User.partial(
+    userId = 43,
+    name = "Jane Doe",
+    pets = listOf(User.Pet.partial(name = "Fido", picture = "🐶")),
+)
+assert(jane.quote == "")  // Default value
+assert(User.partial().pets.isEmpty())
+```
+
+#### Creating modified copies
+
+```kotlin
+val evilJohn = john.copy(
+    name = "Evil John",
+    quote = "I solemnly swear I am up to no good.",
+)
+assert(evilJohn.userId == 42)
+```
+
+#### Mutable structs
+
+```kotlin
+val lyla = User.Mutable()
+lyla.userId = 44
+lyla.name = "Lyla Doe"
+
+val userHistory = UserHistory.Mutable()
+userHistory.user = lyla  // Can be frozen or mutable
+
+// mutableUser: returns mutable version, creating shallow copy if needed
+userHistory.user = john  // frozen
+userHistory.mutableUser.name = "John the Second"  // makes shallow copy
+
+// mutablePets: same pattern for lists
+lyla.mutablePets.add(User.Pet(name = "Simba", heightInMeters = 0.4f, picture = "🦁"))
+```
+
+#### Converting between frozen and mutable
+
+```kotlin
+val evilJaneBuilder = jane.toMutable()  // Shallow copy (cheap)
+evilJaneBuilder.name = "Evil Jane"
+evilJaneBuilder.mutablePets.add(
+    User.Pet(name = "Shadow", heightInMeters = 0.5f, picture = "🐺"),
+)
+val evilJane = evilJaneBuilder.toFrozen()  // Recursively copies mutable values
+```
+
+#### Type aliases
+
+```kotlin
+// 'User_OrMutable' is a type alias for the sealed class.
+val greet: (User_OrMutable) -> Unit = { println("Hello, $it") }
+```
+
+### Enums
+
+Skir generates a deeply immutable Kotlin class (not a Kotlin enum).
+
+```kotlin
+val someStatuses = listOf(
+    SubscriptionStatus.UNKNOWN,
+    SubscriptionStatus.FREE,
+    SubscriptionStatus.PREMIUM,
+    // Wrapper variant via subclass constructor
+    SubscriptionStatus.TrialWrapper(
+        SubscriptionStatus.Trial(startTime = Instant.now()),
+    ),
+    // Concise syntax when wrapped value is a struct
+    SubscriptionStatus.createTrial(startTime = Instant.now()),
+)
+```
+
+#### Conditions on enums
+
+```kotlin
+assert(john.subscriptionStatus == SubscriptionStatus.FREE)
+assert(jane.subscriptionStatus == SubscriptionStatus.UNKNOWN)
+
+val trialStatus = SubscriptionStatus.TrialWrapper(Trial(startTime = now))
+assert(trialStatus is SubscriptionStatus.TrialWrapper && trialStatus.value.startTime == now)
+```
+
+#### Branching on enum variants
+
+```kotlin
+val getInfoText: (SubscriptionStatus) -> String = {
+    when (it) {
+        SubscriptionStatus.FREE -> "Free user"
+        SubscriptionStatus.PREMIUM -> "Premium user"
+        is SubscriptionStatus.TrialWrapper -> "On trial since ${it.value.startTime}"
+        is SubscriptionStatus.Unknown -> "Unknown subscription status"
+    }
+}
+```
+
+### Serialization
+
+Every frozen struct/enum class has a `serializer` property.
+
+```kotlin
+val serializer = User.serializer
+
+// Dense JSON
+val johnDenseJson: String = serializer.toJsonCode(john)
+
+// Readable JSON
+println(serializer.toJsonCode(john, JsonFlavor.READABLE))
+
+// Binary
+val johnBytes = serializer.toBytes(john)
+```
+
+#### Deserialization
+
+```kotlin
+val reserializedJohn: User = serializer.fromJsonCode(johnDenseJson)
+// fromJsonCode handles both dense and readable JSON
+assert(serializer.fromBytes(johnBytes).equals(john))
+```
+
+#### Primitive serializers
+
+```kotlin
+assert(Serializers.bool.toJsonCode(true) == "1")
+assert(Serializers.int32.toJsonCode(3) == "3")
+assert(Serializers.int64.toJsonCode(9223372036854775807) == "\"9223372036854775807\"")
+assert(
+    Serializers.hash64.toJsonCode(BigInteger("18446744073709551615")) ==
+        "\"18446744073709551615\""
+)
+assert(
+    Serializers.timestamp.toJsonCode(Instant.ofEpochMilli(1743682787000)) ==
+        "1743682787000"
+)
+assert(Serializers.float32.toJsonCode(3.14f) == "3.14")
+assert(Serializers.float64.toJsonCode(3.14) == "3.14")
+assert(Serializers.string.toJsonCode("Foo") == "\"Foo\"")
+assert(
+    Serializers.bytes.toJsonCode(byteArrayOf(1, 2, 3)) == "\"AQID\""
+)
+```
+
+#### Composite serializers
+
+```kotlin
+assert(Serializers.optional(Serializers.string).toJsonCode("foo") == "\"foo\"")
+assert(Serializers.optional(Serializers.string).toJsonCode(null) == "null")
+
+assert(Serializers.list(Serializers.bool).toJsonCode(listOf(true, false)) == "[1,0]")
+```
+
+### Constants
+
+```kotlin
+println(TARZAN)
+// User(userId = 123, name = "Tarzan", ...)
+```
+
+### Keyed lists
+
+```kotlin
+val userRegistry = UserRegistry(users = listOf(john, jane, evilJohn))
+
+assert(userRegistry.users.findByKey(43) === jane)
+assert(userRegistry.users.findByKey(42) === evilJohn)  // Last duplicate wins
+assert(userRegistry.users.findByKey(100) == null)
+// First lookup O(N), subsequent O(1).
+```
+
+### Frozen lists and copies
+
+```kotlin
+val pets: MutableList<Pet> = mutableListOf(
+    Pet.partial(name = "Fluffy", picture = "🐶"),
+    Pet.partial(name = "Fido", picture = "🐻"),
+)
+val jade = User.partial(name = "Jade", pets = pets)
+// ^ mutable, so Skir makes an immutable copy
+assert(pets !== jade.pets)
+
+val jack = User.partial(name = "Jack", pets = jade.pets)
+// ^ already immutable, no copy
+assert(jack.pets === jade.pets)
+```
+
+### SkirRPC services
+
+- **Server**: [Ktor](https://github.com/gepheum/skir-kotlin-example/blob/main/src/main/kotlin/startservice/StartService.kt)
+- **Client**: [Example](https://github.com/gepheum/skir-kotlin-example/blob/main/src/main/kotlin/callservice/CallService.kt)
+
+### Reflection
+
+```kotlin
+println(User.typeDescriptor.fields.map { it.name }.toList())
+// [user_id, name, quote, pets, subscription_status]
+
+val typeDescriptor = TypeDescriptor.parseFromJsonCode(
+    User.serializer.typeDescriptor.asJsonCode(),
+)
+assert(typeDescriptor is StructDescriptor)
+```
+
+## Java Codegen versus Kotlin Codegen
+
+Skir provides separate generators for each language. Kotlin uses named parameters; Java uses builder pattern. Use the generator matching your project's primary language. Both share the same runtime dependency: `build.skir:skir-client`.
+
+---
+
+### Guide: moonbit
+
+# Skir's MoonBit code generator
+
+Official plugin for generating MoonBit code from [.skir](https://github.com/gepheum/skir) files.
+
+## Set up
+
+In your `skir.yml` file, add the following snippet under `generators`:
+
+```yaml
+- mod: skir-moonbit-gen
+  outDir: ./skirout
+  config: {}
+```
+
+The generated MoonBit code has a runtime dependency on `gepheum/skir-client`.
+Add it with:
+
+```bash
+moon add gepheum/skir-client
+```
+
+For more information, see this MoonBit project [example](https://github.com/gepheum/skir-moonbit-example).
+
+## MoonBit generated code guide
+
+The examples below are for the code generated from [this](https://github.com/gepheum/skir-moonbit-example/blob/main/skir-src/user.skir) .skir file.
+Most code snippets are quoted from [moonbit-example/src/snippets.mbt](https://github.com/gepheum/skir-moonbit-example/blob/main/src/snippets.mbt).
+
+### Struct types
+
+Skir generates a plain MoonBit struct for each struct in the .skir schema.
+
+```moonbit
+let john = @skirout_user.User::new(
+  user_id=42,
+  name="John Doe",
+  quote="Coffee is just a socially acceptable form of rage.",
+  pets=@client.ImmutVector::from_array([
+    @skirout_user.User_Pet::new(
+      name="Dumbo",
+      height_in_meters=1.0,
+      picture="🐘",
+    ),
+  ]),
+  subscription_status=@skirout_user.SubscriptionStatus::free(),
+)
+
+println(john.name)
+// John Doe
+
+let evil_john = john.copy(
+  name=@client.KeepOrSet::Set("Evil John"),
+  quote=@client.KeepOrSet::Set("I solemnly swear I am up to no good."),
+)
+
+println(evil_john.name)
+// Evil John
+println(evil_john.user_id.to_string())
+// 42
+
+let jane = @skirout_user.User::default().copy(
+  user_id=@client.KeepOrSet::Set(43),
+  name=@client.KeepOrSet::Set("Jane Doe"),
+)
+
+println(jane.name)
+// Jane Doe
+println(jane.quote)
+// (empty string)
+```
+
+### Enum types
+
+```moonbit
+let trial_payload = @skirout_user.SubscriptionStatus_Trial::new(
+  start_time=@client.Timestamp::from_unix_millis(1744974198000L),
+)
+
+let some_statuses = [
+  @skirout_user.SubscriptionStatus::unknown(),
+  @skirout_user.SubscriptionStatus::free(),
+  @skirout_user.SubscriptionStatus::premium(),
+  @skirout_user.SubscriptionStatus::trial(trial_payload),
+]
+
+println(some_statuses.length().to_string())
+// 4
+```
+
+### Conditions on enums
+
+```moonbit
+let subscription_info_text = fn(
+  status : @skirout_user.SubscriptionStatus,
+) {
+  match status {
+    Unknown(_) => "Unknown subscription status"
+    Free => "Free user"
+    Trial(trial) => "On trial since " + trial.start_time.to_iso8601()
+    Premium => "Premium user"
+  }
+}
+
+println(subscription_info_text(john.subscription_status))
+// Free user
+
+println(
+  subscription_info_text(@skirout_user.SubscriptionStatus::unknown()),
+)
+// Unknown subscription status
+```
+
+### Serialization
+
+Every generated struct and enum has a static serializer.
+
+```moonbit
+let user_serializer = @skirout_user.User::serializer()
+
+let john_dense_json = user_serializer.to_dense_json_code(john)
+println(john_dense_json)
+// [42,"John Doe",...]
+
+let john_readable_json = user_serializer
+  .to_readable_json(john)
+  .stringify(indent=2)
+println(john_readable_json)
+// {
+//   "user_id": 42,
+//   ...
+// }
+
+let john_binary = user_serializer.to_bytes(john)
+```
+
+### Deserialization
+
+```moonbit
+let from_dense = match user_serializer.from_json_code(john_dense_json) {
+  Ok(value) => value
+  Err(_) => panic()
+}
+
+let from_readable = match user_serializer.from_json_code(john_readable_json) {
+  Ok(value) => value
+  Err(_) => panic()
+}
+
+let from_binary = match
+  user_serializer.from_bytes(
+    john_binary,
+    unrecognized_values=@client.UnrecognizedValues::Drop,
+  ) {
+  Ok(value) => value
+  Err(_) => panic()
+}
+
+if from_dense != john || from_readable != john || from_binary != john {
+  panic()
+}
+```
+
+### Primitive serializers
+
+```moonbit
+println(@client.bool_serializer().to_dense_json_code(true))
+// 1
+println(@client.int32_serializer().to_dense_json_code(3))
+// 3
+println(@client.int64_serializer().to_dense_json_code(9223372036854775807L))
+// "9223372036854775807"
+println(
+  @client.hash64_serializer().to_dense_json_code(18446744073709551615UL),
+)
+// "18446744073709551615"
+println(@client.float32_serializer().to_dense_json_code(3.14))
+// 3.14
+println(@client.float64_serializer().to_dense_json_code(3.14))
+// 3.14
+println(@client.string_serializer().to_dense_json_code("Foo"))
+// "Foo"
+println(@client.bytes_serializer().to_dense_json_code(@utf8.encode("ABC")))
+// "QUJD"
+```
+
+### Composite serializers
+
+```moonbit
+let opt_string_ser = @client.optional_serializer(@client.string_serializer())
+println(opt_string_ser.to_dense_json_code(None))
+// null
+println(opt_string_ser.to_dense_json_code(Some("foo")))
+// "foo"
+
+let bool_array_ser = @client.vector_serializer(@client.bool_serializer())
+println(
+  bool_array_ser.to_dense_json_code(
+    @client.ImmutVector::from_array([true, false]),
+  ),
+)
+// [1,0]
+```
+
+### Constants
+
+```moonbit
+let tarzan = @skirout_user.tarzan_const
+println(tarzan.name)
+// Tarzan
+println(user_serializer.to_readable_json(tarzan).stringify(indent=2))
+// {
+//   "user_id": 123,
+//   ...
+// }
+```
+
+### Keyed arrays
+
+```moonbit
+let user_registry = @skirout_user.UserRegistry::new(
+  users=@skirout_user.User_byUserId::from_array([john, jane, evil_john]),
+)
+
+let found = user_registry.users.find_by_user_id(43)
+match found {
+  Some(user) => println(user.name)
+  None => panic()
+}
+// Jane Doe
+
+let not_found = user_registry.users.find_by_user_id(999)
+println((not_found is None).to_string())
+// true
+
+let found_or_default = user_registry.users.find_by_user_id_or_default(999)
+println(found_or_default.pets.length().to_string())
+// 0
+```
+
+### Reflection
+
+```moonbit
+let user_td = user_serializer.type_descriptor()
+println(user_td.records.length().to_string())
+
+for record in user_td.records.iter() {
+  match record {
+    Struct(sd) =>
+      if sd.record_id == "user.skir:User" {
+        println(sd.record_id + " has " + sd.fields.length().to_string() + " fields")
+      }
+    Enum(_) => ()
+  }
+}
+
+let user_td_json = user_td.as_json()
+let parsed_td = match @client.parse_from_json(user_td_json) {
+  Ok(v) => v
+  Err(_) => panic()
+}
+println(parsed_td.records.length().to_string())
+```
+
+### SkirRPC services
+
+#### Starting a SkirRPC service on an HTTP server
+
+Full example [here](https://github.com/gepheum/skir-moonbit-example/blob/main/src/start_service.mbt).
+
+#### Sending RPCs to a SkirRPC service
+
+Full example [here](https://github.com/gepheum/skir-moonbit-example/blob/main/src/call_service.mbt).
+
+---
+
+### Guide: cpp
+
+# C++
+
+Guide for using Skir-generated C++ code. Targets C++17 and higher.
+
+## Set Up
+
+In `skir.yml`, add under `generators`:
+
+```yaml
+- mod: skir-cc-gen
+  outDir: ./src/skirout
+  config:
+    writeGoogleTestHeaders: true  # If you use GoogleTest
+```
+
+## Runtime Dependencies
+
+Generated C++ code depends on the [skir client library](https://github.com/gepheum/skir-cc-gen/tree/main/client), [absl](https://abseil.io/), and optionally [GoogleTest](https://github.com/google/googletest).
+
+Add to `CMakeLists.txt`:
+
+```cmake
+include(FetchContent)
+
+FetchContent_Declare(
+  skir-client
+  GIT_REPOSITORY https://github.com/gepheum/skir-cc-gen.git
+  GIT_TAG        main
+  SOURCE_SUBDIR  client
+)
+FetchContent_MakeAvailable(skir-client)
+```
+
+See [example CMakeLists.txt](https://github.com/gepheum/skir-cc-example/blob/main/CMakeLists.txt).
+
+## Generated Code Guide
+
+Examples for code generated from [this .skir file](https://github.com/gepheum/skir-cc-example/blob/main/skir_src/user.skir).
+
+### Referring to Generated Symbols
+
+Every symbol lives in a namespace `skirout_${path}` (path relative to skir source dir, without `.skir`, slashes replaced with underscores).
+
+```cpp
+#include "skirout/user.h"
+
+using ::skirout_user::SubscriptionStatus;
+using ::skirout_user::User;
+using ::skirout_user::UserRegistry;
+```
+
+### Structs
+
+```cpp
+// Field-by-field
+User john;
+john.user_id = 42;
+john.name = "John Doe";
+
+// Designated initializer syntax
+User jane = {
+    .name = "Jane Doe",
+    .pets = {{.name = "Fluffy", .picture = "cat"},
+             {.name = "Rex", .picture = "dog"}},
+    .subscription_status = skirout::kPremium,
+    .user_id = 43,
+};
+
+// ${Struct}::whole forces all fields (compile-time error if any missing)
+User lyla = User::whole{
+    .name = "Lyla Doe",
+    .pets = {User::Pet::whole{
+        .height_in_meters = 0.05f,
+        .name = "Tiny",
+        .picture = "🐁",
+    }},
+    .quote = "This is Lyla's world, you just live in it",
+    .subscription_status = skirout::kFree,
+    .user_id = 44,
+};
+```
+
+### Enums
+
+```cpp
+// Constant variants
+SubscriptionStatus john_status = skirout::kFree;
+SubscriptionStatus jane_status = skirout::kPremium;
+SubscriptionStatus lara_status = SubscriptionStatus::kFree;
+
+// Wrapper variants
+SubscriptionStatus jade_status =
+    skirout::wrap_trial(SubscriptionStatus::Trial({
+        .start_time = absl::FromUnixMillis(1743682787000),
+    }));
+SubscriptionStatus roni_status = SubscriptionStatus::wrap_trial({
+    .start_time = absl::FromUnixMillis(1743682787000),
+});
+```
+
+#### Conditions on enums
+
+```cpp
+if (john_status == skirout::kFree) { /* ... */ }
+
+// is_${field_name}() checks for wrapper variants
+if (jade_status.is_trial()) {
+  const SubscriptionStatus::Trial& trial = jade_status.as_trial();
+}
+
+// Switch on kind()
+switch (lara_status.kind()) {
+  case SubscriptionStatus::kind_type::kUnknown: break;
+  case SubscriptionStatus::kind_type::kFreeConst: break;
+  case SubscriptionStatus::kind_type::kPremiumConst: break;
+  case SubscriptionStatus::kind_type::kTrialWrapper: {
+    const SubscriptionStatus::Trial& trial = lara_status.as_trial();
+  }
+}
+
+// Visitor pattern
+struct Visitor {
+  void operator()(skirout::k_unknown) const { /* ... */ }
+  void operator()(skirout::k_free) const { /* ... */ }
+  void operator()(skirout::k_premium) const { /* ... */ }
+  void operator()(SubscriptionStatus::wrap_trial_type& w) const {
+    const SubscriptionStatus::Trial& trial = w.value;
+  }
+};
+lara_status.visit(Visitor());
+```
+
+### Serialization
+
+```cpp
+// Dense JSON
+std::string john_dense_json = skir::ToDenseJson(john);
+
+// Readable JSON
+std::cout << skir::ToReadableJson(john) << "\n";
+
+// Binary
+skir::ByteString john_bytes = skir::ToBytes(john);
+```
+
+#### Deserialization
+
+```cpp
+absl::StatusOr<User> reserialized_john = skir::Parse<User>(john_dense_json);
+assert(reserialized_john.ok() && *reserialized_john == john);
+
+reserialized_john = skir::Parse<User>(john_bytes.as_string());
+assert(reserialized_john.ok() && *reserialized_john == john);
+```
+
+#### Primitive serializers
+
+```cpp
+// Skir type: bool
+assert(skir::ToDenseJson(true) == "1");
+// Skir type: int32
+assert(skir::ToDenseJson(int32_t{3}) == "3");
+// Skir type: int64
+assert(skir::ToDenseJson(int64_t{9223372036854775807}) ==
+       "\"9223372036854775807\"");
+// Skir type: hash64
+assert(skir::ToDenseJson(uint64_t{18446744073709551615ULL}) ==
+       "\"18446744073709551615\"");
+// Skir type: timestamp
+assert(skir::ToDenseJson(absl::FromUnixMillis(1743682787000)) ==
+       "1743682787000");
+// Skir type: float32
+assert(skir::ToDenseJson(3.14f) == "3.14");
+// Skir type: float64
+assert(skir::ToDenseJson(3.14) == "3.14");
+// Skir type: string
+assert(skir::ToDenseJson(std::string("Foo")) == "\"Foo\"");
+// Skir type: bytes
+assert(skir::ToDenseJson(skir::ByteString("\x01\x02\x03")) == "\"AQID\"");
+```
+
+#### Composite serializers
+
+```cpp
+// Skir type: string?
+assert(skir::ToDenseJson(std::optional<std::string>("foo")) == "\"foo\"");
+assert(skir::ToDenseJson(std::optional<std::string>()) == "null");
+
+// Skir type: [bool]
+assert(skir::ToDenseJson(std::vector<bool>{true, false}) == "[1,0]");
+```
+
+### Keyed arrays
+
+`keyed_items<T, get_key>` stores items with fast hash-table lookups by key.
+
+```cpp
+UserRegistry user_registry;
+auto& users = user_registry.users;
+users.push_back(john);
+users.push_back(jane);
+users.push_back(lyla);
+
+const User* maybe_jane = users.find_or_null(43);
+assert(maybe_jane != nullptr && *maybe_jane == jane);
+
+assert(users.find_or_default(45).name == "");
+// Duplicates: find returns last one.
+```
+
+#### Equality and hashing
+
+Skir structs and enums are equality comparable and hashable:
+
+```cpp
+absl::flat_hash_set<User> user_set;
+user_set.insert(john);
+user_set.insert(jane);
+user_set.insert(jane);
+assert(user_set.size() == 2);
+```
+
+### Constants
+
+```cpp
+const User& tarzan = skirout_user::k_tarzan();
+assert(tarzan.name == "Tarzan");
+```
+
+### SkirRPC services
+
+- **Server**: [cpp-httplib](https://github.com/gepheum/skir-cc-example/blob/main/service_start.cc)
+- **Client**: [Example](https://github.com/gepheum/skir-cc-example/blob/main/service_client.cc)
+
+### Dynamic reflection
+
+```cpp
+using ::skir::reflection::GetTypeDescriptor;
+using ::skir::reflection::TypeDescriptor;
+
+const TypeDescriptor& user_descriptor = GetTypeDescriptor<User>();
+
+// Can be serialized/deserialized to/from JSON.
+absl::StatusOr<TypeDescriptor> reserialized =
+    TypeDescriptor::FromJson(user_descriptor.AsJson());
+```
+
+### Static reflection
+
+Static reflection allows typesafe inspection and modification of generated values. See [string_capitalizer.h](https://github.com/gepheum/skir-cc-example/blob/main/string_capitalizer.h).
+
+```cpp
+User tarzan_copy = skirout_user::k_tarzan();
+CapitalizeStrings(tarzan_copy);
+// All strings recursively capitalized: "Tarzan" → "TARZAN", etc.
+```
+
+### Writing unit tests with GoogleTest
+
+See [full example](https://github.com/gepheum/skir-cc-example/blob/main/example.test.cc).
+
+#### Struct matchers
+
+```cpp
+EXPECT_THAT(john, (StructIs<User>{
+    .pets = testing::ElementsAre(StructIs<User::Pet>{
+        .height_in_meters = testing::FloatNear(1.7, 0.1),
+    }),
+    .quote = testing::StartsWith("Life is"),
+    .user_id = 42,
+}));
+```
+
+#### Enum matchers
+
+```cpp
+EXPECT_THAT(john_status, testing::Eq(skirout::kFree));
+EXPECT_THAT(jade_status, IsTrial(StructIs<SubscriptionStatus::Trial>{
+    .start_time = testing::Gt(absl::UnixEpoch())}));
+```
+
+---
+
+### Guide: dart
+
+# Dart
+
+Guide for using Skir-generated Dart code. Targets Dart 3.5+.
+
+## Set Up
+
+In `skir.yml`, add under `generators`:
+
+```yaml
+- mod: skir-dart-gen
+  outDir: ./src/skirout
+  config: {}
+```
+
+Runtime dependency: add to `pubspec.yaml`:
+
+```yaml
+skir_client: any
+```
+
+Example project: [skir-dart-example](https://github.com/gepheum/skir-dart-example)
+
+## Generated Code Guide
+
+Examples for code generated from [this .skir file](https://github.com/gepheum/skir-dart-example/blob/main/skir-src/user.skir).
+
+### Referring to Generated Symbols
+
+```dart
+import 'package:skir_dart_example/skirout/user.dart';
+// Now you can use: tarzan, User, UserHistory, UserRegistry, etc.
+```
+
+### Structs
+
+For every struct `S`, Skir generates a frozen (deeply immutable) class `S` and a mutable class `S_mutable`.
+
+#### Frozen structs
+
+```dart
+final john = User(
+  userId: 42,
+  name: "John Doe",
+  quote: "Coffee is just a socially acceptable form of rage.",
+  pets: [
+    User_Pet(name: "Dumbo", heightInMeters: 1.0, picture: "🐘"),
+  ],
+  subscriptionStatus: SubscriptionStatus.free,
+);
+
+assert(john.name == "John Doe");
+// john.name = "John Smith";  -- Does not compile: read-only
+
+// Builder pattern with mutable instance
+final User jane = (User.mutable()
+      ..userId = 43
+      ..name = "Jane Doe"
+      ..pets = [
+        User_Pet(name: "Fluffy", heightInMeters: 0.2, picture: "🐱"),
+      ])
+    .toFrozen();
+
+assert(jane.quote == "");  // Default value
+assert(User.defaultInstance.name == "");
+```
+
+#### Mutable structs
+
+```dart
+final User_mutable mutableLyla = User.mutable()..userId = 44;
+mutableLyla.name = "Lyla Doe";
+
+final userHistory = UserHistory.mutable();
+userHistory.user = mutableLyla;  // Can be frozen or mutable
+
+// mutableUser: returns mutable version, creating shallow copy if needed
+userHistory.user = john;  // frozen
+userHistory.mutableUser.name = "John the Second";
+
+// mutablePets: same pattern for lists
+mutableLyla.mutablePets.add(User_Pet(name: "Simba", heightInMeters: 0.4, picture: "🦁"));
+mutableLyla.mutablePets.add(User_Pet.mutable()..name = "Cupcake");
+```
+
+#### Converting between frozen and mutable
+
+```dart
+final evilJane = (jane.toMutable()
+      ..name = "Evil Jane"
+      ..quote = "I solemnly swear I am up to no good.")
+    .toFrozen();
+
+assert(evilJane.name == "Evil Jane");
+assert(evilJane.userId == 43);
+```
+
+#### Writing logic agnostic of mutability
+
+```dart
+// 'User_orMutable' is a type alias for the sealed class.
+void greet(User_orMutable user) {
+  print("Hello, ${user.name}");
+}
+```
+
+### Enums
+
+```skir
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+}
+```
+
+#### Creating enum values
+
+```dart
+final johnStatus = SubscriptionStatus.free;
+final janeStatus = SubscriptionStatus.premium;
+final jolyStatus = SubscriptionStatus.unknown;
+
+// wrapX() or createX() for wrapper variants
+final roniStatus = SubscriptionStatus.wrapTrial(
+  SubscriptionStatus_Trial(
+      startTime: DateTime.fromMillisecondsSinceEpoch(1234, isUtc: true)),
+);
+
+// createX() shorthand
+final ericStatus = SubscriptionStatus.createTrial(
+  startTime: DateTime.fromMillisecondsSinceEpoch(5678, isUtc: true),
+);
+```
+
+#### Conditions on enums
+
+```dart
+assert(johnStatus == SubscriptionStatus.free);
+
+if (roniStatus is SubscriptionStatus_trialWrapper) {
+  assert(roniStatus.value.startTime.millisecondsSinceEpoch == 1234);
+}
+
+String getSubscriptionInfoText(SubscriptionStatus status) {
+  return switch (status) {
+    SubscriptionStatus_unknown() => "Unknown",
+    SubscriptionStatus.free => "Free user",
+    SubscriptionStatus.premium => "Premium user",
+    SubscriptionStatus_trialWrapper(:final value) =>
+      "On trial since ${value.startTime}",
+  };
+}
+```
+
+### Serialization
+
+Every frozen struct/enum class has a `serializer` property.
+
+```dart
+final serializer = User.serializer;
+
+// Dense JSON
+final String johnDenseJson = serializer.toJsonCode(john);
+
+// Readable JSON
+print(serializer.toJsonCode(john, readableFlavor: true));
+
+// Binary
+final Uint8List johnBytes = serializer.toBytes(john);
+```
+
+#### Deserialization
+
+```dart
+final reserializedJohn = serializer.fromJsonCode(johnDenseJson);
+assert(reserializedJohn.name == "John Doe");
+
+final reserializedJane = serializer.fromJsonCode(
+  serializer.toJsonCode(jane, readableFlavor: true),
+);
+assert(serializer.fromBytes(johnBytes) == john);
+```
+
+#### Primitive serializers
+
+```dart
+assert(skir.Serializers.bool.toJson(true) == 1);
+assert(skir.Serializers.int32.toJson(3) == 3);
+assert(skir.Serializers.int64.toJson(9223372036854775807) ==
+    "9223372036854775807");
+assert(skir.Serializers.hash64.toJson(BigInt.parse("18446744073709551615")) ==
+    "18446744073709551615");
+assert(skir.Serializers.timestamp
+        .toJson(DateTime.fromMillisecondsSinceEpoch(1743682787000)) ==
+    1743682787000);
+assert(skir.Serializers.float32.toJson(3.14) == 3.14);
+assert(skir.Serializers.float64.toJson(3.14) == 3.14);
+assert(skir.Serializers.string.toJson("Foo") == "Foo");
+assert(
+    skir.Serializers.bytes.toJson(skir.ByteString.copy([1, 2, 3])) == "AQID");
+```
+
+#### Composite serializers
+
+```dart
+assert(skir.Serializers.optional(skir.Serializers.string).toJson("foo") ==
+    "foo");
+assert(
+    skir.Serializers.optional(skir.Serializers.string).toJson(null) == null);
+
+print(skir.Serializers.iterable(skir.Serializers.bool).toJson([true, false]));
+// [1, 0]
+```
+
+### Frozen lists and copies
+
+```dart
+final pets = [
+    User_Pet(name: "Fluffy", heightInMeters: 0.25, picture: "🐶"),
+    User_Pet(name: "Fido", heightInMeters: 0.5, picture: "🐻"),
+];
+
+final jade = User(
+  userId: 46, name: "Jade", quote: "", pets: pets,
+  // ^ makes a copy because 'pets' is mutable
+  subscriptionStatus: SubscriptionStatus.unknown,
+);
+assert(!identical(jade.pets, pets));
+
+final jack = User(
+  userId: 47, name: "Jack", quote: "", pets: jade.pets,
+  // ^ doesn't copy because 'jade.pets' is frozen
+  subscriptionStatus: SubscriptionStatus.unknown,
+);
+assert(identical(jack.pets, jade.pets));
+```
+
+### Keyed lists
+
+```dart
+final userRegistry = UserRegistry(
+  users: [john, jane, mutableLyla, evilJane],
+);
+
+assert(userRegistry.users.findByKey(42) == john);
+assert(userRegistry.users.findByKey(100) == null);
+assert(userRegistry.users.findByKey(43) == evilJane);  // Last duplicate wins
+// First lookup O(N), subsequent O(1).
+```
+
+### Constants
+
+```dart
+print(tarzan);
+// User(userId: 123, name: "Tarzan", ...)
+```
+
+### SkirRPC services
+
+- **Server**: [Shelf](https://github.com/gepheum/skir-dart-example/blob/main/bin/start_service.dart)
+- **Client**: [Example](https://github.com/gepheum/skir-dart-example/blob/main/bin/call_service.dart)
+
+### Reflection
+
+```dart
+import 'package:skir/skir.dart' as skir;
+
+final fieldNames = <String>[];
+for (final field in User.serializer.typeDescriptor.fields) {
+  fieldNames.add(field.name);
+}
+print(fieldNames);
+// [user_id, name, quote, pets, subscription_status]
+
+// TypeDescriptor can be serialized/deserialized.
+final typeDescriptor = skir.TypeDescriptor.parseFromJson(
+  User.serializer.typeDescriptor.asJson,
+);
+```
+
+---
+
+### Guide: swift
+
+# Swift
+
+Guide for using Skir-generated Swift code. Targets Swift 5.9+.
+
+## Set Up
+
+In `skir.yml`, add under `generators`:
+
+```yaml
+- mod: skir-swift-gen
+  outDir: ./Sources/skirout
+  config:
+    # Generated symbols will have internal visibility
+    public: false
+```
+
+Or if you want multiple targets in your Swift project:
+
+```yaml
+- mod: skir-swift-gen
+  outDir: ./Sources/MyLib/skirout
+  config:
+    # Generated symbols will have public visibility
+    public: true
+```
+
+Runtime dependency: add to `Package.swift`:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/gepheum/skir-swift-client", branch: "main"),
+],
+```
+
+Then make sure the existing target that contains `outDir` links against `SkirClient`:
+
+```swift
+.target(
+    name: "MyLib",
+    dependencies: [
+        .product(name: "SkirClient", package: "skir-swift-client"),
+    ],
+    path: "Sources/MyLib"
+),
+```
+
+Example project: [skir-swift-example](https://github.com/gepheum/skir-swift-example)
+
+## Generated Code Guide
+
+The examples below use the generated code style from the Swift example project.
+
+### Referring to Generated Symbols
+
+The Skir code generator places every generated symbol inside a caseless enum named after its .skir file. For example, all types from `path/to/module.skir` live in `Path_To_Module_skir`. This keeps symbols from different modules unambiguous even when their names collide.
+
+When a name is unique across all modules, a short alias is provided in the generated `Skir` caseless enum:
+
+```swift
+let a: Service_skir.User = ...         // fully qualified
+let b: Skir.User = ...                 // via the Skir convenience alias
+```
+
+### Struct Types
+
+Skir generates a Swift struct for every struct in the .skir file. Structs are immutable values and every field is a `let`.
+
+```swift
+// Construct a value using the generated initializer. Every field must be
+// specified.
+let john = Service_skir.User(
+  userId: 42,
+  name: "John Doe",
+  quote: "Coffee is just a socially acceptable form of rage.",
+  pets: [
+    Service_skir.User.Pet(name: "Dumbo", heightInMeters: 1.0, picture: "🐘")
+  ],
+  subscriptionStatus: .free
+)
+
+print(john.name)  // John Doe
+
+print(john)
+// {
+//    "user_id": 42,
+//    ...
+// }
+
+// `defaultValue` gives you a value with every field set to its zero value
+// (0, "", empty array, ...):
+print(Service_skir.User.defaultValue.name)    // (empty string)
+print(Service_skir.User.defaultValue.userId)  // 0
+
+// `partial` is an alternative constructor where omitted fields default to their
+// zero values. Use it when you only care about a few fields, for example in
+// unit tests.
+let jane = Service_skir.User.partial(userId: 43, name: "Jane Doe")
+print(jane.quote)        // (empty string - defaulted)
+print(jane.pets.count)   // 0 - defaulted
+
+// Structs can be compared with ==
+print(Service_skir.User.defaultValue == Service_skir.User.partial())
+// true
+```
+
+#### Creating Modified Copies
+
+```swift
+// Create a modified copy without mutating the original using `copy`.
+// Only the fields wrapped in `.set(...)` change; the rest are kept as-is.
+let renamedJohn = john.copy(name: .set("John \"Coffee\" Doe"))
+print(renamedJohn.name)    // John "Coffee" Doe
+print(renamedJohn.userId)  // 42 (kept from john)
+print(john.name)           // John Doe (john is unchanged)
+```
+
+### Enum Types
+
+Skir generates a Swift enum for every enum in the .skir file. The `.unknown` case is added automatically and is the default.
+
+The definition of the `SubscriptionStatus` enum in the .skir file is:
+
+```skir
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+}
+```
+
+#### Making Enum Values
+
+```swift
+let statuses: [Service_skir.SubscriptionStatus] = [
+  .unknownValue,  // default "unknown" value
+  .free,
+  .premium,
+  .trial(.partial(startTime: Date())),  // wrapper variant carrying a value
+]
+```
+
+#### Conditions on Enums
+
+```swift
+func describe(_ status: Skir.SubscriptionStatus) -> String {
+  switch status {
+  case .free:
+    return "Free user"
+  case .premium:
+    return "Premium user"
+  case .trial(let t):
+    return "On trial since \(t.startTime)"
+  case .unknown:
+    return "Unknown subscription status"
+  }
+}
+
+print(describe(john.subscriptionStatus))  // Free user
+```
+
+### Serialization
+
+`User.serializer` returns a `Serializer<User>` which can serialise and deserialise instances of `User`.
+
+```swift
+let serializer = Skir.User.serializer
+
+// Serialize to dense JSON (field-index-based; safe for storage and transport).
+// Field names are NOT used, so renaming a field stays backward compatible.
+let denseJson = serializer.toJson(john)
+print(denseJson)
+// [42,"John Doe",...]
+
+// Serialize to readable (name-based, indented) JSON.
+// Good for debugging; do NOT use for persistent storage.
+let readableJson = serializer.toJson(john, readable: true)
+// {
+//   "user_id": 42,
+//   "name": "John Doe",
+//   ...
+// }
+
+// Deserialize from JSON (both dense and readable formats are accepted):
+let johnFromJson = try! serializer.fromJson(denseJson)
+assert(johnFromJson == john)
+
+// Serialize to compact binary format.
+let bytes = serializer.toBytes(john)
+let johnFromBytes = try! serializer.fromBytes(bytes)
+assert(johnFromBytes == john)
+```
+
+### Primitive Serializers
+
+```swift
+print(Serializers.bool.toJson(true))
+// 1
+
+print(Serializers.int32.toJson(3))
+// 3
+
+print(Serializers.int64.toJson(9_223_372_036_854_775_807))
+// "9223372036854775807"
+// int64 values are encoded as strings in JSON so that JavaScript parsers
+// (which use 64-bit floats) cannot silently lose precision.
+
+print(Serializers.float32.toJson(1.5))
+// 1.5
+
+print(Serializers.float64.toJson(1.5))
+// 1.5
+
+print(Serializers.string.toJson("Foo"))
+// "Foo"
+
+print(
+  Serializers.timestamp.toJson(
+    Date(timeIntervalSince1970: 1_703_984_028),
+    readable: true))
+// {
+//   "unix_millis": 1703984028000,
+//   "formatted": "2023-12-31T00:53:48.000Z"
+// }
+
+print(Serializers.bytes.toJson(Data([0xDE, 0xAD, 0xBE, 0xEF])))
+// "3q2+7w=="
+```
+
+### Composite Serializers
+
+```swift
+// Optional serializer:
+print(Serializers.optional(Serializers.string).toJson("foo"))
+// "foo"
+
+print(Serializers.optional(Serializers.string).toJson(nil as String?))
+// null
+
+// Array serializer:
+print(Serializers.array(Serializers.bool).toJson([true, false]))
+// [1,0]
+```
+
+### Constants
+
+```swift
+// Skir generates a typed constant for every `const` in the .skir file.
+// Access it via the module namespace or the `Skir` alias:
+let tarzan = Service_skir.tarzan  // same as Skir.tarzan
+print(tarzan.name)   // Tarzan
+print(tarzan.quote)  // AAAAaAaAaAyAAAAaAaAaAyAAAAaAaAaA
+```
+
+### Keyed Lists
+
+```swift
+// In the .skir file:
+//   struct UserRegistry {
+//     users: [User|user_id];
+//   }
+// The '|user_id' suffix tells Skir to index the array by user_id, enabling
+// O(1) lookup.
+let registry = Service_skir.UserRegistry(users: [john, jane])
+
+// findByKey returns the first element whose user_id matches.
+// The index is built lazily on the first call and cached for subsequent calls.
+print(registry.users.findByKey(43) != nil)   // true
+print(registry.users.findByKey(43)! == jane) // true
+
+// If no element has the given key, nil is returned.
+print(registry.users.findByKey(999) == nil)  // true
+
+// findByKeyOrDefault returns the zero-value element instead of nil.
+let notFoundOrDefault = registry.users.findByKeyOrDefault(999)
+print(notFoundOrDefault.pets.count)  // 0
+```
+
+### SkirRPC services
+
+- **Server**: [Vapor](https://github.com/gepheum/skir-swift-example/blob/main/Sources/StartService/main.swift)
+- **Client**: [Example](https://github.com/gepheum/skir-swift-example/blob/main/Sources/CallService/main.swift)
+
+### Reflection
+
+```swift
+// Reflection allows you to inspect a Skir type at runtime.
+// Each generated type exposes its schema as a TypeDescriptor via its serializer.
+let typeDescriptor = Skir.User.serializer.typeDescriptor
+
+// A TypeDescriptor can be serialized to JSON and deserialized back:
+let descriptorFromJson = try! Reflection.TypeDescriptor.parseFromJson(typeDescriptor.asJson())
+
+// Pattern match to distinguish struct, enum, primitive descriptors:
+if case .structRecord(let sd) = descriptorFromJson {
+  print(sd)  // StructDescriptor(...:User)
+}
+```
+---
+
+### Guide: go
+
+# Go
+
+Guide for using Skir-generated Go code. Targets Go 1.21+.
+
+## Set Up
+
+In `skir.yml`, add under `generators`:
+
+```yaml
+- mod: skir-go-gen
+  outDir: ./skirout
+  config:
+    goModuleName: "github.com/my-org/my-project"
+```
+
+The `goModuleName` config option must match the module name declared in your `go.mod` file.
+
+Runtime dependency:
+
+```bash
+go get github.com/gepheum/skir-go-client
+```
+
+Example project: [skir-go-example](https://github.com/gepheum/skir-go-example)
+
+## Generated Code Guide
+
+Examples for code generated from [this .skir file](https://github.com/gepheum/skir-go-example/blob/main/skir-src/user.skir).
+
+### Referring to Generated Symbols
+
+```go
+// Import the Go package generated from "user.skir".
+// Replace "github.com/my-org/my-project" with your own module name.
+import user "github.com/my-org/my-project/skirout/user"
+
+// Now you can use: user.User_builder(), user.Tarzan_const(),
+// user.SubscriptionStatus_freeConst(), user.User_serializer(), etc.
+```
+
+### Structs
+
+For every struct `S`, Skir generates a deeply immutable Go interface `S`. The generated code provides both ordered and partial builders.
+
+#### Ordered builder
+
+All fields must be set in alphabetical order. The compiler errors if a field is skipped or set out of order.
+
+```go
+john := user.User_builder().
+    SetName("John Doe").
+    SetPets([]user.User_Pet{
+        user.User_Pet_builder().
+            SetHeightInMeters(1.0).
+            SetName("Dumbo").
+            SetPicture("🐘").
+            Build(),
+    }).
+    SetQuote("Coffee is just a socially acceptable form of rage.").
+    SetSubscriptionStatus(user.SubscriptionStatus_freeConst()).
+    SetUserId(42).
+    Build()
+
+fmt.Println(john.Name()) // John Doe
+```
+
+#### Partial builder
+
+Fields can be set in any order. Fields not explicitly set are initialized to their zero values.
+
+```go
+jane := user.User_partialBuilder().SetUserId(43).SetName("Jane Doe").Build()
+
+fmt.Println(jane.Quote())      // (empty string)
+fmt.Println(jane.Pets().Len()) // 0
+
+// User_default returns an instance with all fields set to their zero values.
+fmt.Println(user.User_default().Name())   // (empty string)
+fmt.Println(user.User_default().UserId()) // 0
+```
+
+#### Creating modified copies
+
+`ToBuilder()` copies all fields into a new partial builder. Useful for creating modified copies without mutating the original.
+
+```go
+evilJohn := john.ToBuilder().
+    SetName("Evil John").
+    SetQuote("I solemnly swear I am up to no good.").
+    Build()
+
+fmt.Println(evilJohn.Name())   // Evil John
+fmt.Println(evilJohn.UserId()) // 42 (copied from john)
+fmt.Println(john.Name())       // John Doe (john is unchanged)
+```
+
+### Enums
+
+Skir generates a Go struct type for every enum. Unlike the standard Go `iota` pattern, Skir enums can carry a value in wrapper variants.
+
+```skir
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+}
+```
+
+#### Creating enum values
+
+```go
+_ = []user.SubscriptionStatus{
+    // The UNKNOWN constant is present in all Skir enums even if not declared.
+    user.SubscriptionStatus_unknown(),
+    user.SubscriptionStatus_freeConst(),
+    user.SubscriptionStatus_premiumConst(),
+    // Wrapper variants carry a value; use the *Wrapper constructor.
+    user.SubscriptionStatus_trialWrapper(
+        user.SubscriptionStatus_Trial_builder().
+            SetStartTime(time.Now()).
+            Build(),
+    ),
+}
+```
+
+#### Conditions on enums
+
+```go
+fmt.Println(john.SubscriptionStatus().IsFreeConst()) // true
+fmt.Println(jane.SubscriptionStatus().IsUnknown())   // true (default)
+
+now := time.Now()
+trialStatus := user.SubscriptionStatus_trialWrapper(
+    user.SubscriptionStatus_Trial_builder().SetStartTime(now).Build(),
+)
+fmt.Println(trialStatus.IsTrialWrapper())                     // true
+fmt.Println(trialStatus.UnwrapTrial().StartTime().Equal(now)) // true
+
+// UnwrapTrial() panics if called on a value that is not a trial wrapper.
+```
+
+#### Branching on enum variants
+
+First way: a switch on `Kind()`.
+
+```go
+getInfoText := func(status user.SubscriptionStatus) string {
+    switch status.Kind() {
+    case user.SubscriptionStatus_kind_freeConst:
+        return "Free user"
+    case user.SubscriptionStatus_kind_premiumConst:
+        return "Premium user"
+    case user.SubscriptionStatus_kind_trialWrapper:
+        return fmt.Sprintf("On trial since %v", status.UnwrapTrial().StartTime())
+    default:
+        return "Unknown subscription status"
+    }
+}
+fmt.Println(getInfoText(john.SubscriptionStatus())) // Free user
+```
+
+Second way: the visitor pattern. More verbose, but provides compile-time safety — the compiler errors if you forget to handle a variant.
+
+```go
+fmt.Println(
+    user.SubscriptionStatus_accept(
+        john.SubscriptionStatus(),
+        subscriptionStatusInfoVisitor{},
+    ),
+) // Free user
+
+type subscriptionStatusInfoVisitor struct{}
+
+func (subscriptionStatusInfoVisitor) OnUnknown() string      { return "Unknown subscription status" }
+func (subscriptionStatusInfoVisitor) OnFreeConst() string    { return "Free user" }
+func (subscriptionStatusInfoVisitor) OnPremiumConst() string { return "Premium user" }
+func (subscriptionStatusInfoVisitor) OnTrialWrapper(t user.SubscriptionStatus_Trial) string {
+    return fmt.Sprintf("On trial since %v", t.StartTime())
+}
+```
+
+### Serialization
+
+`User_serializer()` returns a `skir.Serializer[User]` which can serialize and deserialize `User` instances.
+
+```go
+serializer := user.User_serializer()
+
+// Serialize to dense JSON (field-number-based; the default mode).
+// Because field names are not included, renaming a field is backward-compatible.
+johnDenseJson := serializer.ToJson(john)
+fmt.Println(johnDenseJson)
+// [42,"John Doe",...]
+
+// Serialize to readable (name-based, indented) JSON — mainly for debugging.
+fmt.Println(serializer.ToJson(john, skir.Readable{}))
+// {
+//   "user_id": 42,
+//   "name": "John Doe",
+//   ...
+// }
+
+// Deserialize from JSON (both dense and readable formats are accepted).
+reserializedJohn, err := serializer.FromJson(johnDenseJson)
+if err != nil {
+    panic(err)
+}
+
+// Serialize to binary format (more compact than JSON).
+johnBytes := serializer.ToBytes(john)
+fromBytes, err := serializer.FromBytes(johnBytes)
+if err != nil {
+    panic(err)
+}
+```
+
+#### Primitive serializers
+
+```go
+fmt.Println(skir.BoolSerializer().ToJson(true))
+// 1
+fmt.Println(skir.Int32Serializer().ToJson(int32(3)))
+// 3
+fmt.Println(skir.Int64Serializer().ToJson(int64(9223372036854775807)))
+// "9223372036854775807"
+fmt.Println(skir.Float32Serializer().ToJson(float32(3.14)))
+// 3.14
+fmt.Println(skir.Float64Serializer().ToJson(3.14))
+// 3.14
+fmt.Println(skir.StringSerializer().ToJson("Foo"))
+// "Foo"
+fmt.Println(
+    skir.TimestampSerializer().ToJson(
+        time.UnixMilli(1_743_682_787_000).UTC()))
+// 1743682787000
+```
+
+#### Composite serializers
+
+```go
+fmt.Println(
+    skir.OptionalSerializer(skir.StringSerializer()).
+        ToJson(skir.OptionalOf("foo")),
+)
+// "foo"
+
+fmt.Println(
+    skir.OptionalSerializer(skir.StringSerializer()).
+        ToJson(skir.Optional[string]{}),
+)
+// null
+
+fmt.Println(
+    skir.ArraySerializer(skir.BoolSerializer()).
+        ToJson(skir.ArrayFromSlice([]bool{true, false})),
+)
+// [1,0]
+```
+
+### Constants
+
+Constants declared with `const` in the .skir file are available as functions in the generated Go package.
+
+```go
+fmt.Println(user.Tarzan_const())
+// {
+//   "user_id": 123,
+//   "name": "Tarzan",
+//   ...
+// }
+```
+
+### Keyed lists
+
+```go
+// In the .skir file:
+//   struct UserRegistry {
+//     users: [User|user_id];
+//   }
+// The '|user_id' part tells Skir to generate a search method keyed by user_id.
+
+userRegistry := user.UserRegistry_builder().
+    SetUsers([]user.User{john, jane, evilJohn}).
+    Build()
+
+// Users_SearchByUserId returns the last element whose user_id matches.
+// The first search runs in O(n); subsequent searches run in O(1).
+found := userRegistry.Users_SearchByUserId(43)
+fmt.Println(found.IsPresent())   // true
+fmt.Println(found.Get() == jane) // true
+
+notFound := userRegistry.Users_SearchByUserId(999)
+fmt.Println(notFound.IsPresent()) // false
+```
+
+### SkirRPC services
+
+- **Server**: [start-service example](https://github.com/gepheum/skir-go-example/blob/main/cmd/start-service/main.go)
+- **Client**: [call-service example](https://github.com/gepheum/skir-go-example/blob/main/cmd/call-service/main.go)
+
+### Reflection
+
+```go
+td := user.User_serializer().TypeDescriptor()
+if sd, ok := td.(*skir.StructDescriptor); ok {
+    names := make([]string, len(sd.Fields()))
+    for i, f := range sd.Fields() {
+        names[i] = f.Name()
+    }
+    fmt.Println(names)
+    // [user_id name quote pets subscription_status]
+}
+
+// A TypeDescriptor can be serialized to JSON and deserialized later.
+td2, err := skir.ParseTypeDescriptorFromJson(td.AsJson())
+if err != nil {
+    panic(err)
+}
+if sd2, ok := td2.(*skir.StructDescriptor); ok {
+    fmt.Println(len(sd2.Fields())) // 5
+}
+```
+
+---
+
+### Guide: rust
+
+# Rust
+
+Guide for using Skir-generated Rust code. Targets Rust edition 2021+.
+
+## Set Up
+
+In `skir.yml`, add under `generators`:
+
+```yaml
+- mod: skir-rust-gen
+  outDir: ./src/skirout
+  config: {}
+```
+
+Runtime dependency — add to `Cargo.toml`:
+
+```toml
+skir-client = "0.1"
+```
+
+In `src/lib.rs` (or `src/main.rs`), expose the generated module:
+
+```rust
+pub mod skirout;
+```
+
+Create `src/skirout.rs`:
+
+```rust
+// The skirout module is generated by `npx skir gen`. Do not edit by hand.
+pub mod base;
+```
+
+Example project: [skir-rust-example](https://github.com/gepheum/skir-rust-example)
+
+## Generated Code Guide
+
+Examples for code generated from [this .skir file](https://github.com/gepheum/skir-rust-example/blob/main/skir-src/user.skir).
+
+### Referring to Generated Symbols
+
+```rust
+use crate::skirout::base::user::{
+    tarzan_const, SubscriptionStatus, SubscriptionStatus_Trial, User, UserRegistry, User_Pet,
+};
+```
+
+### Struct Types
+
+Skir generates a plain Rust struct for every struct. All fields are public. Every struct implements `Default`, `Clone`, `PartialEq`, and `Debug`.
+
+```rust
+let john = User {
+    user_id: 42,
+    name: "John Doe".to_string(),
+    quote: "Coffee is just a socially acceptable form of rage.".to_string(),
+    pets: vec![User_Pet {
+        name: "Dumbo".to_string(),
+        height_in_meters: 1.0,
+        picture: "🐘".to_string(),
+        _unrecognized: None,
+    }],
+    subscription_status: SubscriptionStatus::Free,
+    _unrecognized: None, // Present in every struct; always set to None
+};
+
+println!("{}", john.name); // John Doe
+
+// User::default() — all fields at their default values
+println!("{}", User::default().name);    // (empty string)
+println!("{}", User::default().user_id); // 0
+
+// Struct update syntax
+let jane = User {
+    user_id: 43,
+    name: "Jane Doe".to_string(),
+    ..User::default()
+};
+```
+
+#### Creating modified copies
+
+```rust
+// Option 1: clone, then mutate
+let mut evil_john = john.clone();
+evil_john.name = "Evil John".to_string();
+
+// Option 2: struct update syntax
+let evil_john_2 = User {
+    name: "Evil John".to_string(),
+    quote: "I solemnly swear I am up to no good.".to_string(),
+    ..john.clone()
+};
+```
+
+### Enum Types
+
+Skir generates a Rust enum for every enum. The `Unknown` variant is added automatically and is the default.
+
+```skir
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+}
+```
+
+#### Making enum values
+
+```rust
+let _ = [
+    SubscriptionStatus::Unknown(None),
+    SubscriptionStatus::default(), // Same as ::Unknown(None)
+    SubscriptionStatus::Free,
+    SubscriptionStatus::Premium,
+    // Wrapper variants carry a value inside a Box.
+    SubscriptionStatus::Trial(Box::new(SubscriptionStatus_Trial {
+        start_time: std::time::SystemTime::now(),
+        _unrecognized: None,
+    })),
+];
+```
+
+#### Conditions on enums
+
+```rust
+let get_info_text = |status: &SubscriptionStatus| -> String {
+    match status {
+        SubscriptionStatus::Free => "Free user".to_string(),
+        SubscriptionStatus::Premium => "Premium user".to_string(),
+        SubscriptionStatus::Trial(t) => format!("On trial since {:?}", t.start_time),
+        SubscriptionStatus::Unknown(_) => "Unknown subscription status".to_string(),
+    }
+};
+```
+
+### Serialization
+
+`User::serializer()` returns a `Serializer<User>`.
+
+```rust
+use skir_client::{JsonFlavor, Serializer, UnrecognizedValues};
+
+let serializer = User::serializer();
+
+// Dense JSON (field-number-based; use for storage/transport)
+let john_dense_json = serializer.to_json(&john, JsonFlavor::Dense);
+println!("{}", john_dense_json); // [42,"John Doe",...]
+
+// Readable JSON (name-based; use for debugging)
+println!("{}", serializer.to_json(&john, JsonFlavor::Readable));
+
+// Deserialize (both flavors accepted)
+let reserialized = serializer
+    .from_json(&john_dense_json, UnrecognizedValues::Drop)
+    .unwrap();
+assert_eq!(reserialized, john);
+
+// Binary (more compact than JSON)
+let john_bytes = serializer.to_bytes(&john);
+let from_bytes = serializer.from_bytes(&john_bytes, UnrecognizedValues::Drop).unwrap();
+assert_eq!(from_bytes, john);
+```
+
+#### Primitive serializers
+
+```rust
+println!("{}", Serializer::bool().to_json(&true, JsonFlavor::Dense));           // 1
+println!("{}", Serializer::int32().to_json(&3_i32, JsonFlavor::Dense));         // 3
+println!("{}", Serializer::int64().to_json(&9_223_372_036_854_775_807_i64, JsonFlavor::Dense)); // "9223372036854775807"
+println!("{}", Serializer::float32().to_json(&1.5_f32, JsonFlavor::Dense));     // 1.5
+println!("{}", Serializer::float64().to_json(&1.5_f64, JsonFlavor::Dense));     // 1.5
+println!("{}", Serializer::string().to_json(&"Foo".to_string(), JsonFlavor::Dense)); // "Foo"
+```
+
+#### Composite serializers
+
+```rust
+println!("{}", Serializer::optional(Serializer::string())
+    .to_json(&Some("foo".to_string()), JsonFlavor::Dense)); // "foo"
+println!("{}", Serializer::optional(Serializer::string())
+    .to_json(&None::<String>, JsonFlavor::Dense));          // null
+println!("{}", Serializer::array(Serializer::bool())
+    .to_json(&vec![true, false], JsonFlavor::Dense));       // [1,0]
+```
+
+### Constants
+
+```rust
+// Constants declared with 'const' in the .skir file are available as functions.
+println!("{}", User::serializer().to_json(tarzan_const(), JsonFlavor::Readable));
+// { "user_id": 123, "name": "Tarzan", ... }
+```
+
+### Keyed Lists
+
+```rust
+// struct UserRegistry { users: [User|user_id]; }
+let user_registry = UserRegistry {
+    users: vec![john.clone(), jane.clone(), evil_john.clone()].into(),
+    _unrecognized: None,
+};
+
+// find_by_key: first call O(n) to build index, subsequent O(1)
+let found = user_registry.users.find_by_key(43);
+println!("{}", found.is_some());         // true
+println!("{}", found.unwrap() == &jane); // true
+
+// If multiple elements share the same key, the first one wins.
+let not_found = user_registry.users.find_by_key(999_i32);
+println!("{}", not_found.is_none()); // true
+
+// find_by_key_or_default: returns &DEFAULT when key not found
+let fallback = user_registry.users.find_by_key_or_default(999_i32);
+println!("{}", fallback.pets.len()); // 0
+```
+
+### SkirRPC services
+
+- **Server (Axum)**: [start_service.rs](https://github.com/gepheum/skir-rust-example/blob/main/src/bin/start_service.rs)
+- **Client**: [call_service.rs](https://github.com/gepheum/skir-rust-example/blob/main/src/bin/call_service.rs)
+
+### Reflection
+
+```rust
+use skir_client::TypeDescriptor;
+
+let td = User::serializer().type_descriptor();
+if let TypeDescriptor::Struct(sd) = td {
+    let names: Vec<&str> = sd.fields().iter().map(|f| f.name()).collect();
+    println!("{:?}", names);
+    // ["user_id", "name", "quote", "pets", "subscription_status"]
+}
+
+// TypeDescriptor can be serialized/deserialized.
+let td2 = TypeDescriptor::parse_from_json(
+    &User::serializer().type_descriptor().as_json(),
+)
+.unwrap();
+if let TypeDescriptor::Struct(sd2) = td2 {
+    println!("{}", sd2.fields().len()); // 5
+}
+```
+
+---
+
+---
+
+### Guide: zig
+
+# Skir's Zig code generator
+
+Official plugin for generating Zig code from
+[.skir](https://github.com/gepheum/skir) files.
+
+## Set up
+
+In your `skir.yml` file, add the following snippet under `generators`:
+```yaml
+  - mod: skir-zig-gen
+    outDir: ./src/skirout
+    config: {}
+```
+
+The generated Zig code has a runtime dependency on `skir_client`.
+Add it to your `build.zig.zon`:
+
+```zig
+.dependencies = .{
+    .skir_client = .{
+        .url = "https://github.com/gepheum/skir-zig-client/archive/refs/heads/main.tar.gz",
+        .hash = "<hash printed by zig fetch>",
+    },
+},
+```
+
+Then fetch the archive once to get the hash:
+
+```sh
+zig fetch https://github.com/gepheum/skir-zig-client/archive/refs/heads/main.tar.gz
+```
+
+For more information, see this Zig project
+[example](https://github.com/gepheum/skir-zig-example).
+
+## Zig generated code guide
+
+The examples below are for the code generated from
+[this](https://github.com/gepheum/skir-zig-example/blob/main/skir-src/user.skir)
+.skir file.
+
+### Referring to generated symbols
+
+```zig
+// Import the Zig module generated from "user.skir".
+const user_mod = @import("skirout/user.zig");
+const skir = @import("skir_client.zig");
+
+// Now you can use: user_mod.User, user_mod.UserRegistry,
+// user_mod.SubscriptionStatus, user_mod.tarzan_const, etc.
+```
+
+### Struct types
+
+Skir generates a plain Zig struct for every struct in the .skir file.
+All fields are value types; the struct is not heap-allocated by the
+generator.
+
+```zig
+// Skir generates a plain Zig struct for each struct in the .skir schema.
+const john: user_mod.User = .{
+    .user_id = 42,
+    .name = "John Doe",
+    .quote = "Coffee is just a socially acceptable form of rage.",
+    .pets = &.{.{
+        .name = "Dumbo",
+        .height_in_meters = 1.0,
+        .picture = "🐘",
+        ._unrecognized = null,
+    }},
+    .subscription_status = .Free,
+    ._unrecognized = null, // Present in every struct; always set to null
+};
+
+std.debug.print("{s}\n", .{john.name});
+// John Doe
+```
+
+#### Default value
+
+```zig
+// To create a value with only some fields set, start from the default
+// and override what you need. All other fields keep their default values.
+var jane = user_mod.User.default;
+jane.name = "Jane";
+jane.quote = "I came, I saw, I deleted the cache.";
+std.debug.print("{s}\n", .{jane.name});
+// Jane
+std.debug.print("{d}\n", .{jane.user_id});
+// 0
+```
+
+#### Creating modified copies
+
+```zig
+// For a shallow copy, use a plain assignment.
+var evil_jane = jane;
+evil_jane.name = "Evil Jane";
+
+// For a deep copy, use clone().
+var evil_john = try john.clone(arena_allocator);
+evil_john.name = "Evil John";
+evil_john.quote = "I solemnly swear I am up to no good.";
+
+std.debug.print("{s}\n", .{evil_john.name});
+// Evil John
+std.debug.print("{d}\n", .{evil_john.user_id});
+// 42
+```
+
+### Enum types
+
+Skir generates a tagged union for every enum in the .skir file.
+
+The definition of the `SubscriptionStatus` enum in the .skir file is:
+```rust
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+}
+```
+
+#### Making enum values
+
+```zig
+const trial_payload: user_mod.SubscriptionStatus.Trial_ = .{
+    .start_time = .{ .unix_millis = 1_744_974_198_000 },
+    ._unrecognized = null,
+};
+
+const some_statuses = [_]user_mod.SubscriptionStatus{
+    user_mod.SubscriptionStatus.unknown,
+    .Free,
+    .Premium,
+    .{ .Trial = &trial_payload },
+};
+_ = some_statuses;
+```
+
+### Enum matching
+
+```zig
+fn subscriptionInfoText(status: user_mod.SubscriptionStatus) []const u8 {
+    return switch (status) {
+        .Unknown => "Unknown subscription status",
+        .Free => "Free user",
+        .Trial => |trial| blk: {
+            _ = trial;
+            break :blk "On trial since (some timestamp)";
+        },
+        .Premium => "Premium user",
+    };
+}
+
+std.debug.print("{s}\n", .{subscriptionInfoText(john.subscription_status)});
+// Free user
+std.debug.print("{s}\n", .{subscriptionInfoText(user_mod.SubscriptionStatus.unknown)});
+// Unknown subscription status
+std.debug.print("{s}\n", .{subscriptionInfoText(.{ .Trial = &trial_payload })});
+// On trial since (some timestamp)
+```
+
+### Serialization
+
+`User.serializer()` returns a serializer which can serialize and
+deserialize instances of `User`.
+
+```zig
+const user_serializer = user_mod.User.serializer();
+
+const john_dense_json = try user_serializer.serialize(
+    arena_allocator,
+    john,
+    .{ .format = .denseJson },
+);
+std.debug.print("{s}\n", .{john_dense_json});
+// [42,"John Doe","Coffee is just a socially acceptable form of rage.",[["Dumbo",1,"🐘"]],1]
+
+const john_readable_json = try user_serializer.serialize(
+    arena_allocator,
+    john,
+    .{ .format = .readableJson },
+);
+std.debug.print("{s}\n", .{john_readable_json});
+// {
+//   "user_id": 42,
+//   "name": "John Doe",
+//   ...
+// }
+
+const john_binary = try user_serializer.serialize(
+    arena_allocator,
+    john,
+    .{ .format = .binary },
+);
+
+### Deserialization
+
+// deserialize() auto-detects the format (dense JSON, readable JSON, or
+// binary) from the input bytes — the same call works for all three.
+// Pass an arena allocator; everything allocated through it is freed at
+// once by calling arena.deinit().
+
+// Deserialize from dense JSON.
+const from_dense = try user_serializer.deserialize(
+    arena_allocator,
+    john_dense_json,
+    .{},
+);
+std.debug.print("{s}\n", .{from_dense.name});
+// John Doe
+
+// Deserialize from readable JSON — same call, different bytes.
+const from_readable = try user_serializer.deserialize(
+    arena_allocator,
+    john_readable_json,
+    .{},
+);
+std.debug.print("{s}\n", .{from_readable.name});
+// John Doe
+
+// Deserialize from binary — same call again.
+const from_binary = try user_serializer.deserialize(
+    arena_allocator,
+    john_binary,
+    .{},
+);
+std.debug.print("{s}\n", .{from_binary.name});
+// John Doe
+```
+
+### Primitive serializers
+
+```zig
+// skir.boolSerializer(), skir.int32Serializer(), etc. return serializers
+// for Zig primitive types.
+_ = try skir.boolSerializer().serialize(
+    arena_allocator,
+    true,
+    .{ .format = .denseJson },
+);
+_ = try skir.int32Serializer().serialize(
+    arena_allocator,
+    @as(i32, 3),
+    .{ .format = .denseJson },
+);
+_ = try skir.int64Serializer().serialize(
+    arena_allocator,
+    @as(i64, 9_223_372_036_854_775_807),
+    .{ .format = .denseJson },
+);
+_ = try skir.hash64Serializer().serialize(
+    arena_allocator,
+    @as(u64, 18_446_744_073_709_551_615),
+    .{ .format = .denseJson },
+);
+_ = try skir.timestampSerializer().serialize(
+    arena_allocator,
+    skir.Timestamp{ .unix_millis = 1_743_682_787_000 },
+    .{ .format = .denseJson },
+);
+_ = try skir.float32Serializer().serialize(
+    arena_allocator,
+    @as(f32, 3.14),
+    .{ .format = .denseJson },
+);
+_ = try skir.float64Serializer().serialize(
+    arena_allocator,
+    @as(f64, 3.14),
+    .{ .format = .denseJson },
+);
+_ = try skir.stringSerializer().serialize(
+    arena_allocator,
+    "Foo",
+    .{ .format = .denseJson },
+);
+_ = try skir.bytesSerializer().serialize(
+    arena_allocator,
+    @as([]const u8, &.{ 1, 2, 3 }),
+    .{ .format = .denseJson },
+);
+```
+
+### Composite serializers
+
+```zig
+const opt_string_ser = skir.optionalSerializer(skir.stringSerializer());
+_ = try opt_string_ser.serialize(
+    arena_allocator,
+    @as(?[]const u8, null),
+    .{ .format = .denseJson },
+);
+
+const bool_array_ser = skir.arraySerializer(skir.boolSerializer());
+_ = try bool_array_ser.serialize(
+    arena_allocator,
+    @as([]const bool, &.{ true, false }),
+    .{ .format = .denseJson },
+);
+```
+
+### Constants
+
+```zig
+// Constants declared with 'const' in the .skir file are available as
+// module-level values in the generated Zig file.
+const tarzan = user_mod.tarzan_const;
+std.debug.print("{s}\n", .{tarzan.name});
+// Tarzan
+
+const tarzan_json = try user_serializer.serialize(
+    arena_allocator,
+    tarzan,
+    .{ .format = .readableJson },
+);
+std.debug.print("{s}\n", .{tarzan_json});
+// {
+//   "user_id": 123,
+//   "name": "Tarzan",
+//   ...
+// }
+```
+
+### Keyed arrays
+
+```zig
+// In the .skir file:
+//   struct UserRegistry {
+//     users: [User|user_id];
+//   }
+// The '|user_id' part tells Skir to generate a search keyed by user_id.
+
+var users = [_]user_mod.User{ john, jane, evil_john, tarzan };
+var registry = user_mod.UserRegistry{
+    .users = skir.KeyedArray(user_mod.User.By_UserId).init(
+        arena_allocator,
+        users[0..],
+    ),
+    ._unrecognized = null,
+};
+
+const found = try registry.users.findByKey(42);
+if (found) |u| {
+    std.debug.print("{s}\n", .{u.name});
+    // Evil John (last duplicate wins)
+}
+
+const not_found = try registry.users.findByKey(43);
+std.debug.print("{}\n", .{not_found == null});
+// true
+
+const found_or_default = try registry.users.findByKeyOrDefault(999);
+std.debug.print("{d}\n", .{found_or_default.pets.len});
+// 0
+```
+
+### SkirRPC services
+
+#### Starting a SkirRPC service on an HTTP server
+
+Full example [here](https://github.com/gepheum/skir-zig-example/blob/main/src/start_service.zig).
+
+#### Sending RPCs to a SkirRPC service
+
+Full example [here](https://github.com/gepheum/skir-zig-example/blob/main/src/call_service.zig).
+
+### Reflection
+
+Reflection allows you to inspect a Skir type at runtime.
+
+```zig
+const type_descriptor = user_serializer.typeDescriptor();
+switch (type_descriptor) {
+    .struct_record => |sd| {
+        std.debug.print("{s} has {d} fields\n", .{ sd.name, sd.fields.len });
+        // User has 5 fields
+        if (sd.fieldByName("name")) |f| {
+            std.debug.print("field 'name' number={d}\n", .{f.number});
+            // field 'name' number=1
+        }
+    },
+    else => {},
+}
+
+const enum_type_descriptor =
+    user_mod.SubscriptionStatus.serializer().typeDescriptor();
+switch (enum_type_descriptor) {
+    .enum_record => |ed| {
+        std.debug.print("{s} has {d} variants\n", .{ ed.name, ed.variants.len });
+        // SubscriptionStatus has 3 variants
+        if (ed.variantByName("trial")) |variant| {
+            std.debug.print("variant trial number={d}\n", .{variant.number()});
+            // variant trial number=2
+        }
+    },
+    else => {},
+}
+```
+
+
+---
+
+### Guide: gleam
+
+# Skir's Gleam code generator
+
+Official plugin for generating Gleam code from [.skir](https://github.com/gepheum/skir) files.
+
+## Set up
+
+In your `skir.yml` file, add the following snippet under `generators`:
+```yaml
+  - mod: skir-gleam-gen
+    outDir: ./src/skirout
+    config: {}
+```
+
+Or if you prefer not to place `skirout` directly under `src`:
+```yaml
+  - mod: skir-gleam-gen
+    outDir: ./src/generated/skirout
+    config:
+      importPathToSkirout: generated/skirout
+```
+
+The generated Gleam code has a runtime dependency on `skir_client`. Add it to your project with:
+
+```shell
+gleam add skir_client
+```
+
+For more information, see this Gleam project [example](https://github.com/gepheum/skir-gleam-example).
+
+## Gleam generated code guide
+
+The examples below are for the code generated from [this](https://github.com/gepheum/skir-gleam-example/blob/main/skir-src/user.skir) .skir file.
+
+### Referring to generated symbols
+
+```gleam
+// Import the module generated from "user.skir"
+import skirout/user
+
+// Now you can use: user.User, user.SubscriptionStatus, user.tarzan_const, etc.
+```
+
+### Struct types
+
+Skir generates a plain Gleam record for every struct in the .skir file.
+
+```gleam
+import skir_client
+import skir_client/timestamp
+import skirout/user
+
+// Construct a User using the generated helper function.
+// The helper sets the `unrecognized_` field automatically.
+let john =
+  user.user_new(
+    name: "John Doe",
+    pets: [
+      user.user__pet_new(height_in_meters: 1.0, name: "Dumbo", picture: "🐘"),
+    ],
+    quote: "Coffee is just a socially acceptable form of rage.",
+    subscription_status: user.SubscriptionStatusFree,
+    user_id: 42,
+  )
+
+io.println(john.name)
+// John Doe
+
+// `user_default` holds the default value with every field at its zero value.
+io.println(user.user_default.name)
+// (empty string)
+io.println(int.to_string(user.user_default.user_id))
+// 0
+
+// Combining the _default constant with Gleam's record update syntax allows
+// you to instantiate a struct by only specifying a subset of its fields;
+// the remaining fields are set to their default values.
+let jane = user.User(..user.user_default, user_id: 43, name: "Jane Doe")
+
+io.println(jane.quote)
+// (empty string)
+io.println(int.to_string(list.length(jane.pets)))
+// 0
+```
+
+#### Creating modified copies
+
+```gleam
+// Gleam records are immutable.
+// To make a modified copy, use record update syntax on the original.
+let evil_john =
+  user.User(
+    ..john,
+    name: "Evil John",
+    quote: "I solemnly swear I am up to no good.",
+  )
+
+io.println(evil_john.name)
+// Evil John
+io.println(int.to_string(evil_john.user_id))
+// 42 (copied from john)
+```
+
+### Enum types
+
+The definition of the `SubscriptionStatus` enum in the .skir file is:
+```rust
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+}
+```
+
+Skir generates a Gleam custom type for every enum in the .skir file.
+
+#### Constructing enum values
+
+```gleam
+let _statuses = [
+  // Unknown is the default and is present in all Skir enums.
+  user.subscription_status_unknown,
+  user.SubscriptionStatusFree,
+  user.SubscriptionStatusPremium,
+  // Wrapper variants carry an inner struct.
+  user.SubscriptionStatusTrialX(
+    user.subscription_status__trial_new(
+      start_time: timestamp.Timestamp(unix_millis: 1_743_592_409_000),
+    ),
+  ),
+]
+```
+
+#### Pattern matching on enums
+
+```gleam
+let get_info_text = fn(status: user.SubscriptionStatus) -> String {
+  case status {
+    user.SubscriptionStatusFree -> "Free user"
+    user.SubscriptionStatusPremium -> "Premium user"
+    user.SubscriptionStatusTrialX(t) ->
+      "On trial since " <> int.to_string(t.start_time.unix_millis)
+    user.SubscriptionStatusUnknown(_) -> "Unknown subscription status"
+  }
+}
+
+io.println(get_info_text(john.subscription_status))
+// Free user
+
+let trial_status =
+  user.SubscriptionStatusTrialX(
+    user.subscription_status__trial_new(
+      start_time: timestamp.Timestamp(unix_millis: 1_743_592_409_000),
+    ),
+  )
+io.println(get_info_text(trial_status))
+// On trial since 1743592409000
+```
+
+### Serialization
+
+The serializer for a type is returned by calling the generated `*_serializer()` function. Use functions from `skir_client` to serialize and deserialize values.
+
+```gleam
+let serializer = user.user_serializer()
+
+// Serialize to dense JSON (field-number-based; the default mode).
+// Use this when you plan to deserialize the value later. Because field
+// names are not included, renaming a field remains backward-compatible.
+let john_dense_json = skir_client.to_dense_json_code(serializer, john)
+io.println(john_dense_json)
+// [42,"John Doe",...]
+
+// Serialize to readable (name-based, indented) JSON.
+// Use this mainly for debugging.
+io.println(skir_client.to_readable_json_code(serializer, john))
+// {
+//   "user_id": 42,
+//   "name": "John Doe",
+//   "quote": "Coffee is just a socially acceptable form of rage.",
+//   "pets": [ ... ],
+//   "subscription_status": "FREE"
+// }
+
+// Deserialize from JSON (both dense and readable formats are accepted).
+let assert Ok(reserialized_john) =
+  skir_client.from_json_code(serializer, john_dense_json)
+let assert True = reserialized_john == john
+
+// Serialize to binary format (more compact than JSON; useful when
+// performance matters, though the difference is rarely significant).
+let john_bytes = skir_client.to_bytes(serializer, john)
+let assert Ok(from_bytes) = skir_client.from_bytes(serializer, john_bytes)
+let assert True = from_bytes == john
+```
+
+### Primitive serializers
+
+```gleam
+io.println(skir_client.to_dense_json_code(skir_client.bool_serializer(), True))
+// 1
+io.println(skir_client.to_dense_json_code(skir_client.int32_serializer(), 3))
+// 3
+io.println(skir_client.to_dense_json_code(
+  skir_client.int64_serializer(),
+  9_223_372_036_854_775_807,
+))
+// "9223372036854775807"
+io.println(skir_client.to_dense_json_code(
+  skir_client.float32_serializer(),
+  1.5,
+))
+// 1.5
+io.println(skir_client.to_dense_json_code(
+  skir_client.float64_serializer(),
+  1.5,
+))
+// 1.5
+io.println(skir_client.to_dense_json_code(
+  skir_client.string_serializer(),
+  "Foo",
+))
+// "Foo"
+io.println(skir_client.to_dense_json_code(
+  skir_client.timestamp_serializer(),
+  timestamp.Timestamp(unix_millis: 1_743_682_787_000),
+))
+// 1743682787000
+```
+
+### Composite serializers
+
+```gleam
+// Optional serializer:
+io.println(skir_client.to_dense_json_code(
+  skir_client.optional_serializer(skir_client.string_serializer()),
+  option.Some("foo"),
+))
+// "foo"
+
+io.println(skir_client.to_dense_json_code(
+  skir_client.optional_serializer(skir_client.string_serializer()),
+  option.None,
+))
+// null
+
+// List serializer:
+io.println(
+  skir_client.to_dense_json_code(
+    skir_client.list_serializer(skir_client.bool_serializer()),
+    [True, False],
+  ),
+)
+// [1,0]
+```
+
+### Constants
+
+```gleam
+// Constants declared with 'const' in the .skir file are available as
+// top-level constants in the generated Gleam code.
+io.println(skir_client.to_readable_json_code(
+  user.user_serializer(),
+  user.tarzan_const,
+))
+// {
+//   "user_id": 123,
+//   "name": "Tarzan",
+//   "quote": "AAAAaAaAaAyAAAAaAaAaAyAAAAaAaAaA",
+//   "pets": [
+//     {
+//       "name": "Cheeta",
+//       "height_in_meters": 1.67,
+//       "picture": "🐒"
+//     }
+//   ],
+//   "subscription_status": {
+//     "kind": "trial",
+//     "value": {
+//       "start_time": {
+//         "unix_millis": 1743592409000,
+//         "formatted": "2025-04-02T11:13:29Z"
+//       }
+//     }
+//   }
+// }
+```
+
+### SkirRPC services
+
+#### Starting a SkirRPC service on an HTTP server
+
+Full example [here](https://github.com/gepheum/skir-gleam-example/blob/main/src/start_service.gleam).
+
+#### Sending RPCs to a SkirRPC service
+
+Full example [here](https://github.com/gepheum/skir-gleam-example/blob/main/src/call_service.gleam).
+
+### Reflection
+
+Reflection allows you to inspect a Skir type at runtime.
+
+```gleam
+import gleam/dict
+import gleam/list
+import skir_client
+import skir_client/type_descriptor
+
+let td = skir_client.type_descriptor(user.user_serializer())
+
+// Print the full type descriptor as JSON.
+io.println(type_descriptor.type_descriptor_to_json(td))
+// {
+//   "type": { "kind": "record", "value": "user.skir:User" },
+//   "records": [ ... ]
+// }
+
+// Pattern match on the records map to inspect the User struct's fields.
+let assert Ok(type_descriptor.StructRecord(user_struct)) =
+  dict.get(td.records, "user.skir:User")
+
+let field_names = list.map(user_struct.fields, fn(f) { f.name })
+io.println(string.join(field_names, ", "))
+// user_id, name, quote, pets, subscription_status
+
+io.println(int.to_string(list.length(user_struct.fields)))
+// 5
+
+// A TypeDescriptor can be serialized to JSON and parsed back.
+let type_descriptor_json = type_descriptor.type_descriptor_to_json(td)
+let assert Ok(reparsed_td) =
+  type_descriptor.type_descriptor_from_json(type_descriptor_json)
+let assert True = reparsed_td == td
+```
+
+---
+
+### Guide: elixir
+
+# Elixir
+
+This guide explains how to use Skir in an Elixir project with the community-maintained [`skir-elixir-gen`](https://github.com/mishmish-dev/skir-elixir-gen) plugin and `skir_elixir_client` runtime.
+
+## Set up
+
+Requires Elixir 1.18+ and Erlang/OTP 27+. Node.js 20+ is needed for code generation; the generated Elixir code runs natively on the BEAM.
+
+Install the generator alongside the Skir compiler:
+
+```bash
+npm install --save-dev skir skir-elixir-gen
+```
+
+In your `skir.yml` file, add the following snippet under `generators`:
+
+```yaml
+- mod: skir-elixir-gen
+  outDir: ./lib/skirout
+  config:
+    namespace: SkirExample.Protocol
+```
+
+The `namespace` option sets the prefix for generated modules. It defaults to `Skir.Generated` when omitted.
+
+The generated code has a runtime dependency on [`skir_elixir_client`](https://hex.pm/packages/skir_elixir_client). Add it to the dependencies in your `mix.exs`:
+
+```elixir
+{:skir_elixir_client, "~> 0.2.1"}
+```
+
+```bash
+mix deps.get
+npx skir gen
+mix compile
+```
+
+For a complete project with an HTTP service and Elixir and TypeScript clients, see the [Elixir example](https://github.com/mishmish-dev/skir-elixir-example). The example requires Node.js 22+.
+
+## Elixir generated code guide
+
+The examples below use the code generated from [this `.skir` file](https://github.com/mishmish-dev/skir-elixir-example/blob/main/skir-src/user.skir). Runnable examples are in [`scripts/snippets.exs`](https://github.com/mishmish-dev/skir-elixir-example/blob/main/scripts/snippets.exs).
+
+### Referring to generated symbols
+
+Each source file generates a module containing constants and RPC helpers. Records have their own nested modules.
+
+```elixir
+# Modules generated from "user.skir".
+alias SkirExample.Protocol.UserSkir
+alias UserSkir.{SubscriptionStatus, User, UserRegistry}
+
+# The nested User.Pet record has its own module.
+alias User.Pet
+```
+
+### Struct types
+
+Skir generates a native Elixir struct for every struct in the `.skir` file. The `new/1` function accepts a keyword list or map; omitted fields use their default values.
+
+```elixir
+john =
+  User.new(
+    user_id: 42,
+    name: "John Doe",
+    quote: "Coffee is just a socially acceptable form of rage.",
+    pets: [Pet.new(name: "Dumbo", height_in_meters: 1.0, picture: "🐘")],
+    subscription_status: :free
+  )
+
+IO.puts(john.name)
+# John Doe
+
+# Every field in default/0 has its zero value.
+%User{user_id: 0, name: "", pets: [], subscription_status: :unknown} = User.default()
+
+# Specify only the fields you need.
+jane = User.new(%{user_id: 43, name: "Jane Doe"})
+"" = jane.quote
+[] = jane.pets
+```
+
+Unknown attributes are rejected by `new/1`. Field values are validated during serialization; generated typespecs describe the types for tools such as Dialyzer.
+
+#### Creating modified copies
+
+```elixir
+# Elixir structs are immutable. Use struct update syntax to make a copy.
+evil_john = %{john | name: "Evil John", quote: "I solemnly swear I am up to no good."}
+
+"Evil John" = evil_john.name
+42 = evil_john.user_id
+"John Doe" = john.name
+```
+
+### Enum types
+
+The definition of the `SubscriptionStatus` enum in the `.skir` file is:
+
+```skir
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+
+  struct Trial {
+    start_time: timestamp;
+  }
+}
+```
+
+Constant variants are atoms; variants carrying a value are tuples. Every enum has an implicit `:unknown` default.
+
+#### Constructing enum values
+
+```elixir
+# Timestamps are integers representing Unix milliseconds.
+start_time = ~U[2025-04-02 11:13:29Z] |> DateTime.to_unix(:millisecond)
+trial_status = {:trial, SubscriptionStatus.Trial.new(start_time: start_time)}
+
+statuses = [SubscriptionStatus.default(), :free, :premium, trial_status]
+[:unknown, :free, :premium, {:trial, %SubscriptionStatus.Trial{}}] = statuses
+```
+
+#### Pattern matching on enums
+
+```elixir
+get_info_text = fn
+  :free -> "Free user"
+  :premium -> "Premium user"
+  {:trial, trial} -> "On trial since " <> Integer.to_string(trial.start_time)
+  :unknown -> "Unknown subscription status"
+  {:unknown, _metadata} -> "Unrecognized subscription status"
+end
+
+"Free user" = get_info_text.(john.subscription_status)
+"On trial since 1743592409000" = get_info_text.(trial_status)
+```
+
+### Serialization
+
+Generated record modules expose JSON and binary codecs. Non-bang functions return `{:ok, value}` or `{:error, %Skir.Error{}}`. Functions ending in `!` return the value directly or raise `Skir.Error`.
+
+```elixir
+# Dense JSON uses field numbers rather than names (the default).
+# Use this format when you plan to deserialize the value later.
+{:ok, john_json} = User.encode_json(john)
+{:ok, ^john} = User.decode_json(john_json)
+
+# Readable JSON uses field names. Use it mainly for debugging.
+IO.puts(User.encode_json!(john, format: :readable))
+
+# JSON terms and JSON strings are separate APIs.
+term = User.to_json!(john)
+^john = User.from_json!(term)
+
+# Skir binary is more compact and compatible with other Skir runtimes.
+binary = User.encode!(john)
+^john = User.decode!(binary)
+```
+
+### Primitive serializers
+
+Use `Skir` functions with a type handle to serialize primitive values. Timestamps use Unix milliseconds; bytes use Elixir binaries.
+
+```elixir
+1 = Skir.to_json!(:bool, true)
+3 = Skir.to_json!(:int32, 3)
+"9223372036854775807" = Skir.to_json!(:int64, 9_223_372_036_854_775_807)
+1.5 = Skir.to_json!(:float32, 1.5)
+1.5 = Skir.to_json!(:float64, 1.5)
+"Foo" = Skir.to_json!(:string, "Foo")
+1_743_592_409_000 = Skir.to_json!(:timestamp, start_time)
+```
+
+### Composite serializers
+
+Optional values use `nil`; arrays use lists.
+
+```elixir
+# Optional serializer:
+"foo" = Skir.to_json!({:optional, :string}, "foo")
+nil = Skir.to_json!({:optional, :string}, nil)
+
+# List serializer:
+[1, 0] = Skir.to_json!({:array, :bool}, [true, false])
+
+# Lists of generated records use the record's type handle.
+{:ok, users_json} = Skir.encode_json({:array, User.type()}, [john, jane])
+{:ok, [^john, ^jane]} = Skir.decode_json({:array, User.type()}, users_json)
+```
+
+### Constants
+
+```elixir
+# Schema constants are zero-arity functions on the source-file module.
+tarzan = UserSkir.tarzan_const()
+"Tarzan" = tarzan.name
+123 = tarzan.user_id
+IO.puts(User.encode_json!(tarzan, format: :readable))
+```
+
+### Keyed arrays
+
+Arrays with a key field generate an index helper returning a map. Duplicate keys raise `ArgumentError`.
+
+```skir
+struct UserRegistry {
+  users: [User|user_id];
+}
+```
+
+```elixir
+registry = UserRegistry.new(users: [john, tarzan])
+users_by_id = UserRegistry.index_users(registry)
+
+^john = Map.fetch!(users_by_id, 42)
+^tarzan = Map.fetch!(users_by_id, 123)
+```
+
+### SkirRPC services
+
+The example uses Plug with Bandit to serve SkirRPC. Register handlers with the generated method helpers, then mount `Skir.RPC.Plug` in your router. Phoenix applications can also forward requests to this Plug.
+
+**Starting a SkirRPC service on an HTTP server** - full examples in [`rpc.ex`](https://github.com/mishmish-dev/skir-elixir-example/blob/main/lib/skir_example/rpc.ex) and [`router.ex`](https://github.com/mishmish-dev/skir-elixir-example/blob/main/lib/skir_example/router.ex).
+
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/mishmish-dev/skir-elixir-example/blob/main/scripts/call_service.exs).
+
+```elixir
+alias SkirExample.Protocol.ServiceSkir
+alias ServiceSkir.{GetUserRequest, GetUserResponse}
+
+client = Skir.RPC.ServiceClient.new!("http://127.0.0.1:8787/myapi")
+
+{:ok, %GetUserResponse{user: user}} =
+  ServiceSkir.get_user(client, GetUserRequest.new(user_id: 123))
+
+# Optional response fields use nil when the user is absent.
+case user do
+  %User{name: name} -> IO.puts(name)
+  nil -> IO.puts("User not found")
+end
+```
+
+### Reflection
+
+Reflection allows you to inspect a Skir type at runtime. The generated `type/0` function returns the record's public type handle.
+
+```elixir
+descriptor = Skir.RPC.TypeDescriptor.to_map(User.type())
+%{"type" => %{"kind" => "record", "value" => "user.skir:User"}} = descriptor
+
+# Print the full descriptor as JSON, including referenced records.
+IO.puts(Skir.RPC.TypeDescriptor.to_json(User.type()))
+```
+
+For the full runtime API, see [HexDocs](https://hexdocs.pm/skir_elixir_client).

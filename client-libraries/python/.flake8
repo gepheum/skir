@@ -1,0 +1,4 @@
+[flake8]
+max-line-length = 127
+per-file-ignores =
+    skir/_impl/service.py:E501

@@ -1,0 +1,6 @@
+sqlalchemy>=2.0
+skir-client
+isort
+black
+flake8
+pyright

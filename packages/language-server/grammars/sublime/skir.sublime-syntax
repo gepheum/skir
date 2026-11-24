@@ -1,0 +1,74 @@
+%YAML 1.2
+---
+# Sublime Text syntax definition for Skir
+# Installation: copy this file to Packages/User/skir.sublime-syntax
+name: Skir
+file_extensions:
+  - skir
+scope: source.skir
+
+contexts:
+  main:
+    - include: comments
+    - include: strings
+    - include: keywords
+    - include: constants
+    - include: types
+    - include: numbers
+
+  comments:
+    - match: //.*$
+      scope: comment.line.double-slash.skir
+    - match: /\*
+      push: block_comment
+      scope: punctuation.definition.comment.begin.skir
+
+  block_comment:
+    - meta_scope: comment.block.skir
+    - match: \*/
+      scope: punctuation.definition.comment.end.skir
+      pop: true
+
+  strings:
+    - match: '"'
+      scope: punctuation.definition.string.begin.skir
+      push: double_string
+    - match: "'"
+      scope: punctuation.definition.string.begin.skir
+      push: single_string
+
+  double_string:
+    - meta_scope: string.quoted.double.skir
+    - match: '"'
+      scope: punctuation.definition.string.end.skir
+      pop: true
+    - match: \\.
+      scope: constant.character.escape.skir
+
+  single_string:
+    - meta_scope: string.quoted.single.skir
+    - match: "'"
+      scope: punctuation.definition.string.end.skir
+      pop: true
+    - match: \\.
+      scope: constant.character.escape.skir
+
+  keywords:
+    - match: \b(struct|enum|const|method|import|from|as|removed)\b
+      scope: keyword.control.skir
+
+  types:
+    - match: \b(bool|int32|int64|hash64|float32|float64|string|bytes|timestamp)\b
+      scope: storage.type.skir
+    - match: \b[A-Z][A-Za-z0-9_]*\b
+      scope: storage.type.skir
+
+  constants:
+    - match: \b(true|false|null)\b
+      scope: constant.language.skir
+    - match: \b[A-Z][A-Z0-9_]+\b
+      scope: constant.other.skir
+
+  numbers:
+    - match: \b-?\d+(\.\d+)?([eE][+-]?\d+)?\b
+      scope: constant.numeric.skir

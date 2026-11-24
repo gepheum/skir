@@ -1,0 +1,10 @@
+# Skir configuration for Intergalactic Lost & Found
+
+generators:
+  - mod: skir-kotlin-gen
+    outDir: ./backend/src/main/kotlin/com/intergalactic/lostfound/skirout
+    config:
+      packagePrefix: com.intergalactic.lostfound.
+  - mod: skir-typescript-gen
+    outDir: ./frontend/skirout
+    config: {}

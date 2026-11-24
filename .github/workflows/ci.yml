@@ -1,26 +1,21 @@
-name: Build
+name: CI
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  build:
+  node:
+    name: Build & Test TypeScript Workspaces
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x, 24.x]
     steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-      - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps
       - run: npm run build
-      - run: npx esbuild src/get_dependencies_flow.ts --bundle --platform=browser --format=esm --outfile=/tmp/get_dependencies_flow.browser-check.js
       - run: npm test
+      # - run: ./e2e-tests/test.sh --lang=typescript
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

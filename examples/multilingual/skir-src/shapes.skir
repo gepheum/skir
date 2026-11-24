@@ -1,0 +1,20 @@
+// 'shapes.skir' on Tuesday
+
+struct Point2D {  // Renaming types is safe
+  x: float64;  // float32 -> float64 is safe
+  y: float64;
+}
+
+enum Shape {
+  empty;
+  polygon: [Point2D];
+  circle: struct {
+    center: Point2D;
+    radius: float32;
+  };
+  union: [Shape];
+}
+
+method GetArea(
+  Shape
+): float32 = 412938;

@@ -1,0 +1,11 @@
+generators:
+  - mod: skir-kotlin-gen
+    outDir: src/main/kotlin/skirout
+    config: {}
+  - mod: ../../../e2e-tests/kotlin/symbols_check.mjs
+    outDir: src/main/kotlin/symbols_check/skirout
+    config: {}
+
+dependencies:
+  "@gepheum/skir-fantasy-game-example": v1.0.0
+  "@gepheum/skir-golden-tests": v1.0.6

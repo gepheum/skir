@@ -1,0 +1,19 @@
+{
+  "name": "intergalactic-lost-and-found-frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "prebuild": "cd .. && npx skir gen",
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "skir-client": "^1.0.19"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3",
+    "vite": "^7.3.1"
+  }
+}

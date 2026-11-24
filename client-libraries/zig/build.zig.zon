@@ -1,0 +1,11 @@
+.{
+    .name = .skir_client,
+    .version = "0.1.7",
+    .fingerprint = 0x98eee72320d6ee06,
+    .minimum_zig_version = "0.15.0",
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

@@ -1,0 +1,46 @@
+enum PrimitiveType {
+  bool;
+  int32;
+  int64;
+  hash64;
+  float32;
+  float64;
+  timestamp;
+  string;
+  bytes;
+}
+
+struct ArrayType {
+  item: Type;
+  key_chain: [string];
+}
+
+enum Type {
+  primitive: PrimitiveType;
+  optional: Type;
+  array: ArrayType;
+  record: string;
+}
+
+enum RecordKind {
+  s;
+  e;
+}
+
+struct Field {
+  name: string;
+  type: Type;
+  number: int32;
+}
+
+struct RecordDefinition {
+  kind: RecordKind;
+  id: string;
+  fields: [Field|name];
+  removed_fields: [int32];
+}
+
+struct TypeSignature {
+  type: Type;
+  records: [RecordDefinition|id];
+}

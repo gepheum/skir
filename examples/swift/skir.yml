@@ -1,0 +1,5 @@
+generators:
+  - mod: skir-swift-gen
+    outDir: ./Sources/skirout
+    config:
+      public: true

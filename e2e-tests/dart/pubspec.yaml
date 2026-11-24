@@ -1,0 +1,15 @@
+name: skir_dart_gen_e2e_tests
+description: E2E tests for skir to dart code generator
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+
+dependencies:
+  skir_client:
+    path: ../../client-libraries/dart
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.26.3

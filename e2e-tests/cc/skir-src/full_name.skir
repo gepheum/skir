@@ -1,0 +1,11 @@
+/// The user's full  name
+struct FullName {
+  removed;
+  /// The first name
+  first_name: string;
+  removed;
+  removed;
+  /// The last name
+  last_name: string;
+  removed;
+}

@@ -1,0 +1,23 @@
+# Helix editor configuration for Skir
+#
+# Add these snippets to your Helix config files:
+#
+# 1. languages.toml  (~/.config/helix/languages.toml)
+#    Paste the [[language]] and [language-server.*] blocks below.
+#
+# 2. Syntax highlighting requires a Tree-sitter grammar. Until an official
+#    Skir Tree-sitter grammar is available, Helix will still provide LSP
+#    features (diagnostics, completion, hover, etc.) without highlighting.
+
+[[language]]
+name = "skir"
+scope = "source.skir"
+file-types = ["skir"]
+comment-token = "//"
+block-comment-tokens = { start = "/*", end = "*/" }
+indent = { tab-width = 2, unit = "  " }
+language-servers = ["skir-language-server"]
+
+[language-server.skir-language-server]
+command = "skir-language-server"
+args = ["--stdio"]

@@ -1,0 +1,12 @@
+struct Field {
+  name: string;
+  value: Value;
+}
+
+struct Record {
+  fields: [Field|name];
+}
+
+enum Value {
+  record: Record;
+}

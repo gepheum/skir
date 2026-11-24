@@ -1,0 +1,23 @@
+import { User } from "user.skir";
+
+struct GetUserRequest {
+  user_id: int32;
+}
+
+struct GetUserResponse {
+  user: User?;
+}
+
+method GetUser(
+  GetUserRequest
+): GetUserResponse = 12345;
+
+struct AddUserRequest {
+  user: User;
+}
+
+struct AddUserResponse {}
+
+method AddUser(
+  AddUserRequest
+): AddUserResponse = 23456;

@@ -1,0 +1,18 @@
+[package]
+name = "skir-client"
+version = "0.1.6"
+edition = "2021"
+description = "Runtime library for Skir-generated Rust code"
+license = "MIT"
+repository = "https://github.com/gepheum/skir-rust-client"
+homepage = "https://skir.build/docs/rust"
+documentation = "https://skir.build/docs/rust"
+readme = "README.md"
+keywords = ["skir", "rpc", "serialization", "codegen"]
+categories = ["encoding", "network-programming"]
+
+[dependencies]
+anyhow = "1"
+serde_json = { version = "1", features = ["preserve_order"] }
+thiserror = "2"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }

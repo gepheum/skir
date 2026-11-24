@@ -1,0 +1,249 @@
+import { Prose, H1, H2, H3, P, CodeBlock, InlineCode, List } from "@/components/prose"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "C++ - Skir Documentation",
+  description: "Learn how to use Skir-generated C++ code in your projects",
+}
+
+export default function CppPage() {
+  return (
+    <Prose>
+      <H1>C++</H1>
+      <P>
+        This guide explains how to use Skir-generated C++ code in your projects.
+        The C++ plugin generates modern C++17 code with value semantics, move support,
+        and zero-cost abstractions.
+      </P>
+
+      <H2>Installation</H2>
+      <P>
+        First, add the C++ plugin to your <InlineCode>skir.yml</InlineCode> configuration:
+      </P>
+      <CodeBlock language="yaml">{`plugins:
+  - name: cc
+    out: src/generated
+    options:
+      namespace: myproject::generated`}</CodeBlock>
+      <P>
+        Then add the runtime library to your CMakeLists.txt:
+      </P>
+      <CodeBlock language="cmake">{`find_package(SkirRuntime REQUIRED)
+target_link_libraries(your_target PRIVATE skir::runtime)`}</CodeBlock>
+
+      <H2>Generated Code</H2>
+      <P>
+        For each Skir file, the C++ plugin generates a header file (<InlineCode>.h</InlineCode>)
+        and an implementation file (<InlineCode>.cc</InlineCode>) containing structs,
+        enums, and serialization functions.
+      </P>
+
+      <H3>Structs</H3>
+      <P>
+        Each Skir struct becomes a C++ struct with value semantics:
+      </P>
+      <CodeBlock language="skir">{`struct User {
+  name: string @1
+  age: int32 @2
+  email?: string @3
+}`}</CodeBlock>
+      <P>becomes:</P>
+      <CodeBlock language="cpp">{`struct User {
+  std::string name;
+  int32_t age = 0;
+  std::optional<std::string> email;
+  
+  // Default constructor
+  User() = default;
+  
+  // Equality operators
+  bool operator==(const User& other) const;
+  bool operator!=(const User& other) const;
+  
+  // Builder-style setters (return *this for chaining)
+  User& set_name(std::string value);
+  User& set_age(int32_t value);
+  User& set_email(std::optional<std::string> value);
+};`}</CodeBlock>
+
+      <H3>Enums</H3>
+      <P>
+        Skir enums become C++ enum classes:
+      </P>
+      <CodeBlock language="skir">{`enum Status {
+  pending @1
+  approved @2
+  rejected @3
+}`}</CodeBlock>
+      <P>becomes:</P>
+      <CodeBlock language="cpp">{`enum class Status : int32_t {
+  kPending = 1,
+  kApproved = 2,
+  kRejected = 3,
+};
+
+// Utility functions
+std::optional<Status> StatusFromInt(int32_t value);
+int32_t StatusToInt(Status value);
+std::string_view StatusToString(Status value);`}</CodeBlock>
+
+      <H3>Oneofs (Union Types)</H3>
+      <P>
+        Skir oneofs become <InlineCode>std::variant</InlineCode> types:
+      </P>
+      <CodeBlock language="skir">{`oneof Result {
+  success: SuccessData @1
+  error: ErrorData @2
+}`}</CodeBlock>
+      <P>becomes:</P>
+      <CodeBlock language="cpp">{`using Result = std::variant<
+  Result_Success,
+  Result_Error
+>;
+
+struct Result_Success {
+  SuccessData value;
+};
+
+struct Result_Error {
+  ErrorData value;
+};
+
+// Factory functions
+Result MakeResultSuccess(SuccessData value);
+Result MakeResultError(ErrorData value);`}</CodeBlock>
+
+      <H2>Serialization</H2>
+      <P>
+        The generated code includes serialization functions for converting between
+        C++ objects and binary format:
+      </P>
+      <CodeBlock language="cpp">{`#include "generated/user.h"
+
+// Serialize to bytes
+std::vector<uint8_t> bytes = UserSerializer::ToBytes(user);
+
+// Deserialize from bytes
+User user = UserSerializer::FromBytes(bytes);
+
+// Serialize to JSON string
+std::string json = UserSerializer::ToJson(user);
+
+// Deserialize from JSON
+User user2 = UserSerializer::FromJson(json);`}</CodeBlock>
+
+      <H2>Working with Generated Types</H2>
+
+      <H3>Creating Instances</H3>
+      <P>
+        You can create instances using aggregate initialization or the builder-style setters:
+      </P>
+      <CodeBlock language="cpp">{`// Aggregate initialization (C++20)
+User user{
+  .name = "Alice",
+  .age = 30,
+  .email = "alice@example.com"
+};
+
+// Builder-style
+User user2;
+user2.set_name("Bob")
+     .set_age(25);
+
+// Direct member assignment
+User user3;
+user3.name = "Charlie";
+user3.age = 35;`}</CodeBlock>
+
+      <H3>Updating Instances</H3>
+      <P>
+        Generated types have value semantics, so you can simply copy and modify:
+      </P>
+      <CodeBlock language="cpp">{`User updated = user;
+updated.age = 31;
+updated.email = "newemail@example.com";
+
+// Or using setters
+User updated2 = user;
+updated2.set_age(31)
+        .set_email("newemail@example.com");`}</CodeBlock>
+
+      <H3>Pattern Matching on Oneofs</H3>
+      <P>
+        Use <InlineCode>std::visit</InlineCode> or <InlineCode>std::get_if</InlineCode> to work with variants:
+      </P>
+      <CodeBlock language="cpp">{`// Using std::visit with lambda overloads
+std::string handle_result(const Result& result) {
+  return std::visit(overloaded{
+    [](const Result_Success& s) {
+      return "Success: " + s.value.message;
+    },
+    [](const Result_Error& e) {
+      return "Error: " + std::to_string(e.value.code);
+    }
+  }, result);
+}
+
+// Using std::get_if
+std::string handle_result_alt(const Result& result) {
+  if (auto* s = std::get_if<Result_Success>(&result)) {
+    return "Success: " + s->value.message;
+  } else if (auto* e = std::get_if<Result_Error>(&result)) {
+    return "Error: " + std::to_string(e->value.code);
+  }
+  std::unreachable();
+}`}</CodeBlock>
+
+      <H2>RPC Services</H2>
+      <P>
+        For Skir services, the C++ plugin generates abstract base classes for
+        implementing servers and clients:
+      </P>
+      <CodeBlock language="skir">{`service UserService {
+  getUser(GetUserRequest): GetUserResponse
+  createUser(CreateUserRequest): CreateUserResponse
+}`}</CodeBlock>
+      <P>generates:</P>
+      <CodeBlock language="cpp">{`class UserServiceClient {
+ public:
+  virtual ~UserServiceClient() = default;
+  
+  virtual std::future<GetUserResponse> GetUser(
+      const GetUserRequest& request) = 0;
+  virtual std::future<CreateUserResponse> CreateUser(
+      const CreateUserRequest& request) = 0;
+};
+
+class UserServiceHandler {
+ public:
+  virtual ~UserServiceHandler() = default;
+  
+  virtual std::future<GetUserResponse> GetUser(
+      const GetUserRequest& request, const Context& context) = 0;
+  virtual std::future<CreateUserResponse> CreateUser(
+      const CreateUserRequest& request, const Context& context) = 0;
+};`}</CodeBlock>
+
+      <H2>Memory Management</H2>
+      <P>
+        Generated types follow modern C++ best practices:
+      </P>
+      <List items={[
+        "Value semantics by default - no raw pointers",
+        "Move support for efficient transfers",
+        "std::optional for nullable fields",
+        "std::vector for repeated fields",
+        "std::string_view in function signatures where appropriate",
+      ]} />
+
+      <H2>Best Practices</H2>
+      <List items={[
+        "Use C++20 designated initializers for clear struct construction",
+        "Pass large structs by const reference",
+        "Use std::move when transferring ownership",
+        "Prefer std::visit for exhaustive variant handling",
+        "Keep generated code in a separate directory and regenerate on build",
+      ]} />
+    </Prose>
+  )
+}

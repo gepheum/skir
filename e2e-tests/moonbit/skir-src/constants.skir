@@ -1,0 +1,49 @@
+import { JsonValue } from "enums.skir";
+
+/// One
+/// constant
+const ONE_CONSTANT: JsonValue = {
+  kind: "array",
+  value: [
+    {
+      kind: "boolean",
+      value: true,
+    },
+    {
+      kind: "number",
+      value: 2.5,
+    },
+    {
+      kind: "string",
+      value: "\
+        foo\
+        bar",
+    },
+    {
+      kind: "object",
+      value: [
+        {
+          name: "foo",
+          value: "null",
+        },
+      ],
+    },
+  ],
+};
+
+/// One timestamp
+const ONE_TIMESTAMP: timestamp = "2023-12-31T00:53:48+00:00";
+
+const ONE_SINGLE_QUOTED_STRING: string = '"Foo"';
+
+const FOO_METHOD: bool = true;
+
+const INFINITY: float32 = "Infinity";
+const MINUS_INFINITY: float32 = "-Infinity";
+const NAN: float64 = "NaN";
+
+const LARGE_INT64: int64 = 9223372036854775807;
+
+const B: bool = false;
+
+const PI: float64 = 3.141592653589793;

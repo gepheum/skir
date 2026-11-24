@@ -1,0 +1,59 @@
+struct User {
+  user_id: int32;
+  name: string;
+  /// A personal quote or motto chosen by the user
+  quote: string;
+
+  struct Pet {
+    name: string;
+    height_in_meters: float32;
+    picture: string;
+  }
+  pets: [Pet];
+
+  subscription_status: SubscriptionStatus;
+}
+
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+
+  struct Trial {
+    start_time: timestamp;
+  }
+}
+
+/// King of the jungle
+const TARZAN: User = {
+  user_id: 123,
+  name: "Tarzan",
+  quote: "AAAAaAaAaAyAAAAaAaAaAyAAAAaAaAaA",
+  pets: [
+    {
+      name: "Cheeta",
+      height_in_meters: 1.67,
+      picture: "🐒",
+    },
+  ],
+  subscription_status: {
+    kind: "trial",
+    value: {
+      start_time: "2025-04-02T11:13:29Z",
+    },
+  },
+};
+
+struct UserHistory {
+  user: User;
+
+  struct Session {
+    login: timestamp;
+    logout: timestamp;
+  }
+  sessions: [Session];
+}
+
+struct UserRegistry {
+  users: [User|user_id];
+}

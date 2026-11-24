@@ -1,0 +1,24 @@
+name: "Publish Client: Gleam (Hex.pm)"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client-libraries/gleam
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27"
+          rebar3-version: "3"
+          gleam-version: "1.15.0"
+      - name: Download dependencies
+        run: gleam deps download
+      - name: Publish to Hex.pm
+        env:
+          HEXPM_API_KEY: ${{ secrets.HEXPM_API_KEY }}
+        run: gleam publish --yes

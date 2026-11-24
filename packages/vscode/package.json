@@ -1,0 +1,139 @@
+{
+  "name": "skir-language",
+  "displayName": "Skir - Language Support",
+  "description": "IDE support for Skir - define data types and APIs once, generate idiomatic code across 12 languages",
+  "version": "0.2.23",
+  "publisher": "TylerFibonacci",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "icon": "resources/octopus-icon.png",
+  "homepage": "https://skir.build/",
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gepheum/skir",
+    "directory": "packages/vscode"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "skir",
+    "protocol buffer",
+    "protobuf",
+    "serialization",
+    "rpc"
+  ],
+  "activationEvents": [
+    "onLanguage:skir"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "iconThemes": [
+      {
+        "id": "skir-icon-theme",
+        "label": "Skir File Icons",
+        "path": "./resources/icon-theme.json"
+      }
+    ],
+    "languages": [
+      {
+        "id": "skir",
+        "aliases": [
+          "Skir",
+          "skir"
+        ],
+        "extensions": [
+          ".skir"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "skir",
+        "scopeName": "source.skir",
+        "path": "./syntaxes/skir.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "skir.genWatch",
+        "title": "Skir: Generate (watch)"
+      },
+      {
+        "command": "skir.snapshot",
+        "title": "Skir: Snapshot"
+      },
+      {
+        "command": "skir.snapshotDryRun",
+        "title": "Skir: Snapshot (dry run)"
+      },
+      {
+        "command": "skir.snapshotView",
+        "title": "Skir: Snapshot (view)"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "when": "resourceFilename == skir.yml",
+          "command": "skir.genWatch",
+          "group": "skir@1"
+        },
+        {
+          "when": "resourceFilename == skir.yml",
+          "command": "skir.snapshot",
+          "group": "skir@2"
+        },
+        {
+          "when": "resourceFilename == skir.yml",
+          "command": "skir.snapshotDryRun",
+          "group": "skir@3"
+        },
+        {
+          "when": "resourceFilename == skir.yml",
+          "command": "skir.snapshotView",
+          "group": "skir@4"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "skir": "^1.2.26",
+    "skir-internal": "^0.2.22"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.19.39",
+    "@types/vscode": "^1.60.0",
+    "@typescript-eslint/eslint-plugin": "^8.56.0",
+    "@typescript-eslint/parser": "^8.56.0",
+    "@vscode/vsce": "^3.7.1",
+    "buckwheat": "^1.1.2",
+    "eslint": "^10.0.1",
+    "mocha": "^11.7.5",
+    "prettier": "^3.8.1",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.2.2",
+    "typescript-eslint": "^8.56.0"
+  },
+  "overrides": {
+    "diff": "^8.0.3",
+    "serialize-javascript": "^7.0.4"
+  }
+}

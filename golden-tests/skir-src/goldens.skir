@@ -1,0 +1,2625 @@
+struct UnitTest {
+  test_number: int32;
+  assertion: Assertion;
+}
+
+enum Assertion {
+  struct BytesEqual {
+    actual: BytesExpression;
+    expected: BytesExpression;
+  }
+  bytes_equal: BytesEqual;
+
+  struct BytesIn {
+    actual: BytesExpression;
+    // The assertion is satisfied if this array contains the actual value.
+    expected: [bytes];
+  }
+  bytes_in: BytesIn;
+
+  struct StringEqual {
+    actual: StringExpression;
+    expected: StringExpression;
+  }
+  string_equal: StringEqual;
+
+  struct StringIn {
+    actual: StringExpression;
+    // The assertion is satisfied if this array contains the actual value.
+    expected: [string];
+  }
+  string_in: StringIn;
+
+  struct ReserializeValue {
+    value: TypedValue;
+    expected_dense_json: [string];
+    expected_readable_json: [string];
+    alternative_jsons: [StringExpression];
+    expected_bytes: [bytes];
+    alternative_bytes: [BytesExpression];
+    expected_type_descriptor: string?;
+  }
+  reserialize_value: ReserializeValue;
+
+  struct ReserializeLargeString {
+    num_chars: int32;
+    expected_byte_prefix: bytes;
+  }
+  reserialize_large_string: ReserializeLargeString;
+
+  struct ReserializeLargeArray {
+    num_items: int32;
+    expected_byte_prefix: bytes;
+  }
+  reserialize_large_array: ReserializeLargeArray;
+
+  enum_a_from_json_is_constant: struct {
+    actual: StringExpression;
+    keep_unrecognized: bool;
+  };
+
+  enum_a_from_bytes_is_constant: struct {
+    actual: BytesExpression;
+    keep_unrecognized: bool;
+  };
+
+  enum_b_from_json_is_wrapper_b: struct {
+    actual: StringExpression;
+    expected: string;
+    keep_unrecognized: bool;
+  };
+
+  enum_b_from_bytes_is_wrapper_b: struct {
+    actual: BytesExpression;
+    expected: string;
+    keep_unrecognized: bool;
+  };
+}
+
+enum StringExpression {
+  literal: string;
+  to_dense_json: TypedValue;
+  to_readable_json: TypedValue;
+}
+
+enum BytesExpression {
+  literal: bytes;
+  to_bytes: TypedValue;
+}
+
+enum TypedValue {
+  bool: bool;
+  int32: int32;
+  int64: int64;
+  hash64: hash64;
+  float32: float32;
+  float64: float64;
+  timestamp: timestamp;
+  string: string;
+  bytes: bytes;
+  bool_optional: bool?;
+  ints: [int32];
+  point: Point;
+  color: Color;
+  my_enum: MyEnum;
+  enum_a: EnumA;
+  enum_b: EnumB;
+  keyed_arrays: KeyedArrays;
+  rec_struct: RecStruct;
+  rec_enum: RecEnum;
+  round_trip_dense_json: TypedValue;
+  round_trip_readable_json: TypedValue;
+  round_trip_bytes: TypedValue;
+  point_from_json_keep_unrecognized: StringExpression;
+  point_from_json_drop_unrecognized: StringExpression;
+  point_from_bytes_keep_unrecognized: BytesExpression;
+  point_from_bytes_drop_unrecognized: BytesExpression;
+  color_from_json_keep_unrecognized: StringExpression;
+  color_from_json_drop_unrecognized: StringExpression;
+  color_from_bytes_keep_unrecognized: BytesExpression;
+  color_from_bytes_drop_unrecognized: BytesExpression;
+  my_enum_from_json_keep_unrecognized: StringExpression;
+  my_enum_from_json_drop_unrecognized: StringExpression;
+  my_enum_from_bytes_keep_unrecognized: BytesExpression;
+  my_enum_from_bytes_drop_unrecognized: BytesExpression;
+  enum_a_from_json_keep_unrecognized: StringExpression;
+  enum_a_from_json_drop_unrecognized: StringExpression;
+  enum_a_from_bytes_keep_unrecognized: BytesExpression;
+  enum_a_from_bytes_drop_unrecognized: BytesExpression;
+  enum_b_from_json_keep_unrecognized: StringExpression;
+  enum_b_from_json_drop_unrecognized: StringExpression;
+  enum_b_from_bytes_keep_unrecognized: BytesExpression;
+  enum_b_from_bytes_drop_unrecognized: BytesExpression;
+}
+
+/// A point
+struct Point {
+  removed;
+  /// x coordinate
+  x: int32;
+  removed;
+  removed;
+  y: int32;
+  removed;
+  color: Color;
+}
+
+struct Color {
+  r: int32 = 0;
+  g: int32 = 1;
+  b: int32 = 2;
+  removed 3;
+}
+
+/// my enum
+enum MyEnum {
+  /// all good
+  ok = 1;
+  color: Color = 4;
+  bool: bool = 5;
+  removed 2;
+}
+
+enum EnumA {
+  a;
+  other;
+}
+
+enum EnumB {
+  b: string;
+  other;
+}
+
+struct KeyedArrays {
+  enum Weekday {
+    monday;
+  }
+  struct SubItem {
+    weekday: Weekday;
+  }
+  struct Item {
+    sub_item: SubItem;
+  }
+  items: [Item|sub_item.weekday.kind];
+}
+
+struct RecStruct {
+  a: RecStruct;
+  b: bool;
+}
+
+enum RecEnum {
+  foo;
+  e: RecEnum;
+}
+
+const UNIT_TESTS: [UnitTest] = [
+  {
+    test_number: 1000,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "bool",
+          value: true,
+        },
+        expected_dense_json: [
+          "1",
+        ],
+        expected_readable_json: [
+          "true",
+        ],
+        alternative_jsons: [
+          {
+            kind: "literal",
+            value: "2.5",
+          },
+          {
+            kind: "literal",
+            value: "-1",
+          },
+          {
+            kind: "literal",
+            value: '"1"',
+          },
+        ],
+        expected_bytes: [
+          "hex:736b697201",
+        ],
+        alternative_bytes: [
+          {
+            kind: "to_bytes",
+            value: {
+              kind: "float32",
+              value: 2.5,
+            },
+          },
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"bool\"\n  },\n  \"records\": []\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1001,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "bool",
+          value: false,
+        },
+        expected_dense_json: [
+          "0",
+        ],
+        expected_readable_json: [
+          "false",
+        ],
+        expected_bytes: [
+          "hex:736b697200",
+        ],
+        alternative_jsons: [
+          {
+            kind: "literal",
+            value: "0.0",
+          },
+          {
+            kind: "literal",
+            value: "-0.0",
+          },
+          {
+            kind: "literal",
+            value: "\"0\"",
+          },
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1002,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "timestamp",
+          value: "1970-01-01T00:00:00.000Z",
+        },
+        expected_dense_json: [
+          "0",
+        ],
+        expected_readable_json: [
+          '{\n  "unix_millis": 0,\n  "formatted": "1970-01-01T00:00:00.000Z"\n}',
+          '{\n  "unix_millis": 0,\n  "formatted": "1970-01-01T00:00:00Z"\n}',
+        ],
+        expected_bytes: [
+          "hex:736b697200",
+        ],
+        alternative_jsons: [
+          {
+            kind: "literal",
+            value: "0.0",
+          },
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"timestamp\"\n  },\n  \"records\": []\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1003,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "timestamp",
+          value: "2023-08-25T21:30:34.586Z",
+        },
+        expected_dense_json: [
+          "1692999034586",
+        ],
+        expected_readable_json: [
+          '{\n  "unix_millis": 1692999034586,\n  "formatted": "2023-08-25T21:30:34.586Z"\n}',
+        ],
+        expected_bytes: [
+          "hex:736b6972efda269b2e8a010000",
+        ],
+        alternative_jsons: [
+          {
+            kind: "literal",
+            value: "\"1692999034586\"",
+          },
+        ],
+        alternative_bytes: [
+          {
+            kind: "to_bytes",
+            value: {
+              kind: "float64",
+              value: 1692999034586.1,
+            },
+          },
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1004,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int32",
+          value: 2,
+        },
+        expected_dense_json: [
+          "2",
+        ],
+        expected_readable_json: [
+          "2",
+        ],
+        expected_bytes: [
+          "hex:736b697202",
+        ],
+        alternative_jsons: [
+          {
+            kind: "literal",
+            value: "\"2\"",
+          },
+          {
+            kind: "literal",
+            value: "2.0",
+          },
+        ],
+        alternative_bytes: [
+          {
+            kind: "to_bytes",
+            value: {
+              kind: "float64",
+              value: 2.0,
+            },
+          },
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"int32\"\n  },\n  \"records\": []\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1005,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int32",
+          value: -1,
+        },
+        expected_dense_json: [
+          "-1",
+        ],
+        expected_readable_json: [
+          "-1",
+        ],
+        expected_bytes: [
+          "hex:736b6972ebff",
+        ],
+        alternative_jsons: [
+          {
+            kind: "literal",
+            value: "\"-1\"",
+          },
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1006,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int32",
+          value: 231,
+        },
+        expected_dense_json: [
+          "231",
+        ],
+        expected_readable_json: [
+          "231",
+        ],
+        expected_bytes: [
+          "hex:736b6972e7",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1007,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int32",
+          value: 232,
+        },
+        expected_dense_json: [
+          "232",
+        ],
+        expected_readable_json: [
+          "232",
+        ],
+        expected_bytes: [
+          "hex:736b6972e8e800",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1008,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int32",
+          value: 65535,
+        },
+        expected_dense_json: [
+          "65535",
+        ],
+        expected_readable_json: [
+          "65535",
+        ],
+        expected_bytes: [
+          "hex:736b6972e8ffff",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1009,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int32",
+          value: 65536,
+        },
+        expected_dense_json: [
+          "65536",
+        ],
+        expected_readable_json: [
+          "65536",
+        ],
+        expected_bytes: [
+          "hex:736b6972e900000100",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1010,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int32",
+          value: 2147483647,
+        },
+        expected_dense_json: [
+          "2147483647",
+        ],
+        expected_readable_json: [
+          "2147483647",
+        ],
+        expected_bytes: [
+          "hex:736b6972e9ffffff7f",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1011,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int32",
+          value: -255,
+        },
+        expected_dense_json: [
+          "-255",
+        ],
+        expected_readable_json: [
+          "-255",
+        ],
+        expected_bytes: [
+          "hex:736b6972eb01",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1012,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int32",
+          value: -256,
+        },
+        expected_dense_json: [
+          "-256",
+        ],
+        expected_readable_json: [
+          "-256",
+        ],
+        expected_bytes: [
+          "hex:736b6972eb00",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1013,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int32",
+          value: -257,
+        },
+        expected_dense_json: [
+          "-257",
+        ],
+        expected_readable_json: [
+          "-257",
+        ],
+        expected_bytes: [
+          "hex:736b6972ecfffe",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1014,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int32",
+          value: -65536,
+        },
+        expected_dense_json: [
+          "-65536",
+        ],
+        expected_readable_json: [
+          "-65536",
+        ],
+        expected_bytes: [
+          "hex:736b6972ec0000",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1015,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int32",
+          value: -65537,
+        },
+        expected_dense_json: [
+          "-65537",
+        ],
+        expected_readable_json: [
+          "-65537",
+        ],
+        expected_bytes: [
+          "hex:736b6972edfffffeff",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1016,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int32",
+          value: -2147483648,
+        },
+        expected_dense_json: [
+          "-2147483648",
+        ],
+        expected_readable_json: [
+          "-2147483648",
+        ],
+        expected_bytes: [
+          "hex:736b6972ed00000080",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1017,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: 888888888888,
+        },
+        expected_dense_json: [
+          "888888888888",
+        ],
+        expected_readable_json: [
+          "888888888888",
+        ],
+        alternative_jsons: [
+          {
+            kind: "literal",
+            value: "888888888888.0",
+          },
+        ],
+        expected_bytes: [
+          "hex:736b6972ee380ee8f5ce000000",
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"int64\"\n  },\n  \"records\": []\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1018,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: 9223372036854775807,
+        },
+        expected_dense_json: [
+          "\"9223372036854775807\"",
+        ],
+        expected_readable_json: [
+          "\"9223372036854775807\"",
+        ],
+        expected_bytes: [
+          "hex:736b6972eeffffffffffffff7f",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1019,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: -9223372036854775808,
+        },
+        expected_dense_json: [
+          "\"-9223372036854775808\"",
+        ],
+        expected_readable_json: [
+          "\"-9223372036854775808\"",
+        ],
+        expected_bytes: [
+          "hex:736b6972ee0000000000000080",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1020,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: 9007199254740991,
+        },
+        expected_dense_json: [
+          "9007199254740991",
+        ],
+        expected_readable_json: [
+          "9007199254740991",
+        ],
+        expected_bytes: [
+          "hex:736b6972eeffffffffffff1f00",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1021,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: 9007199254740992,
+        },
+        expected_dense_json: [
+          "\"9007199254740992\"",
+        ],
+        expected_readable_json: [
+          "\"9007199254740992\"",
+        ],
+        expected_bytes: [
+          "hex:736b6972ee0000000000002000",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1022,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: -9007199254740991,
+        },
+        expected_dense_json: [
+          "-9007199254740991",
+        ],
+        expected_readable_json: [
+          "-9007199254740991",
+        ],
+        expected_bytes: [
+          "hex:736b6972ee010000000000e0ff",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1023,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: -9007199254740992,
+        },
+        expected_dense_json: [
+          "\"-9007199254740992\"",
+        ],
+        expected_readable_json: [
+          "\"-9007199254740992\"",
+        ],
+        expected_bytes: [
+          "hex:736b6972ee000000000000e0ff",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1024,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "hash64",
+          value: 255,
+        },
+        expected_dense_json: [
+          "255",
+        ],
+        expected_readable_json: [
+          "255",
+        ],
+        alternative_jsons: [
+          {
+            kind: "literal",
+            value: "255.0",
+          },
+        ],
+        expected_bytes: [
+          "hex:736b6972e8ff00",
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"hash64\"\n  },\n  \"records\": []\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1025,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "hash64",
+          value: 65535,
+        },
+        expected_dense_json: [
+          "65535",
+        ],
+        expected_readable_json: [
+          "65535",
+        ],
+        expected_bytes: [
+          "hex:736b6972e8ffff",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1026,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "hash64",
+          value: 4294967295,
+        },
+        expected_dense_json: [
+          "4294967295",
+        ],
+        expected_readable_json: [
+          "4294967295",
+        ],
+        expected_bytes: [
+          "hex:736b6972e9ffffffff",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1027,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "hash64",
+          value: 18446744073709551615,
+        },
+        expected_dense_json: [
+          "\"18446744073709551615\"",
+        ],
+        expected_readable_json: [
+          "\"18446744073709551615\"",
+        ],
+        expected_bytes: [
+          "hex:736b6972eaffffffffffffffff",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1028,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "float32",
+          value: 2.5,
+        },
+        expected_dense_json: [
+          "2.5",
+        ],
+        expected_readable_json: [
+          "2.5",
+        ],
+        expected_bytes: [
+          "hex:736b6972f000002040",
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"float32\"\n  },\n  \"records\": []\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1029,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "float64",
+          value: 2.5,
+        },
+        expected_dense_json: [
+          "2.5",
+        ],
+        expected_readable_json: [
+          "2.5",
+        ],
+        expected_bytes: [
+          "hex:736b6972f10000000000000440",
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"float64\"\n  },\n  \"records\": []\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1030,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "float64",
+          value: -2.5,
+        },
+        expected_dense_json: [
+          "-2.5",
+        ],
+        expected_readable_json: [
+          "-2.5",
+        ],
+        expected_bytes: [
+          "hex:736b6972f100000000000004c0",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1031,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "float32",
+          value: 0.0,
+        },
+        expected_dense_json: [
+          "0",
+          "0.0",
+        ],
+        expected_readable_json: [
+          "0",
+          "0.0",
+        ],
+        expected_bytes: [
+          "hex:736b697200",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1032,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "string",
+          value: "",
+        },
+        expected_dense_json: [
+          "\"\"",
+        ],
+        expected_readable_json: [
+          "\"\"",
+        ],
+        expected_bytes: [
+          "hex:736b6972f2",
+        ],
+        alternative_jsons: [
+          {
+            kind: "literal",
+            value: "0",
+          },
+        ],
+        alternative_bytes: [
+          {
+            kind: "to_bytes",
+            value: {
+              kind: "int32",
+              value: 0,
+            },
+          },
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"string\"\n  },\n  \"records\": []\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1033,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "string",
+          value: "Foôbar",
+        },
+        expected_dense_json: [
+          "\"Foôbar\"",
+          "\"Fo\\u00f4bar\"",
+        ],
+        expected_readable_json: [
+          "\"Foôbar\"",
+          "\"Fo\\u00f4bar\"",
+        ],
+        expected_bytes: [
+          "hex:736b6972f307466fc3b4626172",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1034,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "string",
+          value: 'Foo\n"bar"',
+        },
+        expected_dense_json: [
+          '"Foo\\n\\"bar\\""',
+        ],
+        expected_readable_json: [
+          '"Foo\\n\\"bar\\""',
+        ],
+        expected_bytes: [
+          "hex:736b6972f309466f6f0a2262617222",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1035,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "bytes",
+          value: "hex:f50469b735",
+        },
+        expected_dense_json: [
+          '"9QRptzU="',
+        ],
+        expected_readable_json: [
+          '"hex:f50469b735"',
+        ],
+        expected_bytes: [
+          "hex:736b6972f505f50469b735",
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"primitive\",\n    \"value\": \"bytes\"\n  },\n  \"records\": []\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1036,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "bytes",
+          value: "hex:",
+        },
+        expected_dense_json: [
+          '""',
+        ],
+        expected_readable_json: [
+          '"hex:"',
+        ],
+        expected_bytes: [
+          "hex:736b6972f4",
+        ],
+        alternative_jsons: [
+          {
+            kind: "literal",
+            value: "0",
+          },
+        ],
+        alternative_bytes: [
+          {
+            kind: "to_bytes",
+            value: {
+              kind: "int32",
+              value: 0,
+            },
+          },
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1037,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "bool_optional",
+          value: null,
+        },
+        expected_dense_json: [
+          "null",
+        ],
+        expected_readable_json: [
+          "null",
+        ],
+        expected_bytes: [
+          "hex:736b6972ff",
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"optional\",\n    \"value\": {\n      \"kind\": \"primitive\",\n      \"value\": \"bool\"\n    }\n  },\n  \"records\": []\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1038,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "bool_optional",
+          value: null,
+        },
+        expected_dense_json: [
+          "null",
+        ],
+        expected_readable_json: [
+          "null",
+        ],
+        expected_bytes: [
+          "hex:736b6972ff",
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"optional\",\n    \"value\": {\n      \"kind\": \"primitive\",\n      \"value\": \"bool\"\n    }\n  },\n  \"records\": []\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1039,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "ints",
+          value: [],
+        },
+        expected_dense_json: [
+          "[]",
+        ],
+        expected_readable_json: [
+          "[]",
+        ],
+        expected_bytes: [
+          "hex:736b6972f6",
+        ],
+        alternative_jsons: [
+          {
+            kind: "literal",
+            value: "0",
+          },
+        ],
+        alternative_bytes: [
+          {
+            kind: "to_bytes",
+            value: {
+              kind: "int32",
+              value: 0,
+            },
+          },
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"array\",\n    \"value\": {\n      \"item\": {\n        \"kind\": \"primitive\",\n        \"value\": \"int32\"\n      }\n    }\n  },\n  \"records\": []\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1040,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "ints",
+          value: [
+            1,
+            2,
+            3,
+          ],
+        },
+        expected_dense_json: [
+          "[1,2,3]",
+        ],
+        expected_readable_json: [
+          "[\n  1,\n  2,\n  3\n]",
+        ],
+        expected_bytes: [
+          "hex:736b6972f9010203",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1041,
+    assertion: {
+      kind: "reserialize_large_string",
+      value: {|
+        num_chars: 231,
+        expected_byte_prefix: "hex:736b6972",
+      |},
+    },
+  },
+  {
+    test_number: 1042,
+    assertion: {
+      kind: "reserialize_large_string",
+      value: {|
+        num_chars: 65536,
+        expected_byte_prefix: "hex:736b6972",
+      |},
+    },
+  },
+  {
+    test_number: 1043,
+    assertion: {
+      kind: "reserialize_large_array",
+      value: {|
+        num_items: 231,
+        expected_byte_prefix: "hex:736b6972fae7",
+      |},
+    },
+  },
+  {
+    test_number: 1044,
+    assertion: {
+      kind: "reserialize_large_array",
+      value: {|
+        num_items: 232,
+        expected_byte_prefix: "hex:736b6972fae8e800",
+      |},
+    },
+  },
+  {
+    test_number: 1045,
+    assertion: {
+      kind: "reserialize_large_array",
+      value: {|
+        num_items: 65535,
+        expected_byte_prefix: "hex:736b6972fae8",
+      |},
+    },
+  },
+  {
+    test_number: 1046,
+    assertion: {
+      kind: "reserialize_large_array",
+      value: {|
+        num_items: 65536,
+        expected_byte_prefix: "hex:736b6972fae9",
+      |},
+    },
+  },
+  {
+    test_number: 1047,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "point",
+          value: {||},
+        },
+        expected_dense_json: [
+          "[]",
+        ],
+        expected_readable_json: [
+          "{}",
+        ],
+        expected_bytes: [
+          "hex:736b6972f6",
+        ],
+        alternative_jsons: [
+          {
+            kind: "literal",
+            value: "0",
+          },
+        ],
+        alternative_bytes: [
+          {
+            kind: "to_bytes",
+            value: {
+              kind: "int32",
+              value: 0,
+            },
+          },
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"@gepheum/skir-golden-tests/goldens.skir:Point\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"struct\",\n      \"id\": \"@gepheum/skir-golden-tests/goldens.skir:Point\",\n      \"doc\": \"A point\",\n      \"fields\": [\n        {\n          \"name\": \"x\",\n          \"number\": 1,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          },\n          \"doc\": \"x coordinate\"\n        },\n        {\n          \"name\": \"y\",\n          \"number\": 4,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"color\",\n          \"number\": 6,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"@gepheum/skir-golden-tests/goldens.skir:Color\"\n          }\n        }\n      ],\n      \"removed_numbers\": [\n        0,\n        2,\n        3,\n        5\n      ]\n    },\n    {\n      \"kind\": \"struct\",\n      \"id\": \"@gepheum/skir-golden-tests/goldens.skir:Color\",\n      \"fields\": [\n        {\n          \"name\": \"r\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"g\",\n          \"number\": 1,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"b\",\n          \"number\": 2,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        }\n      ],\n      \"removed_numbers\": [\n        3\n      ]\n    }\n  ]\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1048,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "point",
+          value: {
+            x: 10,
+            y: 20,
+            color: {
+              r: 255,
+              g: 128,
+              b: 0,
+            },
+          },
+        },
+        expected_dense_json: [
+          "[0,10,0,0,20,0,[255,128]]",
+        ],
+        expected_readable_json: [
+          '{\n  "x": 10,\n  "y": 20,\n  "color": {\n    "r": 255,\n    "g": 128\n  }\n}',
+        ],
+        expected_bytes: [
+          "hex:736b6972fa07000a00001400f8e8ff0080",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1049,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "my_enum",
+          value: "unknown",
+        },
+        expected_dense_json: [
+          "0",
+        ],
+        expected_readable_json: [
+          '"unknown"',
+        ],
+        alternative_jsons: [
+          {
+            kind: "literal",
+            value: '"unknown"',
+          },
+        ],
+        expected_bytes: [
+          "hex:736b697200",
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"@gepheum/skir-golden-tests/goldens.skir:MyEnum\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"enum\",\n      \"id\": \"@gepheum/skir-golden-tests/goldens.skir:MyEnum\",\n      \"doc\": \"my enum\",\n      \"variants\": [\n        {\n          \"name\": \"ok\",\n          \"number\": 1,\n          \"doc\": \"all good\"\n        },\n        {\n          \"name\": \"color\",\n          \"number\": 4,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"@gepheum/skir-golden-tests/goldens.skir:Color\"\n          }\n        },\n        {\n          \"name\": \"bool\",\n          \"number\": 5,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"bool\"\n          }\n        }\n      ],\n      \"removed_numbers\": [\n        2\n      ]\n    },\n    {\n      \"kind\": \"struct\",\n      \"id\": \"@gepheum/skir-golden-tests/goldens.skir:Color\",\n      \"fields\": [\n        {\n          \"name\": \"r\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"g\",\n          \"number\": 1,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        },\n        {\n          \"name\": \"b\",\n          \"number\": 2,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"int32\"\n          }\n        }\n      ],\n      \"removed_numbers\": [\n        3\n      ]\n    }\n  ]\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1050,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "my_enum",
+          value: "ok",
+        },
+        expected_dense_json: [
+          "1",
+        ],
+        expected_readable_json: [
+          '"ok"',
+        ],
+        alternative_jsons: [
+          {
+            kind: "literal",
+            value: '"OK"',
+          },
+        ],
+        expected_bytes: [
+          "hex:736b697201",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1051,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "my_enum",
+          value: {
+            kind: "color",
+            value: {|
+              r: 10,
+            |},
+          },
+        },
+        expected_dense_json: [
+          "[4,[10]]",
+        ],
+        expected_readable_json: [
+          '{\n  "kind": "color",\n  "value": {\n    "r": 10\n  }\n}',
+        ],
+        expected_bytes: [
+          "hex:736b6972fef70a",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1052,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "my_enum",
+          value: {
+            kind: "bool",
+            value: true,
+          },
+        },
+        expected_dense_json: [
+          "[5,1]",
+        ],
+        expected_readable_json: [
+          '{\n  "kind": "bool",\n  "value": true\n}',
+        ],
+        expected_bytes: [
+          "hex:736b6972f80501",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1053,
+    assertion: {
+      kind: "string_equal",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "point_from_json_keep_unrecognized",
+            value: {
+              kind: "to_dense_json",
+              value: {
+                kind: "ints",
+                value: [
+                  2,
+                  1,
+                  2,
+                  2,
+                  1,
+                  2,
+                  0,
+                  2,
+                ],
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "[0,1,0,0,1,0,[],2]",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1054,
+    assertion: {
+      kind: "string_in",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "point_from_json_drop_unrecognized",
+            value: {
+              kind: "to_dense_json",
+              value: {
+                kind: "ints",
+                value: [
+                  2,
+                  1,
+                  2,
+                  2,
+                  1,
+                  2,
+                  0,
+                  2,
+                ],
+              },
+            },
+          },
+        },
+        expected: [
+          "[0,1,0,0,1]",
+          "[0,1,0,0,1,0,[]]",
+        ],
+      },
+    },
+  },
+  {
+    test_number: 1055,
+    assertion: {
+      kind: "bytes_equal",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "point_from_bytes_keep_unrecognized",
+            value: {
+              kind: "to_bytes",
+              value: {
+                kind: "ints",
+                value: [
+                  2,
+                  1,
+                  2,
+                  2,
+                  1,
+                  2,
+                  0,
+                  2,
+                ],
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "hex:736b6972fa08000100000100f602",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1056,
+    assertion: {
+      kind: "bytes_in",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "point_from_bytes_drop_unrecognized",
+            value: {
+              kind: "to_bytes",
+              value: {
+                kind: "ints",
+                value: [
+                  2,
+                  1,
+                  2,
+                  2,
+                  1,
+                  2,
+                  0,
+                  2,
+                ],
+              },
+            },
+          },
+        },
+        expected: [
+          "hex:736b6972fa050001000001",
+          "hex:736b6972fa07000100000100f6",
+        ],
+      },
+    },
+  },
+  {
+    test_number: 1057,
+    assertion: {
+      kind: "string_equal",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "color_from_json_keep_unrecognized",
+            value: {
+              kind: "to_dense_json",
+              value: {
+                kind: "ints",
+                value: [
+                  1,
+                  1,
+                  1,
+                  2,
+                  2,
+                ],
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "[1,1,1,0,2]",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1058,
+    assertion: {
+      kind: "bytes_equal",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "color_from_bytes_keep_unrecognized",
+            value: {
+              kind: "to_bytes",
+              value: {
+                kind: "ints",
+                value: [
+                  1,
+                  1,
+                  1,
+                  2,
+                  2,
+                ],
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "hex:736b6972fa050101010002",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1059,
+    assertion: {
+      kind: "string_equal",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "my_enum_from_json_keep_unrecognized",
+            value: {
+              kind: "to_dense_json",
+              value: {
+                kind: "int32",
+                value: 500,
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "500",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1060,
+    assertion: {
+      kind: "string_equal",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "my_enum_from_json_drop_unrecognized",
+            value: {
+              kind: "to_dense_json",
+              value: {
+                kind: "int32",
+                value: 500,
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "0",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1061,
+    assertion: {
+      kind: "string_equal",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "my_enum_from_json_keep_unrecognized",
+            value: {
+              kind: "to_dense_json",
+              value: {
+                kind: "ints",
+                value: [
+                  500,
+                  10,
+                ],
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "[500,10]",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1062,
+    assertion: {
+      kind: "string_equal",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "my_enum_from_json_drop_unrecognized",
+            value: {
+              kind: "to_dense_json",
+              value: {
+                kind: "ints",
+                value: [
+                  500,
+                  10,
+                ],
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "0",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1063,
+    assertion: {
+      kind: "bytes_equal",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "my_enum_from_bytes_keep_unrecognized",
+            value: {
+              kind: "to_bytes",
+              value: {
+                kind: "int32",
+                value: 500,
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "hex:736b6972e8f401",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1064,
+    assertion: {
+      kind: "bytes_equal",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "my_enum_from_bytes_drop_unrecognized",
+            value: {
+              kind: "to_bytes",
+              value: {
+                kind: "int32",
+                value: 500,
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "hex:736b697200",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1065,
+    assertion: {
+      kind: "bytes_equal",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "my_enum_from_bytes_keep_unrecognized",
+            value: {
+              kind: "to_bytes",
+              value: {
+                kind: "ints",
+                value: [
+                  500,
+                  10,
+                ],
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "hex:736b6972f8e8f4010a",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1066,
+    assertion: {
+      kind: "bytes_equal",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "my_enum_from_bytes_drop_unrecognized",
+            value: {
+              kind: "to_bytes",
+              value: {
+                kind: "ints",
+                value: [
+                  500,
+                  10,
+                ],
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "hex:736b697200",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1067,
+    assertion: {
+      kind: "string_equal",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "color_from_bytes_keep_unrecognized",
+            value: {
+              kind: "to_bytes",
+              value: {
+                kind: "ints",
+                value: [
+                  1,
+                  1,
+                  1,
+                  2,
+                  2,
+                ],
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "[1,1,1]",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1068,
+    assertion: {
+      kind: "bytes_equal",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "color_from_json_keep_unrecognized",
+            value: {
+              kind: "to_dense_json",
+              value: {
+                kind: "ints",
+                value: [
+                  1,
+                  1,
+                  1,
+                  2,
+                  2,
+                ],
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "hex:736b6972f9010101",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1069,
+    assertion: {
+      kind: "string_equal",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "my_enum_from_bytes_keep_unrecognized",
+            value: {
+              kind: "to_bytes",
+              value: {
+                kind: "int32",
+                value: 500,
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "0",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1070,
+    assertion: {
+      kind: "bytes_equal",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "my_enum_from_json_keep_unrecognized",
+            value: {
+              kind: "to_dense_json",
+              value: {
+                kind: "int32",
+                value: 500,
+              },
+            },
+          },
+        },
+        expected: {
+          kind: "literal",
+          value: "hex:736b697200",
+        },
+      },
+    },
+  },
+  {
+    test_number: 1071,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "hash64",
+          value: 231,
+        },
+        expected_dense_json: [
+          "231",
+        ],
+        expected_readable_json: [
+          "231",
+        ],
+        expected_bytes: [
+          "hex:736b6972e7",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1072,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "hash64",
+          value: 232,
+        },
+        expected_dense_json: [
+          "232",
+        ],
+        expected_readable_json: [
+          "232",
+        ],
+        expected_bytes: [
+          "hex:736b6972e8e800",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1073,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: 231,
+        },
+        expected_dense_json: [
+          "231",
+        ],
+        expected_readable_json: [
+          "231",
+        ],
+        expected_bytes: [
+          "hex:736b6972e7",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1074,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: 232,
+        },
+        expected_dense_json: [
+          "232",
+        ],
+        expected_readable_json: [
+          "232",
+        ],
+        expected_bytes: [
+          "hex:736b6972e8e800",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1075,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "ints",
+          value: [
+            1,
+          ],
+        },
+        expected_dense_json: [
+          "[1]",
+        ],
+        expected_readable_json: [
+          "[\n  1\n]",
+        ],
+        expected_bytes: [
+          "hex:736b6972f701",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1076,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "ints",
+          value: [
+            1,
+            2,
+          ],
+        },
+        expected_dense_json: [
+          "[1,2]",
+        ],
+        expected_readable_json: [
+          "[\n  1,\n  2\n]",
+        ],
+        expected_bytes: [
+          "hex:736b6972f80102",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1077,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "ints",
+          value: [
+            1,
+            2,
+            3,
+            4,
+          ],
+        },
+        expected_dense_json: [
+          "[1,2,3,4]",
+        ],
+        expected_readable_json: [
+          "[\n  1,\n  2,\n  3,\n  4\n]",
+        ],
+        expected_bytes: [
+          "hex:736b6972fa0401020304",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1078,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: 4294967295,
+        },
+        expected_dense_json: [
+          "4294967295",
+        ],
+        expected_readable_json: [
+          "4294967295",
+        ],
+        expected_bytes: [
+          "hex:736b6972eeffffffff00000000",
+          "hex:736b6972e9ffffffff",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1079,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: 4294967296,
+        },
+        expected_dense_json: [
+          "4294967296",
+        ],
+        expected_readable_json: [
+          "4294967296",
+        ],
+        expected_bytes: [
+          "hex:736b6972ee0000000001000000",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1080,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: -2147483648,
+        },
+        expected_dense_json: [
+          "-2147483648",
+        ],
+        expected_readable_json: [
+          "-2147483648",
+        ],
+        expected_bytes: [
+          "hex:736b6972ed00000080",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1081,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: -2147483649,
+        },
+        expected_dense_json: [
+          "-2147483649",
+        ],
+        expected_readable_json: [
+          "-2147483649",
+        ],
+        expected_bytes: [
+          "hex:736b6972eeffffff7fffffffff",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1082,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "float32",
+          value: "Infinity",
+        },
+        expected_dense_json: [
+          '"Infinity"',
+        ],
+        expected_readable_json: [
+          '"Infinity"',
+        ],
+        expected_bytes: [
+          "hex:736b6972f00000807f",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1083,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "float64",
+          value: "-Infinity",
+        },
+        expected_dense_json: [
+          '"-Infinity"',
+        ],
+        expected_readable_json: [
+          '"-Infinity"',
+        ],
+        expected_bytes: [
+          "hex:736b6972f1000000000000f0ff",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1084,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "keyed_arrays",
+          value: {||},
+        },
+        expected_dense_json: [
+          "[]",
+        ],
+        expected_readable_json: [
+          "{}",
+        ],
+        expected_bytes: [
+          "hex:736b6972f6",
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"@gepheum/skir-golden-tests/goldens.skir:KeyedArrays\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"struct\",\n      \"id\": \"@gepheum/skir-golden-tests/goldens.skir:KeyedArrays\",\n      \"fields\": [\n        {\n          \"name\": \"items\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"array\",\n            \"value\": {\n              \"item\": {\n                \"kind\": \"record\",\n                \"value\": \"@gepheum/skir-golden-tests/goldens.skir:KeyedArrays.Item\"\n              },\n              \"key_extractor\": \"sub_item.weekday.kind\"\n            }\n          }\n        }\n      ]\n    },\n    {\n      \"kind\": \"struct\",\n      \"id\": \"@gepheum/skir-golden-tests/goldens.skir:KeyedArrays.Item\",\n      \"fields\": [\n        {\n          \"name\": \"sub_item\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"@gepheum/skir-golden-tests/goldens.skir:KeyedArrays.SubItem\"\n          }\n        }\n      ]\n    },\n    {\n      \"kind\": \"struct\",\n      \"id\": \"@gepheum/skir-golden-tests/goldens.skir:KeyedArrays.SubItem\",\n      \"fields\": [\n        {\n          \"name\": \"weekday\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"@gepheum/skir-golden-tests/goldens.skir:KeyedArrays.Weekday\"\n          }\n        }\n      ]\n    },\n    {\n      \"kind\": \"enum\",\n      \"id\": \"@gepheum/skir-golden-tests/goldens.skir:KeyedArrays.Weekday\",\n      \"variants\": [\n        {\n          \"name\": \"monday\",\n          \"number\": 1\n        }\n      ]\n    }\n  ]\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1085,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "rec_struct",
+          value: {
+            a: {|
+              b: true,
+            |},
+            b: true,
+          },
+        },
+        expected_dense_json: [
+          "[[[],1],1]",
+        ],
+        expected_readable_json: [
+          "{\n  \"a\": {\n    \"b\": true\n  },\n  \"b\": true\n}",
+        ],
+        expected_bytes: [
+          "hex:736b6972f8f8f60101",
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"@gepheum/skir-golden-tests/goldens.skir:RecStruct\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"struct\",\n      \"id\": \"@gepheum/skir-golden-tests/goldens.skir:RecStruct\",\n      \"fields\": [\n        {\n          \"name\": \"a\",\n          \"number\": 0,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"@gepheum/skir-golden-tests/goldens.skir:RecStruct\"\n          }\n        },\n        {\n          \"name\": \"b\",\n          \"number\": 1,\n          \"type\": {\n            \"kind\": \"primitive\",\n            \"value\": \"bool\"\n          }\n        }\n      ]\n    }\n  ]\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1086,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "rec_enum",
+          value: {
+            kind: "e",
+            value: {
+              kind: "e",
+              value: "foo",
+            },
+          },
+        },
+        expected_dense_json: [
+          "[2,[2,1]]",
+        ],
+        expected_readable_json: [
+          "{\n  \"kind\": \"e\",\n  \"value\": {\n    \"kind\": \"e\",\n    \"value\": \"foo\"\n  }\n}",
+        ],
+        expected_bytes: [
+          "hex:736b6972fcfc01",
+        ],
+        expected_type_descriptor: "{\n  \"type\": {\n    \"kind\": \"record\",\n    \"value\": \"@gepheum/skir-golden-tests/goldens.skir:RecEnum\"\n  },\n  \"records\": [\n    {\n      \"kind\": \"enum\",\n      \"id\": \"@gepheum/skir-golden-tests/goldens.skir:RecEnum\",\n      \"variants\": [\n        {\n          \"name\": \"foo\",\n          \"number\": 1\n        },\n        {\n          \"name\": \"e\",\n          \"number\": 2,\n          \"type\": {\n            \"kind\": \"record\",\n            \"value\": \"@gepheum/skir-golden-tests/goldens.skir:RecEnum\"\n          }\n        }\n      ]\n    }\n  ]\n}",
+      |},
+    },
+  },
+  {
+    test_number: 1087,
+    assertion: {
+      kind: "enum_a_from_json_is_constant",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "enum_b_from_json_keep_unrecognized",
+            value: {
+              kind: "to_dense_json",
+              value: {
+                kind: "enum_a",
+                value: "a",
+              },
+            },
+          },
+        },
+        keep_unrecognized: true,
+      },
+    },
+  },
+  {
+    test_number: 1088,
+    assertion: {
+      kind: "enum_a_from_bytes_is_constant",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "enum_b_from_bytes_keep_unrecognized",
+            value: {
+              kind: "to_bytes",
+              value: {
+                kind: "enum_a",
+                value: "a",
+              },
+            },
+          },
+        },
+        keep_unrecognized: true,
+      },
+    },
+  },
+  {
+    test_number: 1089,
+    assertion: {
+      kind: "enum_b_from_json_is_wrapper_b",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "enum_a_from_json_keep_unrecognized",
+            value: {
+              kind: "to_dense_json",
+              value: {
+                kind: "enum_b",
+                value: {
+                  kind: "b",
+                  value: "foo",
+                },
+              },
+            },
+          },
+        },
+        expected: "",
+        keep_unrecognized: true,
+      },
+    },
+  },
+  {
+    test_number: 1090,
+    assertion: {
+      kind: "enum_b_from_json_is_wrapper_b",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "enum_a_from_json_drop_unrecognized",
+            value: {
+              kind: "to_dense_json",
+              value: {
+                kind: "enum_b",
+                value: {
+                  kind: "b",
+                  value: "foo",
+                },
+              },
+            },
+          },
+        },
+        expected: "",
+        keep_unrecognized: true,
+      },
+    },
+  },
+  {
+    test_number: 1091,
+    assertion: {
+      kind: "enum_b_from_bytes_is_wrapper_b",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "enum_a_from_bytes_keep_unrecognized",
+            value: {
+              kind: "to_bytes",
+              value: {
+                kind: "enum_b",
+                value: {
+                  kind: "b",
+                  value: "foo",
+                },
+              },
+            },
+          },
+        },
+        expected: "",
+        keep_unrecognized: true,
+      },
+    },
+  },
+  {
+    test_number: 1092,
+    assertion: {
+      kind: "enum_b_from_bytes_is_wrapper_b",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "enum_a_from_bytes_drop_unrecognized",
+            value: {
+              kind: "to_bytes",
+              value: {
+                kind: "enum_b",
+                value: {
+                  kind: "b",
+                  value: "foo",
+                },
+              },
+            },
+          },
+        },
+        expected: "",
+        keep_unrecognized: true,
+      },
+    },
+  },
+  {
+    test_number: 1093,
+    assertion: {
+      kind: "enum_b_from_json_is_wrapper_b",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "enum_a",
+            value: "a",
+          },
+        },
+        expected: "",
+        keep_unrecognized: true,
+      },
+    },
+  },
+  {
+    test_number: 1094,
+    assertion: {
+      kind: "enum_b_from_bytes_is_wrapper_b",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "enum_a",
+            value: "a",
+          },
+        },
+        expected: "",
+        keep_unrecognized: true,
+      },
+    },
+  },
+  {
+    test_number: 1095,
+    assertion: {
+      kind: "enum_a_from_json_is_constant",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "enum_b",
+            value: {
+              kind: "b",
+              value: "foo",
+            },
+          },
+        },
+        keep_unrecognized: true,
+      },
+    },
+  },
+  {
+    test_number: 1096,
+    assertion: {
+      kind: "enum_a_from_bytes_is_constant",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "enum_b",
+            value: {
+              kind: "b",
+              value: "foo",
+            },
+          },
+        },
+        keep_unrecognized: true,
+      },
+    },
+  },
+  {
+    test_number: 1097,
+    assertion: {
+      kind: "enum_b_from_json_is_wrapper_b",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "enum_a",
+            value: "a",
+          },
+        },
+        expected: "",
+        keep_unrecognized: false,
+      },
+    },
+  },
+  {
+    test_number: 1098,
+    assertion: {
+      kind: "enum_b_from_bytes_is_wrapper_b",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "enum_a",
+            value: "a",
+          },
+        },
+        expected: "",
+        keep_unrecognized: false,
+      },
+    },
+  },
+  {
+    test_number: 1099,
+    assertion: {
+      kind: "enum_a_from_json_is_constant",
+      value: {
+        actual: {
+          kind: "to_dense_json",
+          value: {
+            kind: "enum_b",
+            value: {
+              kind: "b",
+              value: "foo",
+            },
+          },
+        },
+        keep_unrecognized: false,
+      },
+    },
+  },
+  {
+    test_number: 1100,
+    assertion: {
+      kind: "enum_a_from_bytes_is_constant",
+      value: {
+        actual: {
+          kind: "to_bytes",
+          value: {
+            kind: "enum_b",
+            value: {
+              kind: "b",
+              value: "foo",
+            },
+          },
+        },
+        keep_unrecognized: false,
+      },
+    },
+  },
+];

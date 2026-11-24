@@ -1,0 +1,6 @@
+generators:
+  - mod: skir-typescript-gen
+    outDir: ./skirout
+    config:
+      # Possible values: "" (CommonJS), ".js" (ES Modules), ".ts" (Deno)
+      importPathExtension: ".js"

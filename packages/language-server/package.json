@@ -1,0 +1,52 @@
+{
+  "name": "skir-language-server",
+  "version": "0.1.1",
+  "description": "Language Server Protocol implementation for the Skir schema language (Vim, Neovim, Emacs, ...)",
+  "homepage": "https://skir.build/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gepheum/skir.git",
+    "directory": "packages/language-server"
+  },
+  "license": "ISC",
+  "author": "Tyler Fibonacci <gepheum@gmail.com>",
+  "bin": {
+    "skir-language-server": "./dist/server.js"
+  },
+  "main": "./dist/server.js",
+  "files": [
+    "dist",
+    "src",
+    "grammars"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "start": "node ./dist/server.js --stdio",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "glob": "^11.0.0",
+    "skir": "^1.2.26",
+    "skir-internal": "^0.2.22",
+    "vscode-languageserver": "^9.0.1",
+    "vscode-languageserver-textdocument": "^1.0.11"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/parser": "^8.57.1",
+    "eslint": "^10.0.3",
+    "prettier": "^3.8.1",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "typescript": "^5.2.2",
+    "typescript-eslint": "^8.57.1"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

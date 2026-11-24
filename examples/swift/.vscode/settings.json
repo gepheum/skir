@@ -1,0 +1,6 @@
+{
+  "git.autoRepositoryDetection": "openEditors",
+  "git.ignoredRepositories": [
+    ".build/checkouts"
+  ]
+}

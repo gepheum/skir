@@ -1,0 +1,20 @@
+name = "skir_client"
+version = "1.0.5"
+gleam = ">= 1.5.0"
+
+licences = ["MIT"]
+description = "Serializable Gleam data types generated from .skir files. Supports JSON and binary serialization."
+
+repository = { type = "github", user = "gepheum", repo = "skir-gleam-client" }
+links = [
+	{ title = "Repository", href = "https://github.com/gepheum/skir-gleam-client" },
+]
+
+[dependencies]
+gleam_stdlib = ">= 1.0.0 and < 2.0.0"
+gleam_json = ">= 3.1.0 and < 4.0.0"
+gleam_time = ">= 1.8.0 and < 2.0.0"
+gleam_http = ">= 4.0.0 and < 5.0.0"
+
+[dev-dependencies]
+gleeunit = ">= 1.9.0 and < 2.0.0"

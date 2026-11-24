@@ -1,0 +1,15 @@
+# Configuration file for Skir code generator
+#
+# Documentation: https://skir.build/
+#
+# Cheat sheet:
+#   npx skir gen          Generate code from .skir files
+#   npx skir gen --watch  Watch for changes and regenerate automatically
+#   npx skir format       Format all .skir files
+#   npx skir snapshot     Take a snapshot of the source directory, verify no
+#                         breaking changes since last snapshot
+
+generators:
+  - mod: skir-moonbit-gen
+    outDir: ./skirout
+    config: {}

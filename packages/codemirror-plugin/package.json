@@ -1,0 +1,78 @@
+{
+  "name": "skir-codemirror-plugin",
+  "version": "1.0.5",
+  "description": "",
+  "homepage": "https://github.com/gepheum/skir-codemirror-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/gepheum/skir-codemirror-plugin/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gepheum/skir.git",
+    "directory": "packages/codemirror-plugin"
+  },
+  "files": [
+    "dist/",
+    "src/",
+    "README.md"
+  ],
+  "license": "MIT",
+  "author": "Tyler Fibonacci <gepheum@gmail.com>",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "build:dev": "tsc -p tsconfig.dev.json",
+    "build:watch": "tsc --watch",
+    "build:dev:watch": "tsc -p tsconfig.dev.json --watch",
+    "clean": "rimraf dev-dist my-element.{d.ts,d.ts.map,js,js.map} test/my-element.{d.ts,d.ts.map,js,js.map} test/my-element_test.{d.ts,d.ts.map,js,js.map}",
+    "lint": "eslint src/**/*.ts && lit-analyzer",
+    "format": "prettier \"src/**/*.{cjs,html,js,json,md,ts}\" --ignore-path ./.prettierignore --write",
+    "format:check": "prettier \"src/**/*.{cjs,html,js,json,md,ts}\" --ignore-path ./.prettierignore --check",
+    "analyze": "cem analyze --litelement --globs \"src/**/*.ts\"",
+    "analyze:watch": "cem analyze --litelement --globs \"src/**/*.ts\" --watch",
+    "dev": "npm run build && npm run build:dev && concurrently -k \"npm:build:watch\" \"npm:build:dev:watch\" \"npm:dev:serve\"",
+    "dev:serve": "wds --watch --open /dev/index.html",
+    "serve": "npm run build && wds --watch",
+    "test": "mocha",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@codemirror/lang-json": "^6.0.2",
+    "@uiw/codemirror-themes-all": "^4.25.9",
+    "codemirror": "^6.0.2",
+    "skir-client": "^1.0.18"
+  },
+  "devDependencies": {
+    "@custom-elements-manifest/analyzer": "^0.6.3",
+    "@eslint/js": "^9.39.2",
+    "@types/mocha": "^10.0.1",
+    "@web/dev-server": "^0.4.6",
+    "@web/dev-server-import-maps": "^0.2.1",
+    "@web/dev-server-legacy": "^1.0.0",
+    "buckwheat": "^1.1.2",
+    "concurrently": "^9.2.1",
+    "eslint": "^10.0.1",
+    "lit-analyzer": "^2.0.3",
+    "mocha": "^11.7.5",
+    "prettier": "^3.8.1",
+    "prettier-plugin-organize-imports": "^4.3.0",
+    "rimraf": "^6.1.3",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.5.0",
+    "typescript-eslint": "^8.56.0"
+  },
+  "overrides": {
+    "diff": "^8.0.3",
+    "minimatch": "^10.2.1",
+    "serialize-javascript": "^7.0.4"
+  }
+}

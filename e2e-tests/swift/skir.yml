@@ -1,0 +1,9 @@
+generators:
+  - mod: skir-swift-gen
+    outDir: ./Sources/skirout
+    config:
+      public: false
+
+dependencies:
+  "@gepheum/skir-fantasy-game-example": v1.0.0
+  "@gepheum/skir-golden-tests": v1.0.6

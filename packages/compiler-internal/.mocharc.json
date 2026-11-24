@@ -1,0 +1,8 @@
+{
+  "extension": ["ts"],
+  "spec": "src/**/*.test.ts",
+  "require": "tsx/cjs",
+  "node-option": [
+    "import=tsx/esm"
+  ]
+}

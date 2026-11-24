@@ -1,0 +1,34 @@
+import { JsonValue } from "enums.skir";
+import { Point } from "structs.skir";
+
+/// My procedure
+method MyProcedure(
+  Point
+): JsonValue = 674706602;
+
+method WithExplicitNumber(
+  [Point]
+): JsonValue? = 3;
+
+method True(
+  string
+): string = 2192885963;
+
+method ListUsers(
+  ListUsersRequest
+): ListUsersResponse = 487705325;
+
+struct ListUsersRequest {
+  country: string;
+}
+
+struct User {
+  id: hash64;
+  first_name: string;
+  last_name: string;
+  country: string;
+}
+
+struct ListUsersResponse {
+  users: [User|id];
+}

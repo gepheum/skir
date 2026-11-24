@@ -1,0 +1,17 @@
+# Skir generated code
+skirout/
+
+# Kotlin/Gradle
+backend/.gradle/
+backend/build/
+backend/.idea/
+backend/*.iml
+backend/out/
+
+# TypeScript/Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# OS
+.DS_Store

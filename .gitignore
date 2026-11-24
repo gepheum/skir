@@ -1,5 +1,67 @@
+# OS
 .DS_Store
-/playground/
-dist
-node_modules
+
+# Node / TypeScript
+node_modules/
+dist/
+dev-dist/
 *.tsbuildinfo
+.next/
+out/
+
+# Python
+.venv/
+venv/
+test-env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Rust
+target/
+
+# Java / Kotlin / Gradle
+.gradle/
+.kotlin/
+build/
+
+# IDE
+.idea/
+
+# C# / .NET
+bin/
+obj/
+artifacts/
+
+# Dart / Flutter
+.dart_tool/
+pubspec.lock
+
+# Swift
+.build/
+.swiftpm/
+
+# Zig
+.zig-cache/
+zig-out/
+e2e-tests/zig/docs/
+
+# C++ / CMake
+_deps/
+compile_commands.json
+.cache/
+
+# MoonBit
+_build/
+.mooncakes/
+deps/
+
+# Skir generated output & external dependencies cache
+skirout/
+skir-external/
+
+# VSIX packages
+*.vsix
+
+# Local scratch / notes
+/todos/

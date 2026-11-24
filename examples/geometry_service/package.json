@@ -1,0 +1,44 @@
+{
+  "name": "skir-studio-demo",
+  "version": "1.0.4",
+  "description": "Example Skir service for geometric calculations",
+  "keywords": ["skir", "typescript", "geometry", "rpc"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gepheum/skir.git",
+    "directory": "examples/geometry_service"
+  },
+  "license": "ISC",
+  "author": "Tyler Fibonacci <gepheum@gmail.com>",
+  "type": "module",
+  "bin": {
+    "skir-studio-demo": "./dist/server.js"
+  },
+  "files": [
+    "dist/",
+    "skirout/"
+  ],
+  "scripts": {
+    "codegen": "skir gen",
+    "codegen:watch": "skir gen --watch",
+    "prebuild": "npm run codegen",
+    "build": "tsc && cp -r skirout dist/",
+    "prepublishOnly": "npm run build",
+    "server": "npm run build && node dist/server.js",
+    "format": "prettier --write \"**/*.ts\" && skir format"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.1",
+    "express": "^5.1.0",
+    "open": "^10.0.0",
+    "skir-client": "^1.0.19"
+  },
+  "devDependencies": {
+    "@types/node": "^20.6.0",
+    "prettier": "^3.2.4",
+    "prettier-plugin-organize-imports": "^4.2.0",
+    "skir": "^1.2.12",
+    "skir-typescript-gen": "^1.0.11",
+    "typescript": "^5.3.3"
+  }
+}

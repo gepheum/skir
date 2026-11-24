@@ -1,0 +1,4 @@
+generators:
+  - mod: skir-python-gen
+    outDir: ./skirout
+    config: {}

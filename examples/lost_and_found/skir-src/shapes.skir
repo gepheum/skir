@@ -1,0 +1,20 @@
+// 'shapes.skir' on Monday
+
+struct Shape {
+  points: [Points] = 0;
+  label: string = 1;
+}
+
+struct Points {
+  x: int32 = 0;
+  y: int32 = 1;
+  label: Label = 2;
+}
+
+struct Label {
+  message: string = 0;
+}
+
+method IsConvex(
+  Shape
+): bool = 412938;

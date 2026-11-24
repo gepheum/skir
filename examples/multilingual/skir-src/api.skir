@@ -1,0 +1,17 @@
+struct GreetRequest {
+  name: string;
+  temperature_c: float32;
+  sunny: bool;
+}
+
+struct GreetResponse {
+  enum Action {
+    wave;
+    say: string;
+  }
+  actions: [Action];
+}
+
+method Greet(
+  GreetRequest
+): GreetResponse = 102788;

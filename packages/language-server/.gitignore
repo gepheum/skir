@@ -1,0 +1,6 @@
+node_modules/
+out/
+dist/
+*.js
+*.js.map
+*.d.ts

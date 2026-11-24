@@ -1,0 +1,6 @@
+.DS_Store
+bundle.js
+dist
+node_modules
+skirout
+tsconfig.tsbuildinfo

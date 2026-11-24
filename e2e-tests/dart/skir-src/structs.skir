@@ -1,0 +1,147 @@
+import {
+  JsonValue,
+  Weekday,
+} from "enums.skir";
+import * as car from "vehicles/car.skir";
+
+struct Point {
+  x: int32;
+  y: int32;
+}
+
+struct Color {
+  r: int32;
+  g: int32;
+  b: int32;
+}
+
+struct Triangle {
+  color: Color;
+  points: [Point];
+}
+
+struct FullName {
+  first_name: string;
+  removed;
+  last_name: string;
+  suffix: string;
+}
+
+struct Item {
+  bool: bool;
+  string: string;
+  int32: int32;
+  int64: int64;
+  struct User {
+    id: string;
+  }
+  user: User;
+  weekday: Weekday;
+  bytes: bytes;
+  timestamp: timestamp;
+}
+
+struct Items {
+  array_with_bool_key: [Item|bool];
+  array_with_string_key: [Item|string];
+  array_with_int32_key: [Item|int32];
+  array_with_int64_key: [Item|int64];
+  array_with_user_id_key: [Item|user.id];
+  array_with_enum_key: [Item|weekday.kind];
+  array_with_bytes_key: [Item|bytes];
+  array_with_timestamp_key: [Item|timestamp];
+}
+
+struct JsonValues {
+  json_values: [JsonValue];
+}
+
+struct CarOwner {
+  car: car.Car;
+  owner: FullName;
+}
+
+struct Foo {
+  struct Bar {
+    bar: string?;
+    foos: [Foo?]?;
+  }
+  bars: [Bar]?;
+
+  struct Zoo {}
+  zoos: [Zoo?]?;
+}
+
+struct NameCollision {
+  struct Foo {
+    struct Foo {
+      struct Foo {
+        x: int32;
+        top_level_foo: .NameCollision.Foo;
+      }
+      foo: Foo;
+    }
+    foo: Foo;
+  }
+  foo: Foo;
+
+  struct Array {
+    struct Array {}
+    array: Array;
+  }
+  array: Array;
+
+  struct Value {}
+
+  enum Enum {
+    default;
+
+    struct Mutable {
+      struct Mutable {}
+      mutable: Mutable;
+    }
+    mutable: Mutable;
+  }
+
+  this: string;
+  other: string;
+}
+
+struct RecA {
+  a: RecA;
+  b: RecB;
+}
+
+struct RecB {
+  a: RecA;
+  a_list: [RecA?]?;
+}
+
+struct Name {
+  struct Name1 {}
+  struct Name2 {
+    name1: Name1;
+  }
+  struct Name {
+    struct Name {
+      name2: Name2;
+    }
+  }
+  mutable_name: Name1;
+}
+
+struct Floats {
+  x: float32;
+  y: float64;
+}
+
+struct True {
+  self: [True];
+  to_frozen: bool?;
+  to_mutable: bool?;
+  and: bool?;
+  get: bool;
+  field: bool;
+  by: bool;
+  it: [Floats|x];
+}

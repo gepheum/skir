@@ -1,0 +1,4 @@
+generators:
+  - mod: skir-gleam-gen
+    outDir: ./src/skirout
+    config: {}

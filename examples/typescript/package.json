@@ -1,0 +1,48 @@
+{
+  "name": "skir-typescript-examples",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gepheum/skir-typescript-example.git"
+  },
+  "license": "ISC",
+  "author": "Tyler Fibonacci <gepheum@gmail.com>",
+  "scripts": {
+    "codegen": "skir gen",
+    "codegen:watch": "skir gen --watch",
+    "prebuild": "npm run codegen",
+    "build": "tsc",
+    "bundle": "esbuild src/client.ts --bundle --outfile=static/bundle.js --platform=browser --format=iife",
+    "server": "npm run build && npm run bundle && node dist/src/server.js",
+    "client-on-node": "npm run build && node dist/src/client.js",
+    "snippets": "npm run build && node dist/src/snippets.js",
+    "test": "mocha",
+    "format": "prettier --write \"**/*.ts\" && skir format"
+  },
+  "dependencies": {
+    "@types/express": "^5.0.1",
+    "express": "^5.1.0",
+    "skir-client": "^1.0.19"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.6.0",
+    "buckwheat": "^1.1.2",
+    "esbuild": "^0.27.2",
+    "mocha": "^11.7.5",
+    "prettier": "^3.2.4",
+    "prettier-plugin-organize-imports": "^4.2.0",
+    "skir": "^1.2.12",
+    "skir-typescript-gen": "^1.0.11",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.3.3"
+  },
+  "overrides": {
+    "diff": "^8.0.3",
+    "minimatch": "^10.2.2",
+    "serialize-javascript": "^7.0.4"
+  }
+}

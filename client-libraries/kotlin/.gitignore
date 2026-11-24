@@ -1,0 +1,7 @@
+/build/
+.DS_STORE
+.gradle
+.idea
+.kotlin
+DO_NOT_SUBMIT
+secring.gpg

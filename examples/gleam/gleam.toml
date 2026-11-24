@@ -1,0 +1,15 @@
+name = "skir_gleam_example"
+version = "0.1.0"
+description = "Example project demonstrating Skir-generated Gleam code"
+gleam = ">= 1.15.0"
+
+[dependencies]
+gleam_stdlib = ">= 1.0.0 and < 2.0.0"
+gleam_erlang = ">= 1.3.0 and < 2.0.0"
+gleam_http = ">= 4.0.0 and < 5.0.0"
+gleam_httpc = "== 5.0.0"
+mist = ">= 6.0.0 and < 7.0.0"
+skir_client = ">= 1.0.0 and < 2.0.0"
+
+[dev-dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"

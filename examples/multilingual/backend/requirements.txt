@@ -1,0 +1,3 @@
+skir-client >= 1.0.17
+flask
+flask-cors

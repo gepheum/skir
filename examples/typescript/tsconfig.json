@@ -1,0 +1,24 @@
+{
+  "include": ["src/**/*", "skirout/**/*"],
+  "compilerOptions": {
+    "allowJs": true,
+    "allowUnreachableCode": true,
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "incremental": true,
+    "isolatedModules": true,
+    "lib": [
+      "ES2020"
+    ],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noUncheckedIndexedAccess": true,
+    "outDir": "./dist",
+    "sourceMap": true,
+    "strict": true,
+    "noImplicitOverride": true,
+    "target": "ES2020"
+  },
+}

@@ -1,0 +1,39 @@
+plugins {
+    id 'java'
+    id 'com.diffplug.spotless' version '6.23.3'
+}
+
+group = 'org.example'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.squareup.okio:okio:3.6.0'
+    implementation 'build.skir:skir-client:1.0.16'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+    testImplementation 'com.google.truth:truth:1.1.5'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+spotless {
+    java {
+        target 'src/**/*.java'
+        targetExclude 'src/main/java/skirout/**'
+        googleJavaFormat()
+    }
+}
+
+sourceCompatibility = '17'
+targetCompatibility = '17'

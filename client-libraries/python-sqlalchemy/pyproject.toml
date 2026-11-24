@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skir-sqlalchemy"
+version = "0.1.1"
+description = "Super lightweight bridge for storing Skir-typed values in SQLAlchemy JSON columns."
+readme = "README.md"
+authors = [{ name = "Gepheum" }]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Topic :: Database",
+]
+keywords = ["skir", "sqlalchemy", "json"]
+dependencies = [
+    "sqlalchemy>=2.0",
+    "skir-client",
+]
+requires-python = ">=3.10"
+
+[project.urls]
+Homepage = "https://github.com/gepheum/skir-sqlalchemy"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.isort]
+profile = "black"
+line_length = 127
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.10"
+typeCheckingMode = "standard"
+reportMissingImports = "none"

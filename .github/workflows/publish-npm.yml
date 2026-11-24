@@ -1,0 +1,62 @@
+name: Publish npm Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Workspace package to publish (or 'all-changed' to auto-detect bumped versions)"
+        required: true
+        default: "all-changed"
+        type: choice
+        options:
+          - all-changed
+          - skir-internal
+          - skir-client
+          - skir
+          - skir-codemirror-plugin
+          - skir-studio
+          - skir-converter
+          - skir-language-server
+
+jobs:
+  publish-npm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org/
+          cache: npm
+      - run: npm ci --legacy-peer-deps
+      - run: npm run build
+      - run: npm test
+      - name: Publish changed public workspaces to npm in topological order
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          TARGET_PACKAGE: ${{ inputs.package }}
+        run: |
+          set -euo pipefail
+          PACKAGES=(
+            "packages/compiler-internal:skir-internal"
+            "packages/typescript-client:skir-client"
+            "packages/compiler:skir"
+            "packages/codemirror-plugin:skir-codemirror-plugin"
+            "packages/studio:skir-studio"
+            "packages/converter:skir-converter"
+            "packages/language-server:skir-language-server"
+          )
+          for entry in "${PACKAGES[@]}"; do
+            DIR="${entry%%:*}"
+            PKG="${entry##*:}"
+            if [[ "$TARGET_PACKAGE" != "all-changed" && "$TARGET_PACKAGE" != "$PKG" ]]; then
+              continue
+            fi
+            LOCAL_VERSION="$(node -p "require('./${DIR}/package.json').version")"
+            if npm view "${PKG}@${LOCAL_VERSION}" version >/dev/null 2>&1; then
+              echo "✓ ${PKG}@${LOCAL_VERSION} is already published on npm; skipping."
+            else
+              echo "🚀 Publishing ${PKG}@${LOCAL_VERSION}..."
+              npm publish --workspace="${PKG}"
+            fi
+          done

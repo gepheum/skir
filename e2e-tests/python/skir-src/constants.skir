@@ -1,0 +1,37 @@
+import { JsonValue } from "enums.skir";
+
+/// One constant
+/// Other line
+/// And a reference to [ONE_TIMESTAMP].
+const ONE_CONSTANT: JsonValue = {
+  kind: "array",
+  value: [
+    {
+      kind: "boolean",
+      value: true,
+    },
+    {
+      kind: "number",
+      value: 2.5,
+    },
+    {
+      kind: "string",
+      value: "\
+        foo\
+        bar",
+    },
+    {
+      kind: "object",
+      value: [
+        {
+          name: "foo",
+          value: "null",
+        },
+      ],
+    },
+  ],
+};
+
+const ONE_TIMESTAMP: timestamp = "2023-12-31T00:53:48+00:00";
+
+const ONE_SINGLE_QUOTED_STRING: string = '"Foo"';

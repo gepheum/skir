@@ -1,0 +1,4 @@
+generators:
+  - mod: skir-zig-gen
+    outDir: ./src/skirout
+    config: {}

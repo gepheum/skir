@@ -1,0 +1,129 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Skir",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#strings" },
+    { "include": "#constants" },
+    { "include": "#numbers" },
+    { "include": "#function-calls" },
+    { "include": "#imports" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.skir",
+          "begin": "//",
+          "end": "$"
+        },
+        {
+          "name": "comment.block.skir",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.skir",
+          "match": "\\b(struct|enum|const|method|import|from|as|removed)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "name": "storage.type.skir",
+          "match": "\\b(bool|int32|int64|hash64|float32|float64|string|bytes|timestamp)\\b"
+        },
+        {
+          "name": "storage.type.skir",
+          "match": "\\b([A-Z][A-Za-z0-9_]*)\\b"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.skir",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.skir",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.skir",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.skir",
+              "match": "\\\\."
+            }
+          ]
+        }
+      ]
+    },
+    "constants": {
+      "patterns": [
+        {
+          "name": "constant.language.skir",
+          "match": "\\b(true|false|null)\\b"
+        },
+        {
+          "name": "constant.other.skir",
+          "match": "\\b([A-Z][A-Z0-9_]*)\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.skir",
+          "match": "\\b(-?\\d+(\\.\\d+)?([eE][+-]?\\d+)?)\\b"
+        }
+      ]
+    },
+    "function-calls": {
+      "patterns": [
+        {
+          "name": "entity.name.function.skir",
+          "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()"
+        }
+      ]
+    },
+    "imports": {
+      "patterns": [
+        {
+          "match": "\\b(import)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s+(from)\\s+\"([^\"]+)\"",
+          "captures": {
+            "1": { "name": "keyword.control.import.skir" },
+            "2": { "name": "entity.name.type.skir" },
+            "3": { "name": "keyword.control.from.skir" },
+            "4": { "name": "string.quoted.double.skir" }
+          }
+        },
+        {
+          "match": "\\b(import)\\s+(\\*)\\s+(as)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s+(from)\\s+\"([^\"]+)\"",
+          "captures": {
+            "1": { "name": "keyword.control.import.skir" },
+            "2": { "name": "constant.other.skir" },
+            "3": { "name": "keyword.control.as.skir" },
+            "4": { "name": "entity.name.namespace.skir" },
+            "5": { "name": "keyword.control.from.skir" },
+            "6": { "name": "string.quoted.double.skir" }
+          }
+        }
+      ]
+    }
+  },
+  "scopeName": "source.skir"
+}

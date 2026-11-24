@@ -1,0 +1,4 @@
+generators:
+  - mod: skir-java-gen
+    outDir: src/main/java/skirout
+    config: {}

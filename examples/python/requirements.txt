@@ -1,0 +1,5 @@
+skir-client >= 1.0.17
+flask >= 3.1.0
+fastapi >= 0.115.0
+uvicorn >= 0.32.0
+litestar >= 2.12.0

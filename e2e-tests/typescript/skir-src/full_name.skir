@@ -1,0 +1,14 @@
+import { BigInt } from "structs.skir";
+
+/// The full name.
+struct FullName {
+  /// The person's
+  /// first name
+  first_name: string;
+  last_name: string;
+}
+
+/// Some */ comment.
+struct S {
+  big_int: BigInt;
+}

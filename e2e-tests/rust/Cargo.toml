@@ -1,0 +1,9 @@
+[package]
+name = "e2e_test"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+skir-client = { path = "../../client-libraries/rust" }
+tokio = { version = "1", features = ["full"] }

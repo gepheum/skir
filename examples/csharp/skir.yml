@@ -1,0 +1,4 @@
+generators:
+  - mod: skir-csharp-gen
+    outDir: ./skirout
+    config: {}

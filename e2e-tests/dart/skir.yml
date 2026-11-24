@@ -1,0 +1,11 @@
+generators:
+  - mod: skir-dart-gen
+    outDir: ./skirout
+    config: {}
+  - mod: ../../../e2e-tests/dart/symbols_check.mjs
+    outDir: ./symbols_check/skirout
+    config: {}
+
+dependencies:
+  "@gepheum/skir-fantasy-game-example": v1.0.0
+  "@gepheum/skir-golden-tests": v1.0.6

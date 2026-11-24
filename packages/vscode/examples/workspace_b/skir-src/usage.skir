@@ -1,0 +1,62 @@
+// Example usage of Skir imports and definitions
+
+import * as geometry from "geometry.skir";
+
+// Define a new shape using imported types
+struct Rectangle {
+  top_left: geometry.Point;
+  bottom_right: geometry.Point;
+  color: geometry.Color;
+}
+
+const SAMPLE_RECTANGLE: Rectangle = {
+  top_left: {
+    x: 0,
+    y: 0,
+    label: "top-left",
+  },
+  bottom_right: {
+    x: 100,
+    y: 100,
+    label: "bottom-right",
+  },
+  color: {
+    r: 255,
+    g: 255,
+    b: 0,
+    label: "yellow",
+  },
+};
+
+// Example of using nested types with enums
+enum ShapeType {
+  POINT;
+  CIRCLE;
+  RECTANGLE;
+}
+
+struct Shape {
+  type: ShapeType;
+  label: string;
+
+  // Example of a nested struct
+  struct Dimensions {
+    width: float32;
+    height: float32;
+  }
+
+  dimensions: Dimensions?;
+}
+
+// Example of a method definition
+method CalculateArea(
+  Shape
+): float64 = 200;
+
+// Example of removed fields
+struct VersionedData {
+  version: int32;
+  data: string;
+  removed;  // Field was removed
+  metadata: string;
+}

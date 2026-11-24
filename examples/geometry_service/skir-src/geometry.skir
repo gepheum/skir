@@ -1,0 +1,139 @@
+// =============================================================================
+// BASIC TYPES
+// =============================================================================
+
+/// A point in 2D space
+struct Point {
+  x: float64;
+  y: float64;
+}
+
+/// RGB color with optional transparency
+struct Color {
+  red: int32;
+  green: int32;
+  blue: int32;
+  /// Alpha channel (0 = transparent, 255 = opaque)
+  alpha: int32;
+}
+
+// =============================================================================
+// ENUMS: Demonstrating constant and wrapper variants
+// =============================================================================
+
+/// Unit of measurement for distances and areas
+enum MeasurementUnit {
+  /// Metric system (meters, square meters)
+  meters;
+  /// Imperial system (feet, square feet)
+  feet;
+  /// Custom unit with conversion factor to meters
+  custom: float64;
+}
+
+/// Geometric shape - demonstrates enum with wrapper variants
+enum Shape {
+  /// A triangle defined by three vertices
+  triangle: struct {
+    /// The three corner points
+    vertices: [Point];
+  };
+
+  /// A circle defined by center and radius
+  circle: struct {
+    center: Point;
+    radius: float64;
+  };
+
+  /// A rectangle defined by top-left corner and dimensions
+  rectangle: struct {
+    top_left: Point;
+    width: float64;
+    height: float64;
+  };
+
+  /// A general polygon defined by its vertices
+  polygon: struct {
+    /// Vertices in order (at least 3 required)
+    vertices: [Point];
+  };
+}
+
+// =============================================================================
+// COMPUTED PROPERTIES: Results of geometric calculations
+// =============================================================================
+
+/// Computed properties for a triangle
+struct TriangleInfo {
+  /// Side lengths
+  side_a: float64;
+  side_b: float64;
+  side_c: float64;
+  /// Whether all sides are equal
+  is_equilateral: bool;
+  /// Whether at least two sides are equal
+  is_isosceles: bool;
+  /// Whether it has a 90-degree angle
+  is_right_triangle: bool;
+}
+
+/// Computed properties for any shape
+struct ShapeMetrics {
+  /// Area in the specified unit
+  area: float64;
+  /// Perimeter or circumference in the specified unit
+  perimeter: float64;
+  /// Center point (centroid)
+  centroid: Point;
+  /// Bounding box dimensions
+  bounding_box: struct {
+    min_x: float64;
+    min_y: float64;
+    max_x: float64;
+    max_y: float64;
+  };
+}
+
+// =============================================================================
+// DRAWING & VISUALIZATION
+// =============================================================================
+
+/// Style properties for rendering a shape
+struct DrawingStyle {
+  /// Fill color (optional - null for no fill)
+  fill_color: Color?;
+  /// Stroke color
+  stroke_color: Color;
+  /// Stroke width in pixels
+  stroke_width: float64;
+}
+
+/// A drawable shape with metadata - demonstrates struct composition
+struct DrawableShape {
+  /// Unique identifier
+  id: string;
+  /// Human-readable label
+  label: string;
+  /// The geometric shape
+  geometry: Shape;
+  /// How to draw it
+  style: DrawingStyle;
+  /// When it was created (demonstrates timestamp type)
+  created_at: timestamp;
+  /// When it was last modified
+  modified_at: timestamp;
+}
+
+// =============================================================================
+// COLLECTIONS: Demonstrating keyed arrays
+// =============================================================================
+
+/// A named collection of shapes - demonstrates keyed arrays
+struct ShapeCollection {
+  /// Collection name
+  name: string;
+  /// Shapes indexed by their ID (demonstrates keyed array)
+  shapes: [DrawableShape|id];
+  /// When the collection was created
+  created_at: timestamp;
+}

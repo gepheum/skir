@@ -1,0 +1,7 @@
+generators:
+  - mod: skir-typescript-gen
+    outDir: ./backend/skirout
+    config: {}
+  - mod: skir-dart-gen
+    outDir: ./frontend/lib/skirout
+    config: {}

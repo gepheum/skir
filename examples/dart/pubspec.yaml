@@ -1,0 +1,13 @@
+name: skir_dart_example
+description: Example showing how to use skir's Dart code generator in a project
+version: 1.0.0
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  skir_client: ^1.0.11
+  shelf: ^1.4.0
+
+dev_dependencies:
+  lints: ^6.0.0

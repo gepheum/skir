@@ -1,85 +1,41 @@
 {
-  "name": "skir",
-  "version": "1.2.26",
-  "description": "",
-  "homepage": "https://skir.build/",
-  "bugs": {
-    "url": "https://github.com/gepheum/skir/issues"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/gepheum/skir.git"
-  },
+  "name": "skir-monorepo",
+  "private": true,
   "license": "ISC",
-  "author": "Tyler Fibonacci <gepheum@gmail.com>",
   "type": "module",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
-    },
-    "./dist/*": {
-      "import": "./dist/*",
-      "require": "./dist/*"
-    }
-  },
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "bin": "./dist/compiler.js",
-  "files": [
-    "dist",
-    "src",
-    "!**/*.test.ts"
+  "workspaces": [
+    "packages/*"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\"",
-    "skir": "npm run build && node ./dist/compiler.js",
-    "test": "mocha",
-    "lint": "eslint src/**/*.ts",
-    "lint:fix": "eslint src/**/*.ts --fix"
-  },
-  "dependencies": {
-    "glob": "^13.0.6",
-    "skir-cc-gen": "^1.0.16",
-    "skir-csharp-gen": "^0.1.1",
-    "skir-dart-gen": "^1.0.10",
-    "skir-elixir-gen": "^0.1.3",
-    "skir-gleam-gen": "^0.1.4",
-    "skir-go-gen": "^0.1.7",
-    "skir-internal": "^0.2.21",
-    "skir-java-gen": "^1.0.10",
-    "skir-kotlin-gen": "^1.0.13",
-    "skir-moonbit-gen": "^0.1.0",
-    "skir-python-gen": "^1.0.9",
-    "skir-rust-gen": "^0.1.6",
-    "skir-swift-gen": "^0.1.7",
-    "skir-typescript-gen": "^1.0.11",
-    "skir-zig-gen": "^0.1.8",
-    "watcher": "^2.3.1",
-    "yaml": "^2.7.1",
-    "zod": "^4.3.6"
+    "build": "npm run build --workspace=skir-internal && npm run build --workspace=skir-client && npm run build --workspace=skir && npm run build --workspace=skir-codemirror-plugin && npm run build --workspace=skir-studio && npm run build --workspace=skir-converter && npm run build --workspace=skir-language-server && npm run compile --workspace=skir-language",
+    "website:dev": "npm run dev --workspace=@skir/website",
+    "website:build": "npm run build --workspace=@skir/website",
+    "skir": "node packages/compiler/dist/compiler.js",
+    "test": "node --import tsx ./node_modules/mocha/bin/mocha.js \"packages/compiler-internal/src/**/*.test.ts\" \"packages/compiler/src/**/*.test.ts\" \"packages/typescript-client/tests/**/*.test.ts\" \"packages/codemirror-plugin/src/**/*.test.ts\" \"packages/studio/src/**/*.test.ts\"",
+    "lint": "npm run lint --workspaces --if-present",
+    "lint:fix": "npm run lint:fix --workspaces --if-present",
+    "format": "npm run format --workspaces --if-present",
+    "format:check": "npm run format:check --workspaces --if-present"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/mocha": "^10.0.1",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.19.39",
-    "@typescript-eslint/eslint-plugin": "^8.56.0",
-    "@typescript-eslint/parser": "^8.56.0",
-    "buckwheat": "^1.1.2",
+    "@typescript-eslint/eslint-plugin": "^8.57.2",
+    "@typescript-eslint/parser": "^8.57.2",
+    "buckwheat": "^1.1.3",
     "eslint": "^10.0.1",
     "mocha": "^11.7.5",
     "prettier": "^3.8.1",
-    "prettier-plugin-organize-imports": "^4.2.0",
+    "prettier-plugin-organize-imports": "^4.3.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
-    "typescript": "^5.2.2",
-    "typescript-eslint": "^8.56.0"
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.57.2"
   },
   "overrides": {
-    "minimatch": "^10.2.1",
-    "diff": "^8.0.0",
+    "diff": "^8.0.3",
+    "minimatch": "^10.2.2",
     "serialize-javascript": "^7.0.4"
   }
 }

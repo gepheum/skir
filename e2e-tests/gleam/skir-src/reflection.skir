@@ -1,0 +1,14 @@
+struct Catalog {
+  struct Foo {
+    id: int64;
+    name: string;
+    debug: string;
+  }
+
+  enum Item {
+    foo: Foo;
+    foo_optional: Foo?;
+  }
+
+  items: [Item];
+}

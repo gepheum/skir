@@ -1,0 +1,69 @@
+// Example of Skir features
+
+// Struct definition with explicit field numbers
+struct User {
+  user_id: int32 = 0;
+  username: string = 1;
+  email: string = 2;
+  active: bool = 3;
+}
+
+// Enum definition
+enum UserRole {
+  VIEWER;
+  EDITOR;
+  ADMIN;
+}
+
+// Enum with value fields
+enum ApiResponse {
+  SUCCESS;
+  error: string;
+  rate_limited: int32;  // Seconds to wait before retrying
+}
+
+// Example of keyed arrays
+struct UserRegistry {
+  users: [User|user_id];
+}
+
+// Example of optional types
+struct UserSettings {
+  theme: string?;
+  notifications_enabled: bool;
+  preferred_language: string?;
+}
+
+// Const definitions
+const SYSTEM_USER: User = {
+  user_id: 0,
+  username: "system",
+  email: "system@example.com",
+  active: true,
+};
+
+const DEFAULT_ROLE: UserRole = "VIEWER";
+
+const UNKNOWN_ROLE: UserRole = "UNKNOWN";
+
+const SERVER_ERROR: ApiResponse = {
+  kind: "error",
+  value: "Internal Server Error",
+};
+
+// Method definitions for RPC interface
+method GetUser(
+  int32
+): User = 100;
+method UpdateUser(
+  User
+): ApiResponse = 863630;
+
+// Example of timestamp type
+struct AuditLog {
+  timestamp: timestamp;
+  user_id: int32;
+  action: string;
+}
+
+const MINUS_ONE_AND_A_HALF: float64 = -1.5;

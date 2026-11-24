@@ -1,0 +1,26 @@
+import { User } from "user.skir";
+
+struct GetUserRequest {
+  user_id: int32;
+}
+
+struct GetUserResponse {
+  user: User?;
+}
+
+/// Returns the user with the given user_id, or an absent value if no such user
+/// exists.
+method GetUser(
+  GetUserRequest
+): GetUserResponse = 12345;
+
+struct AddUserRequest {
+  user: User;
+}
+
+struct AddUserResponse {}
+
+/// Adds a new user to the registry.
+method AddUser(
+  AddUserRequest
+): AddUserResponse = 23456;

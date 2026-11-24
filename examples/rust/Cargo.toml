@@ -1,0 +1,26 @@
+[package]
+name = "skir-rust-example"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "skir_rust_example"
+
+[[bin]]
+name = "snippets"
+path = "src/bin/snippets.rs"
+
+[[bin]]
+name = "start-service"
+path = "src/bin/start_service.rs"
+
+[[bin]]
+name = "call-service"
+path = "src/bin/call_service.rs"
+
+[dependencies]
+anyhow = "1"
+axum = "0.8"
+skir-client = "0.1.6"
+tokio = { version = "1", features = ["full"] }
+urlencoding = "2"

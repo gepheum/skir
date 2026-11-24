@@ -1,0 +1,7 @@
+method Greet(
+  struct {
+    name: string;
+  }
+): struct {
+  message: string;
+} = 2784738;

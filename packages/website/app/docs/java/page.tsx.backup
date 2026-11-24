@@ -1,0 +1,235 @@
+import { Prose, H1, H2, H3, P, CodeBlock, InlineCode, List } from "@/components/prose"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Java - Skir Documentation",
+  description: "Learn how to use Skir-generated Java code in your projects",
+}
+
+export default function JavaPage() {
+  return (
+    <Prose>
+      <H1>Java</H1>
+      <P>
+        This guide explains how to use Skir-generated Java code in your projects.
+        The Java plugin generates immutable, thread-safe classes with builder patterns
+        that integrate seamlessly with modern Java applications.
+      </P>
+
+      <H2>Installation</H2>
+      <P>
+        First, add the Java plugin to your <InlineCode>skir.yml</InlineCode> configuration:
+      </P>
+      <CodeBlock language="yaml">{`plugins:
+  - name: java
+    out: src/main/java/generated
+    options:
+      package: com.example.generated`}</CodeBlock>
+      <P>
+        Then add the runtime library to your <InlineCode>pom.xml</InlineCode> (Maven):
+      </P>
+      <CodeBlock language="xml">{`<dependency>
+  <groupId>io.gepheum</groupId>
+  <artifactId>skir-java-runtime</artifactId>
+  <version>1.0.0</version>
+</dependency>`}</CodeBlock>
+      <P>Or for Gradle:</P>
+      <CodeBlock language="groovy">{`implementation 'io.gepheum:skir-java-runtime:1.0.0'`}</CodeBlock>
+
+      <H2>Generated Code</H2>
+      <P>
+        For each Skir file, the Java plugin generates corresponding Java classes
+        containing immutable data types with builder patterns.
+      </P>
+
+      <H3>Structs</H3>
+      <P>
+        Each Skir struct becomes an immutable Java class with a builder:
+      </P>
+      <CodeBlock language="skir">{`struct User {
+  name: string @1
+  age: int32 @2
+  email?: string @3
+}`}</CodeBlock>
+      <P>becomes:</P>
+      <CodeBlock language="java">{`public final class User {
+    private final String name;
+    private final int age;
+    private final String email; // nullable
+    
+    private User(Builder builder) {
+        this.name = builder.name;
+        this.age = builder.age;
+        this.email = builder.email;
+    }
+    
+    public String getName() { return name; }
+    public int getAge() { return age; }
+    public Optional<String> getEmail() { return Optional.ofNullable(email); }
+    
+    public Builder toBuilder() { ... }
+    public static Builder newBuilder() { ... }
+    
+    public static final class Builder {
+        public Builder setName(String name) { ... }
+        public Builder setAge(int age) { ... }
+        public Builder setEmail(String email) { ... }
+        public User build() { ... }
+    }
+}`}</CodeBlock>
+
+      <H3>Enums</H3>
+      <P>
+        Skir enums become Java enum classes:
+      </P>
+      <CodeBlock language="skir">{`enum Status {
+  pending @1
+  approved @2
+  rejected @3
+}`}</CodeBlock>
+      <P>becomes:</P>
+      <CodeBlock language="java">{`public enum Status {
+    PENDING(1),
+    APPROVED(2),
+    REJECTED(3);
+    
+    private final int value;
+    
+    Status(int value) {
+        this.value = value;
+    }
+    
+    public int getValue() {
+        return value;
+    }
+    
+    public static Status fromValue(int value) {
+        for (Status s : values()) {
+            if (s.value == value) return s;
+        }
+        return null;
+    }
+}`}</CodeBlock>
+
+      <H3>Oneofs (Union Types)</H3>
+      <P>
+        Skir oneofs become sealed interfaces with record implementations (Java 17+):
+      </P>
+      <CodeBlock language="skir">{`oneof Result {
+  success: SuccessData @1
+  error: ErrorData @2
+}`}</CodeBlock>
+      <P>becomes:</P>
+      <CodeBlock language="java">{`public sealed interface Result {
+    record Success(SuccessData value) implements Result {}
+    record Error(ErrorData value) implements Result {}
+    
+    static Result success(SuccessData value) {
+        return new Success(value);
+    }
+    
+    static Result error(ErrorData value) {
+        return new Error(value);
+    }
+}`}</CodeBlock>
+
+      <H2>Serialization</H2>
+      <P>
+        The generated code includes serializers for converting between
+        Java objects and binary format:
+      </P>
+      <CodeBlock language="java">{`import com.example.generated.User;
+import static com.example.generated.UserSerializer.USER_SERIALIZER;
+
+// Serialize to bytes
+byte[] bytes = USER_SERIALIZER.toBytes(user);
+
+// Deserialize from bytes
+User user = USER_SERIALIZER.fromBytes(bytes);
+
+// Serialize to JSON
+String json = USER_SERIALIZER.toJson(user);
+
+// Deserialize from JSON
+User user2 = USER_SERIALIZER.fromJson(json);`}</CodeBlock>
+
+      <H2>Working with Generated Types</H2>
+
+      <H3>Creating Instances</H3>
+      <P>
+        Use the builder pattern to create instances:
+      </P>
+      <CodeBlock language="java">{`User user = User.newBuilder()
+    .setName("Alice")
+    .setAge(30)
+    .setEmail("alice@example.com")
+    .build();`}</CodeBlock>
+
+      <H3>Updating Instances</H3>
+      <P>
+        Use <InlineCode>toBuilder()</InlineCode> to create a modified copy:
+      </P>
+      <CodeBlock language="java">{`User updated = user.toBuilder()
+    .setAge(31)
+    .setEmail("newemail@example.com")
+    .build();
+
+// Original is unchanged
+System.out.println(user.getAge());    // 30
+System.out.println(updated.getAge()); // 31`}</CodeBlock>
+
+      <H3>Pattern Matching on Oneofs</H3>
+      <P>
+        Use Java&apos;s pattern matching (Java 21+) or instanceof checks:
+      </P>
+      <CodeBlock language="java">{`// Java 21+ pattern matching
+String handleResult(Result result) {
+    return switch (result) {
+        case Result.Success s -> "Success: " + s.value().getMessage();
+        case Result.Error e -> "Error: " + e.value().getCode();
+    };
+}
+
+// Or using instanceof (Java 17+)
+String handleResultLegacy(Result result) {
+    if (result instanceof Result.Success s) {
+        return "Success: " + s.value().getMessage();
+    } else if (result instanceof Result.Error e) {
+        return "Error: " + e.value().getCode();
+    }
+    throw new IllegalArgumentException("Unknown result type");
+}`}</CodeBlock>
+
+      <H2>RPC Services</H2>
+      <P>
+        For Skir services, the Java plugin generates interfaces for both
+        client and server implementations:
+      </P>
+      <CodeBlock language="skir">{`service UserService {
+  getUser(GetUserRequest): GetUserResponse
+  createUser(CreateUserRequest): CreateUserResponse
+}`}</CodeBlock>
+      <P>generates:</P>
+      <CodeBlock language="java">{`public interface UserServiceClient {
+    CompletableFuture<GetUserResponse> getUser(GetUserRequest request);
+    CompletableFuture<CreateUserResponse> createUser(CreateUserRequest request);
+}
+
+public interface UserServiceHandler {
+    CompletableFuture<GetUserResponse> getUser(
+        GetUserRequest request, Context context);
+    CompletableFuture<CreateUserResponse> createUser(
+        CreateUserRequest request, Context context);
+}`}</CodeBlock>
+
+      <H2>Best Practices</H2>
+      <List items={[
+        "Use the builder pattern for all object creation",
+        "Leverage Optional for nullable fields instead of null checks",
+        "Use sealed interfaces with pattern matching for oneofs (Java 17+)",
+        "Keep generated code in a separate package and don't modify it manually",
+        "Configure your build tool to regenerate on compile",
+      ]} />
+    </Prose>
+  )
+}

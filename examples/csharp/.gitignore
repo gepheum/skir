@@ -1,0 +1,5 @@
+skirout
+bin/
+obj/
+.vs/
+.DS_Store

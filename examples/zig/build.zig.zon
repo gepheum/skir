@@ -1,0 +1,23 @@
+.{
+    .name = .zig_example,
+    .version = "0.1.0",
+    .fingerprint = 0x1d7cddc7d2390cb1,
+    .minimum_zig_version = "0.15.0",
+    .dependencies = .{
+        .skir_client = .{
+            .url = "git+https://github.com/gepheum/skir-zig-client#v0.1.7",
+            .hash = "skir_client-0.1.7-Bu7WIIxTBAC5wGTJeHkngkKcpvmKZxuUwsT66-ifB-sH",
+        },
+        .httpz = .{
+            .url = "git+https://github.com/karlseguin/http.zig?ref=zig-0.15#1a4d53b95bc4ac6c84cbc081727428de40c8c635",
+            .hash = "httpz-0.0.0-PNVzrNVOBwDlxyffzwONpI9j9dYqKWXxopU1ZCLt4C09",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "skir-src",
+        "skir.yml",
+    },
+}

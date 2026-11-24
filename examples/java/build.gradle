@@ -1,0 +1,52 @@
+plugins {
+    id 'java'
+    id 'com.diffplug.spotless' version '6.23.3'
+    id 'org.springframework.boot' version '3.2.1'
+    id 'io.spring.dependency-management' version '1.1.4'
+}
+
+group = 'org.example'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'com.squareup.okio:okio:3.6.0'
+    implementation 'build.skir:skir-client:latest.release'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.7.3'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.0'
+    testImplementation 'com.google.truth:truth:1.1.5'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+// Configure the application plugin so `./gradlew run` is available.
+// The `mainClass` below points to the main class with `public static void main(...)`.
+apply plugin: 'application'
+
+application {
+    mainClass = project.hasProperty('mainClass') ? project.property('mainClass') : 'examples.Snippets'
+}
+
+spotless {
+    java {
+        target 'src/**/*.java'
+        targetExclude 'src/main/java/skirout/**'
+        googleJavaFormat()
+    }
+}
+
+sourceCompatibility = '17'
+targetCompatibility = '17'

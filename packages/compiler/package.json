@@ -1,0 +1,52 @@
+{
+  "name": "skir",
+  "version": "1.2.26",
+  "description": "Skir schema compiler and multi-language code generator",
+  "homepage": "https://skir.build/",
+  "bugs": {
+    "url": "https://github.com/gepheum/skir/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gepheum/skir.git",
+    "directory": "packages/compiler"
+  },
+  "license": "ISC",
+  "author": "Tyler Fibonacci <gepheum@gmail.com>",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./dist/*": {
+      "import": "./dist/*",
+      "require": "./dist/*"
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "bin": "./dist/compiler.js",
+  "files": [
+    "dist",
+    "src",
+    "!**/*.test.ts"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\"",
+    "skir": "npm run build && node ./dist/compiler.js",
+    "test": "mocha",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix"
+  },
+  "dependencies": {
+    "glob": "^13.0.6",
+    "skir-internal": "^0.2.22",
+    "watcher": "^2.3.1",
+    "yaml": "^2.7.1",
+    "zod": "^4.3.6"
+  }
+}

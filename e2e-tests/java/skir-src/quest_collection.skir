@@ -1,0 +1,6 @@
+import { Quest } from "@gepheum/skir-fantasy-game-example/fantasy_game.skir";
+
+struct QuestCollection {
+  collection_name: string;
+  quests: [Quest|quest_id];
+}

@@ -1,0 +1,3 @@
+struct TransitiveValue {
+  text: string;
+}

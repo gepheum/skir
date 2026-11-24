@@ -1,0 +1,220 @@
+// Loot and item management for the fantasy RPG
+
+/// Item quality affects appearance and vendor value multiplier
+enum ItemQuality(223355) {
+  poor = 1;
+  common = 2;
+  uncommon = 3;
+  rare = 4;
+  epic = 5;
+  legendary = 6;
+  mythic = 7;
+}
+
+/// Types of consumable items
+enum ConsumableType(334466) {
+  /// Restores health points
+  health_potion = 1;
+  /// Restores mana points
+  mana_potion = 2;
+  /// Grants temporary buff
+  buff_elixir = 3;
+  /// Removes debuffs
+  cure_potion = 4;
+  /// Grants experience boost
+  xp_scroll = 5;
+}
+
+/// A consumable item that can be used by players
+struct Consumable(445577) {
+  consumable_type: ConsumableType = 0;
+  /// Amount to restore (health/mana) or duration in ms (buffs)
+  potency: float32 = 1;
+  /// For buff elixirs, description of the effect
+  effect_description: string? = 2;
+}
+
+/// Categories of crafting materials
+enum MaterialCategory(556688) {
+  ore = 1;
+  herb = 2;
+  leather = 3;
+  cloth = 4;
+  essence = 5;
+  gem = 6;
+}
+
+/// Raw materials used in crafting
+struct CraftingMaterial(667799) {
+  material_id: int32 = 0;
+  name: string = 1;
+  category: MaterialCategory = 2;
+  /// Tier affects which recipes can use this material (1 = basic, 5 = master)
+  tier: int32 = 3;
+  /// Stack size limit in inventory
+  max_stack_size: int32 = 4;
+}
+
+/// A generic item that can be found as loot
+struct Item(778811) {
+  item_id: hash64 = 0;
+  name: string = 1;
+  description: string = 2;
+  quality: ItemQuality = 3;
+  /// Base vendor sell price in gold
+  base_value: int32 = 4;
+  /// Item level affects stat scaling
+  item_level: int32 = 5;
+  /// Weight affects encumbrance
+  weight: float32 = 6;
+
+  /// The actual item type and properties
+  item_type: enum {
+    /// Equipment piece (weapon, armor, accessories)
+    equipment: struct {
+      /// Equipment data would be imported from the main schema
+      /// For simplicity, just storing the equipment ID here
+      equipment_id: hash64;
+    } = 1;
+
+    /// Consumable item
+    consumable: Consumable = 2;
+
+    /// Crafting material
+    material: CraftingMaterial = 3;
+
+    /// Quest item (cannot be sold or traded)
+    quest_item: struct {
+      quest_id: int32 = 0;
+      /// Flavor text for the quest item
+      lore: string = 1;
+    } = 4;
+
+    /// Junk item (only purpose is to sell to vendors)
+    junk = 5;
+  } = 7;
+
+  /// Whether this item can be traded between players
+  is_tradeable: bool = 8;
+
+  /// Whether this item binds to the character when picked up
+  binds_on_pickup: bool = 9;
+}
+
+/// Loot drop configuration for monsters or treasure chests
+struct LootTable(889922) {
+  loot_table_id: int32 = 0;
+  /// Descriptive name for this loot table
+  name: string = 1;
+
+  struct Drop {
+    item_id: hash64 = 0;
+    /// Probability from 0.0 to 1.0
+    drop_chance: float32 = 1;
+    /// Minimum quantity that can drop
+    min_quantity: int32 = 2;
+    /// Maximum quantity that can drop
+    max_quantity: int32 = 3;
+  }
+  /// Possible item drops with their drop rates
+  drops: [Drop] = 2;
+
+  struct GoldDrop {
+    min_gold: int32 = 0;
+    max_gold: int32 = 1;
+  }
+  /// Guaranteed gold drop range
+  gold_drop: GoldDrop? = 3;
+}
+
+/// Player inventory management
+struct Inventory(990033) {
+  /// Maximum number of item stacks allowed
+  capacity: int32 = 0;
+
+  struct Item {
+    item: Item = 0;
+    /// How many of this item (for stackable items)
+    quantity: int32 = 1;
+    /// Inventory slot position
+    slot: int32 = 2;
+  }
+  /// Items currently in inventory
+  items: [Item|slot] = 1;
+
+  /// Current total weight of all items
+  total_weight: float32 = 2;
+
+  /// Maximum weight before becoming encumbered
+  max_weight: float32 = 3;
+}
+
+// === Constants ===
+
+/// A basic health potion
+const MINOR_HEALTH_POTION: Item = {
+  item_id: 1001,
+  name: "Minor Health Potion",
+  description: "Restores 50 health points.",
+  quality: "common",
+  base_value: 5,
+  item_level: 1,
+  weight: 0.1,
+  item_type: {
+    kind: "consumable",
+    value: {
+      consumable_type: "health_potion",
+      potency: 50.0,
+      effect_description: null,
+    },
+  },
+  is_tradeable: true,
+  binds_on_pickup: false,
+};
+
+/// Iron ore for crafting
+const IRON_ORE: Item = {
+  item_id: 2001,
+  name: "Iron Ore",
+  description: "A chunk of raw iron ore. Can be smelted into iron bars.",
+  quality: "common",
+  base_value: 2,
+  item_level: 1,
+  weight: 0.5,
+  item_type: {
+    kind: "material",
+    value: {
+      material_id: 1,
+      name: "Iron Ore",
+      category: "ore",
+      tier: 1,
+      max_stack_size: 100,
+    },
+  },
+  is_tradeable: true,
+  binds_on_pickup: false,
+};
+
+/// Example loot table for a basic goblin enemy
+const GOBLIN_LOOT: LootTable = {
+  loot_table_id: 1,
+  name: "Goblin Loot",
+  drops: [
+    {
+      item_id: 1001,
+      drop_chance: 0.3,
+      min_quantity: 1,
+      max_quantity: 1,
+    },
+    {
+      item_id: 2001,
+      drop_chance: 0.15,
+      min_quantity: 1,
+      max_quantity: 3,
+    },
+  ],
+  gold_drop: {
+    min_gold: 1,
+    max_gold: 5,
+  },
+};

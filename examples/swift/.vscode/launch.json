@@ -1,0 +1,64 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:swift-example}",
+      "name": "Debug StartService",
+      "target": "StartService",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug StartService"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:swift-example}",
+      "name": "Release StartService",
+      "target": "StartService",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release StartService"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:swift-example}",
+      "name": "Debug Snippets",
+      "target": "Snippets",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug Snippets"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:swift-example}",
+      "name": "Release Snippets",
+      "target": "Snippets",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release Snippets"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:swift-example}",
+      "name": "Debug CallService",
+      "target": "CallService",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug CallService"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:swift-example}",
+      "name": "Release CallService",
+      "target": "CallService",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release CallService"
+    }
+  ]
+}

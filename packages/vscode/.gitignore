@@ -1,0 +1,7 @@
+.DS_Store
+.vscode-test
+*.vsix
+dist
+node_modules
+out
+skir-external

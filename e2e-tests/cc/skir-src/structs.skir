@@ -1,0 +1,449 @@
+import {
+  JsonValue,
+  Weekday,
+} from "enums.skir";
+import { FullName } from "full_name.skir";
+import * as car from "vehicles/car.skir";
+
+struct Point {
+  x: int32;
+  y: int32;
+}
+
+struct Color {
+  r: int32;
+  g: int32;
+  b: int32;
+}
+
+struct Triangle {
+  color: Color;
+  points: [Point];
+}
+
+struct Item {
+  bool: bool;
+  string: string;
+  int32: int32;
+  int64: int64;
+  struct User {
+    id: string;
+  }
+  user: User;
+  weekday: Weekday;
+  bytes: bytes;
+  timestamp: timestamp;
+}
+
+struct KeyedItems {
+  array_with_bool_key: [Item|bool];
+  array_with_string_key: [Item|string];
+  array_with_int32_key: [Item|int32];
+  array_with_int64_key: [Item|int64];
+  array_with_wrapper_key: [Item|user.id];
+  array_with_enum_key: [Item|weekday.kind];
+  array_with_bytes_key: [Item|bytes];
+  array_with_timestamp_key: [Item|timestamp];
+}
+
+struct JsonValues {
+  json_values: [JsonValue];
+}
+
+struct CarOwner {
+  car: car.Car;
+  owner: FullName;
+}
+
+struct Foo {
+  struct Bar {
+    bar: string?;
+    foos: [Foo?]?;
+  }
+  bars: [Bar]?;
+
+  struct Zoo {}
+  zoos: [Zoo?]?;
+}
+
+struct NameCollision {
+  struct Foo {
+    struct Foo {
+      struct Foo {
+        x: int32;
+        top_level_foo: .NameCollision.Foo;
+      }
+      foo: Foo;
+    }
+    foo: Foo;
+  }
+  foo: Foo;
+
+  struct Array {
+    struct Array {}
+    array: Array;
+  }
+  array: Array;
+
+  struct Value {}
+
+  enum Enum {
+    default;
+
+    struct Mutable {}
+    mutable: Mutable;
+  }
+}
+
+struct RecA {
+  a: RecA;
+  b: RecB;
+  a_optional: RecA?;
+}
+
+struct RecB {
+  a: RecA;
+  a_list: [RecA?]?;
+}
+
+struct Rec {
+  rec: Rec;
+  b: bool;
+}
+
+struct Name {
+  struct Name1 {}
+  struct Name2 {
+    name1: Name1;
+  }
+  struct Name {
+    struct Name {
+      name2: Name2;
+    }
+  }
+}
+
+struct Floats {
+  x: float32;
+  y: float64;
+}
+
+struct True {
+  self: [True];
+  to_frozen: bool?;
+  to_mutable: bool?;
+  and: bool?;
+}
+
+struct Bundle {
+  f0: bool;
+  f1: bool;
+  f2: bool;
+  f3: bool;
+  f4: bool;
+  f5: bool;
+  f6: bool;
+  f7: bool;
+  f8: bool;
+  f9: bool;
+  f10: bool;
+  f11: bool;
+  f12: bool;
+  f13: bool;
+  f14: bool;
+  f15: bool;
+  f16: bool;
+  f17: bool;
+  f18: bool;
+  f19: bool;
+  f20: bool;
+  f21: bool;
+  f22: bool;
+  f23: bool;
+  f24: bool;
+  f25: bool;
+  f26: bool;
+  f27: bool;
+  f28: bool;
+  f29: bool;
+  f30: bool;
+  f31: bool;
+  f32: bool;
+  f33: bool;
+  f34: bool;
+  f35: bool;
+  f36: bool;
+  f37: bool;
+  f38: bool;
+  f39: bool;
+  f40: bool;
+  f41: bool;
+  f42: bool;
+  f43: bool;
+  f44: bool;
+  f45: bool;
+  f46: bool;
+  f47: bool;
+  f48: bool;
+  f49: bool;
+  f50: bool;
+  f51: bool;
+  f52: bool;
+  f53: bool;
+  f54: bool;
+  f55: bool;
+  f56: bool;
+  f57: bool;
+  f58: bool;
+  f59: bool;
+  f60: bool;
+  f61: bool;
+  f62: bool;
+  f63: bool;
+  f64: bool;
+  f65: bool;
+  f66: bool;
+  f67: bool;
+  f68: bool;
+  f69: bool;
+  f70: bool;
+  f71: bool;
+  f72: bool;
+  f73: bool;
+  f74: bool;
+  f75: bool;
+  f76: bool;
+  f77: bool;
+  f78: bool;
+  f79: bool;
+  f80: bool;
+  f81: bool;
+  f82: bool;
+  f83: bool;
+  f84: bool;
+  f85: bool;
+  f86: bool;
+  f87: bool;
+  f88: bool;
+  f89: bool;
+  f90: bool;
+  f91: bool;
+  f92: bool;
+  f93: bool;
+  f94: bool;
+  f95: bool;
+  f96: bool;
+  f97: bool;
+  f98: bool;
+  f99: bool;
+  f100: bool;
+  f101: bool;
+  f102: bool;
+  f103: bool;
+  f104: bool;
+  f105: bool;
+  f106: bool;
+  f107: bool;
+  f108: bool;
+  f109: bool;
+  f110: bool;
+  f111: bool;
+  f112: bool;
+  f113: bool;
+  f114: bool;
+  f115: bool;
+  f116: bool;
+  f117: bool;
+  f118: bool;
+  f119: bool;
+  f120: bool;
+  f121: bool;
+  f122: bool;
+  f123: bool;
+  f124: bool;
+  f125: bool;
+  f126: bool;
+  f127: bool;
+  f128: bool;
+  f129: bool;
+  f130: bool;
+  f131: bool;
+  f132: bool;
+  f133: bool;
+  f134: bool;
+  f135: bool;
+  f136: bool;
+  f137: bool;
+  f138: bool;
+  f139: bool;
+  f140: bool;
+  f141: bool;
+  f142: bool;
+  f143: bool;
+  f144: bool;
+  f145: bool;
+  f146: bool;
+  f147: bool;
+  f148: bool;
+  f149: bool;
+  f150: bool;
+  f151: bool;
+  f152: bool;
+  f153: bool;
+  f154: bool;
+  f155: bool;
+  f156: bool;
+  f157: bool;
+  f158: bool;
+  f159: bool;
+  f160: bool;
+  f161: bool;
+  f162: bool;
+  f163: bool;
+  f164: bool;
+  f165: bool;
+  f166: bool;
+  f167: bool;
+  f168: bool;
+  f169: bool;
+  f170: bool;
+  f171: bool;
+  f172: bool;
+  f173: bool;
+  f174: bool;
+  f175: bool;
+  f176: bool;
+  f177: bool;
+  f178: bool;
+  f179: bool;
+  f180: bool;
+  f181: bool;
+  f182: bool;
+  f183: bool;
+  f184: bool;
+  f185: bool;
+  f186: bool;
+  f187: bool;
+  f188: bool;
+  f189: bool;
+  f190: bool;
+  f191: bool;
+  f192: bool;
+  f193: bool;
+  f194: bool;
+  f195: bool;
+  f196: bool;
+  f197: bool;
+  f198: bool;
+  f199: bool;
+  f200: bool;
+  f201: bool;
+  f202: bool;
+  f203: bool;
+  f204: bool;
+  f205: bool;
+  f206: bool;
+  f207: bool;
+  f208: bool;
+  f209: bool;
+  f210: bool;
+  f211: bool;
+  f212: bool;
+  f213: bool;
+  f214: bool;
+  f215: bool;
+  f216: bool;
+  f217: bool;
+  f218: bool;
+  f219: bool;
+  f220: bool;
+  f221: bool;
+  f222: bool;
+  f223: bool;
+  f224: bool;
+  f225: bool;
+  f226: bool;
+  f227: bool;
+  f228: bool;
+  f229: bool;
+  f230: bool;
+  f231: bool;
+  f232: bool;
+  f233: bool;
+  f234: bool;
+  f235: bool;
+  f236: bool;
+  f237: bool;
+  f238: bool;
+  f239: bool;
+  f240: bool;
+  f241: bool;
+  f242: bool;
+  f243: bool;
+  f244: bool;
+  f245: bool;
+  f246: bool;
+  f247: bool;
+  f248: bool;
+  f249: bool;
+  f250: bool;
+  f251: bool;
+  f252: bool;
+  f253: bool;
+  f254: bool;
+  f255: bool;
+  f256: bool;
+  f257: bool;
+  f258: bool;
+  f259: bool;
+  f260: bool;
+  f261: bool;
+  f262: bool;
+  f263: bool;
+  f264: bool;
+  f265: bool;
+  f266: bool;
+  f267: bool;
+  f268: bool;
+  f269: bool;
+  f270: bool;
+  f271: bool;
+  f272: bool;
+  f273: bool;
+  f274: bool;
+  f275: bool;
+  f276: bool;
+  f277: bool;
+  f278: bool;
+  f279: bool;
+  f280: bool;
+  f281: bool;
+  f282: bool;
+  f283: bool;
+  f284: bool;
+  f285: bool;
+  f286: bool;
+  f287: bool;
+  f288: bool;
+  f289: bool;
+  f290: bool;
+  f291: bool;
+  f292: bool;
+  f293: bool;
+  f294: bool;
+  f295: bool;
+  f296: bool;
+  f297: bool;
+  f298: bool;
+  f299: bool;
+}
+
+struct Empty {}
+
+struct EmptyWithRm1 {
+  removed;
+}
+
+struct EmptyWithRm10 {
+  removed 0, 1, 2, 3, 4, 5, 6, 7, 8, 9;
+}

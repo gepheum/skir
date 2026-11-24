@@ -1,0 +1,69 @@
+// Example geometry definitions
+// This file demonstrates Skir language features
+
+struct Point {
+  x: int32;
+  y: int32;
+  label: string;
+}
+
+struct Circle {
+  center: Point;
+  radius: float32;
+  color: Color;
+}
+
+struct Polyline {
+  points: [Point];
+  label: string;
+  foo: Circle;
+}
+
+struct Color {
+  r: int32;
+  g: int32;
+  b: int32;
+  label: string;
+}
+
+const RED: Color = {
+  r: 255,
+  g: 0,
+  b: 0,
+  label: "red",
+};
+
+const GREEN: Color = {
+  r: 0,
+  g: 255,
+  b: 0,
+  label: "green",
+};
+
+const BLUE: Color = {
+  r: 0,
+  g: 0,
+  b: 255,
+  label: "blue",
+};
+
+const ORIGIN: Point = {
+  x: 0,
+  y: 0,
+  label: "origin",
+};
+
+const UNIT_CIRCLE: Circle = {
+  center: {
+    x: 0,
+    y: 0,
+    label: "center",
+  },
+  radius: 1.0,
+  color: {
+    r: 0,
+    g: 0,
+    b: 255,
+    label: "blue",
+  },
+};

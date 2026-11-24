@@ -1,0 +1,79 @@
+// Intergalactic Lost & Found Application Schema
+
+/// Represents a lost or found item in the galaxy
+struct LostItem {
+  /// Unique identifier for this item
+  id: string;
+  /// Name/description of the item
+  name: string;
+  /// Planet or space station where it was lost/found
+  location: string;
+  /// Type of item (e.g., "artifact", "pet", "spaceship part")
+  category: string;
+  /// Status of the item
+  status: ItemStatus;
+  /// Contact information for the person who lost/found it
+  contact: string;
+  /// When the item was reported (Unix timestamp in seconds)
+  timestamp: int64;
+}
+
+/// Status of an item in the lost & found
+enum ItemStatus {
+  /// Item was lost and looking for it
+  lost;
+  /// Item was found and looking for owner
+  found;
+  /// Item has been reunited with owner
+  reunited;
+}
+
+/// Request to add a new lost/found item
+struct AddItemRequest {
+  name: string;
+  location: string;
+  category: string;
+  status: ItemStatus;
+  contact: string;
+}
+
+/// Response containing the created item
+struct AddItemResponse {
+  item: LostItem;
+}
+
+/// Request to list all items
+struct ListItemsRequest {
+  /// Optional filter by status
+  status: ItemStatus?;
+}
+
+/// Response containing list of items
+struct ListItemsResponse {
+  items: [LostItem];
+}
+
+/// Request to mark an item as reunited
+struct ReuniteItemRequest {
+  id: string;
+}
+
+/// Response for reunite operation
+struct ReuniteItemResponse {
+  success: bool;
+}
+
+/// Add a new lost or found item
+method AddItem(
+  AddItemRequest
+): AddItemResponse = 1001;
+
+/// List all items, optionally filtered by status
+method ListItems(
+  ListItemsRequest
+): ListItemsResponse = 1002;
+
+/// Mark an item as reunited with its owner
+method ReuniteItem(
+  ReuniteItemRequest
+): ReuniteItemResponse = 1003;

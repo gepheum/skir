@@ -1,0 +1,170 @@
+import {
+  DrawableShape,
+  MeasurementUnit,
+  Point,
+  Shape,
+  ShapeCollection,
+  ShapeMetrics,
+  TriangleInfo,
+} from "geometry.skir";
+
+// =============================================================================
+// METHOD 1: Basic shape analysis - demonstrates simple request/response
+// =============================================================================
+
+/// Request to calculate basic metrics for a shape
+struct CalculateMetricsRequest {
+  /// The shape to analyze
+  shape: Shape;
+  /// Unit for the results
+  unit: MeasurementUnit;
+}
+
+/// Response with calculated metrics
+struct CalculateMetricsResponse {
+  /// Computed metrics for the shape
+  metrics: ShapeMetrics;
+  /// When the calculation was performed (demonstrates timestamp)
+  calculated_at: timestamp;
+}
+
+/// Calculates area, perimeter, and other metrics for a geometric shape
+method CalculateMetrics(
+  CalculateMetricsRequest
+): CalculateMetricsResponse = 10001;
+
+// =============================================================================
+// METHOD 2: Triangle-specific analysis - demonstrates enum pattern matching
+// =============================================================================
+
+/// Request to analyze triangle-specific properties
+struct AnalyzeTriangleRequest {
+  /// The three vertices of the triangle
+  vertex_a: Point;
+  vertex_b: Point;
+  vertex_c: Point;
+}
+
+/// Response with triangle analysis
+struct AnalyzeTriangleResponse {
+  /// Triangle-specific information
+  info: TriangleInfo;
+  /// General shape metrics
+  metrics: ShapeMetrics;
+  /// When analysis was performed
+  analyzed_at: timestamp;
+}
+
+/// Analyzes properties specific to triangles (equilateral, isosceles, etc.)
+method AnalyzeTriangle(
+  AnalyzeTriangleRequest
+): AnalyzeTriangleResponse = 10002;
+
+// =============================================================================
+// METHOD 3: Batch operations - demonstrates arrays and keyed arrays
+// =============================================================================
+
+/// Request to analyze multiple shapes at once
+struct BatchAnalyzeRequest {
+  /// Shapes to analyze (demonstrates array field)
+  shapes: [DrawableShape];
+  /// Measurement unit for all results
+  unit: MeasurementUnit;
+}
+
+/// Analysis result for a single shape in a batch
+struct ShapeAnalysisResult {
+  /// ID of the shape that was analyzed
+  shape_id: string;
+  /// Computed metrics
+  metrics: ShapeMetrics;
+  /// Any errors that occurred (null if successful)
+  error: string?;
+}
+
+/// Response with analysis results for multiple shapes
+struct BatchAnalyzeResponse {
+  /// Results keyed by shape ID (demonstrates keyed array)
+  results: [ShapeAnalysisResult|shape_id];
+  /// When the batch analysis completed
+  completed_at: timestamp;
+  /// Summary statistics
+  total_area: float64;
+  shape_count: int32;
+}
+
+/// Analyzes multiple shapes in one request and returns individual results
+method BatchAnalyze(
+  BatchAnalyzeRequest
+): BatchAnalyzeResponse = 10003;
+
+// =============================================================================
+// METHOD 4: Shape transformations - demonstrates geometric operations
+// =============================================================================
+
+/// Request to transform a shape
+struct TransformShapeRequest {
+  /// The shape to transform
+  shape: Shape;
+  /// Translation offset
+  translate: Point;
+  /// Scale factor (1.0 = no scaling)
+  scale: float64;
+  /// Rotation angle in radians
+  rotate_radians: float64;
+}
+
+/// Response with the transformed shape
+struct TransformShapeResponse {
+  /// The transformed shape
+  transformed: Shape;
+  /// Metrics before transformation
+  original_metrics: ShapeMetrics;
+  /// Metrics after transformation
+  transformed_metrics: ShapeMetrics;
+  /// When transformation was applied
+  transformed_at: timestamp;
+}
+
+/// Applies geometric transformations (translate, rotate, scale) to a shape
+method TransformShape(
+  TransformShapeRequest
+): TransformShapeResponse = 10004;
+
+// =============================================================================
+// METHOD 5: Collections - demonstrates working with keyed arrays
+// =============================================================================
+
+/// Request to find the largest shape in a collection
+struct FindLargestShapeRequest {
+  /// The collection to search
+  collection: ShapeCollection;
+  /// What to maximize ('area' or 'perimeter')
+  criterion: enum {
+    area;
+    perimeter;
+  };
+  /// Unit for measurements
+  unit: MeasurementUnit;
+}
+
+/// A ranked shape entry
+struct RankedShape {
+  shape_id: string;
+  value: float64;
+}
+
+/// Response with the largest shape
+struct FindLargestShapeResponse {
+  /// The largest shape found
+  largest_shape: DrawableShape;
+  /// Its metrics
+  metrics: ShapeMetrics;
+  /// All shapes sorted by size (demonstrates array)
+  ranked_shapes: [RankedShape];
+}
+
+/// Finds the largest shape in a collection based on area or perimeter
+method FindLargestShape(
+  FindLargestShapeRequest
+): FindLargestShapeResponse = 10005;

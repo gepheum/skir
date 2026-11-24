@@ -1,0 +1,4 @@
+generators:
+  - mod: skir-rust-gen
+    outDir: ./src/skirout
+    config: {}

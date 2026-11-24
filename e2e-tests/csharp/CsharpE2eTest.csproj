@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Treat all files under skirout/ as generated so warnings are suppressed. -->
+    <GeneratedFileExtension>.cs</GeneratedFileExtension>
+    <!-- Suppress doc-comment warnings that fire only because GenerateDocumentationFile
+         is required for IDE0005 to work at build time. XML docs are not required for
+         any file in this project. -->
+    <NoWarn>$(NoWarn);1584;1591;1658</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\client-libraries\csharp\SkirClient.csproj" />
+  </ItemGroup>
+
+  <!-- Suppress all warnings in generated skirout files -->
+  <ItemGroup>
+    <Compile Update="skirout/**/*.cs">
+      <NoWarn>1591;8019;CS0169;CS0649;CS8618;CS0067</NoWarn>
+    </Compile>
+  </ItemGroup>
+
+  <!-- Exclude the unit-test sub-project and local SkirClient sources from this project's compile glob. -->
+  <ItemGroup>
+    <Compile Remove="SkirClientTest/**/*.cs" />
+    <Compile Remove="SkirClient/**/*.cs" />
+  </ItemGroup>
+
+</Project>

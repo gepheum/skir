@@ -1,0 +1,234 @@
+import { Prose, H1, H2, H3, P, CodeBlock, InlineCode, List } from "@/components/prose"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  title: "Python - Skir Documentation",
+  description: "Learn how to use Skir-generated Python code in your projects",
+}
+
+export default function PythonPage() {
+  return (
+    <Prose>
+      <H1>Python</H1>
+      <P>
+        This guide explains how to use Skir-generated Python code in your projects.
+        The Python plugin generates idiomatic, type-annotated code that works with
+        modern Python type checkers like mypy and Pyright.
+      </P>
+
+      <H2>Installation</H2>
+      <P>
+        First, add the Python plugin to your <InlineCode>skir.yml</InlineCode> configuration:
+      </P>
+      <CodeBlock language="yaml">{`plugins:
+  - name: python
+    out: src/generated`}</CodeBlock>
+      <P>
+        Then install the runtime library:
+      </P>
+      <CodeBlock language="bash">{`pip install skir-python-runtime`}</CodeBlock>
+
+      <H2>Generated Code</H2>
+      <P>
+        For each Skir file, the Python plugin generates a corresponding <InlineCode>.py</InlineCode> file
+        containing dataclasses and utility functions for working with your data types.
+      </P>
+
+      <H3>Structs</H3>
+      <P>
+        Each Skir struct becomes a frozen dataclass:
+      </P>
+      <CodeBlock language="skir">{`struct User {
+  name: string @1
+  age: int32 @2
+  email?: string @3
+}`}</CodeBlock>
+      <P>becomes:</P>
+      <CodeBlock language="python">{`from dataclasses import dataclass
+from typing import Optional
+
+@dataclass(frozen=True)
+class User:
+    name: str = ""
+    age: int = 0
+    email: Optional[str] = None
+    
+    @staticmethod
+    def create(**kwargs) -> "User":
+        return User(**kwargs)
+    
+    def copy(self, **changes) -> "User":
+        return dataclasses.replace(self, **changes)`}</CodeBlock>
+
+      <H3>Enums</H3>
+      <P>
+        Skir enums become Python Enum classes:
+      </P>
+      <CodeBlock language="skir">{`enum Status {
+  pending @1
+  approved @2
+  rejected @3
+}`}</CodeBlock>
+      <P>becomes:</P>
+      <CodeBlock language="python">{`from enum import Enum
+
+class Status(Enum):
+    PENDING = 1
+    APPROVED = 2
+    REJECTED = 3`}</CodeBlock>
+
+      <H3>Oneofs (Union Types)</H3>
+      <P>
+        Skir oneofs become tagged unions using dataclasses:
+      </P>
+      <CodeBlock language="skir">{`oneof Result {
+  success: SuccessData @1
+  error: ErrorData @2
+}`}</CodeBlock>
+      <P>becomes:</P>
+      <CodeBlock language="python">{`from dataclasses import dataclass
+from typing import Union, Literal
+
+@dataclass(frozen=True)
+class ResultSuccess:
+    kind: Literal["success"] = "success"
+    value: SuccessData = None
+
+@dataclass(frozen=True)
+class ResultError:
+    kind: Literal["error"] = "error"
+    value: ErrorData = None
+
+Result = Union[ResultSuccess, ResultError]
+
+def result_success(value: SuccessData) -> Result:
+    return ResultSuccess(value=value)
+
+def result_error(value: ErrorData) -> Result:
+    return ResultError(value=value)`}</CodeBlock>
+
+      <H2>Serialization</H2>
+      <P>
+        The generated code includes serialization functions for converting between
+        Python objects and binary format:
+      </P>
+      <CodeBlock language="python">{`from generated.user import User, USER_SERIALIZER
+
+# Serialize to bytes
+data: bytes = USER_SERIALIZER.to_bytes(user)
+
+# Deserialize from bytes
+user: User = USER_SERIALIZER.from_bytes(data)
+
+# Serialize to JSON-compatible dict
+json_obj = USER_SERIALIZER.to_json(user)
+
+# Deserialize from JSON
+user2: User = USER_SERIALIZER.from_json(json_obj)`}</CodeBlock>
+
+      <H2>Working with Generated Types</H2>
+
+      <H3>Creating Instances</H3>
+      <P>
+        You can create instances using the dataclass constructor or the <InlineCode>create</InlineCode> method:
+      </P>
+      <CodeBlock language="python">{`# Using constructor
+user = User(
+    name="Alice",
+    age=30,
+    email="alice@example.com"
+)
+
+# Using create (same as constructor)
+user2 = User.create(
+    name="Bob",
+    age=25
+)`}</CodeBlock>
+
+      <H3>Updating Instances</H3>
+      <P>
+        Generated types are frozen (immutable). Use the <InlineCode>copy</InlineCode> method to create updated instances:
+      </P>
+      <CodeBlock language="python">{`# Create a copy with updated fields
+updated = user.copy(age=31, email="newemail@example.com")
+
+# Original is unchanged
+print(user.age)     # 30
+print(updated.age)  # 31`}</CodeBlock>
+
+      <H3>Pattern Matching on Oneofs</H3>
+      <P>
+        Use Python&apos;s match statement (3.10+) or isinstance checks:
+      </P>
+      <CodeBlock language="python">{`# Python 3.10+ match statement
+def handle_result(result: Result) -> str:
+    match result:
+        case ResultSuccess(value=data):
+            return f"Success: {data.message}"
+        case ResultError(value=err):
+            return f"Error: {err.code}"
+
+# Or using isinstance
+def handle_result_legacy(result: Result) -> str:
+    if isinstance(result, ResultSuccess):
+        return f"Success: {result.value.message}"
+    elif isinstance(result, ResultError):
+        return f"Error: {result.value.code}"
+    raise ValueError("Unknown result type")`}</CodeBlock>
+
+      <H2>RPC Services</H2>
+      <P>
+        For Skir services, the Python plugin generates Protocol classes for both
+        client and server implementations:
+      </P>
+      <CodeBlock language="skir">{`service UserService {
+  getUser(GetUserRequest): GetUserResponse
+  createUser(CreateUserRequest): CreateUserResponse
+}`}</CodeBlock>
+      <P>generates:</P>
+      <CodeBlock language="python">{`from typing import Protocol
+from abc import abstractmethod
+
+class UserServiceClient(Protocol):
+    @abstractmethod
+    async def get_user(self, request: GetUserRequest) -> GetUserResponse:
+        ...
+    
+    @abstractmethod
+    async def create_user(self, request: CreateUserRequest) -> CreateUserResponse:
+        ...
+
+class UserServiceHandler(Protocol):
+    @abstractmethod
+    async def get_user(
+        self, request: GetUserRequest, context: Context
+    ) -> GetUserResponse:
+        ...
+    
+    @abstractmethod
+    async def create_user(
+        self, request: CreateUserRequest, context: Context
+    ) -> CreateUserResponse:
+        ...`}</CodeBlock>
+
+      <H2>Type Checking</H2>
+      <P>
+        The generated Python code is fully type-annotated and works with:
+      </P>
+      <List items={[
+        "mypy - Add the generated directory to your mypy.ini paths",
+        "Pyright - Works out of the box",
+        "PyCharm - Full IDE support with autocomplete",
+      ]} />
+
+      <H2>Best Practices</H2>
+      <List items={[
+        "Use frozen dataclasses for immutability - they're hashable and can be used as dict keys",
+        "Leverage type annotations for better IDE support and static analysis",
+        "Use the copy() method instead of creating new instances manually",
+        "Keep generated code in a separate package and don't modify it manually",
+        "Add the generated directory to your .gitignore if you prefer to regenerate on build",
+      ]} />
+    </Prose>
+  )
+}
