@@ -365,8 +365,10 @@ async function format(
     console.log();
     console.log(
       makeRed(
-        `${numFilesNotFormatted} file${numFilesNotFormatted > 1 ? "s" : ""
-        } not formatted; run with 'format fix' to format ${numFilesNotFormatted > 1 ? "them" : "it"
+        `${numFilesNotFormatted} file${
+          numFilesNotFormatted > 1 ? "s" : ""
+        } not formatted; run with 'format fix' to format ${
+          numFilesNotFormatted > 1 ? "them" : "it"
         }`,
       ),
     );
