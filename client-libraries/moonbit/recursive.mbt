@@ -2,7 +2,8 @@
 // Default should be treated the same as the default value of T.
 
 ///|
+#derive(Eq, Debug)
 pub(all) enum Recursive[T] {
   Default
   Some(T)
-} derive(Eq, Debug)
+}

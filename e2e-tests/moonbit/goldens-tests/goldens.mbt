@@ -1,3 +1,4 @@
+#derive(@builtin.Eq, @debug.Debug)
 enum Evaluated {
   Bool(Bool)
   Int32(Int)
@@ -18,7 +19,7 @@ enum Evaluated {
   KeyedArrays(@goldens.KeyedArrays)
   RecStruct(@goldens.RecStruct)
   RecEnum(@goldens.RecEnum)
-} derive(@builtin.Eq, @debug.Debug)
+}
 
 fn parse_json_or_none(code : String) -> Json? {
   try {

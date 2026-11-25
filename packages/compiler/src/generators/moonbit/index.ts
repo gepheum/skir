@@ -164,6 +164,7 @@ class MoonbitSourceFileGenerator {
       copySelfName = `${copySelfName}_`;
     }
 
+    out.push("#derive(@builtin.Eq, @debug.Debug)\n");
     out.push(`pub struct ${typeName} {\n`);
     for (const field of fields) {
       out.push(commentify(docToCommentText(field.doc), "  "));
@@ -172,7 +173,7 @@ class MoonbitSourceFileGenerator {
       out.push(`  ${fieldName} : ${moonbitType}\n`);
     }
     out.push("  priv _unrecognized : @client.Internal_UnrecognizedFields?\n");
-    out.push("} derive(@builtin.Eq, @debug.Debug)\n\n");
+    out.push("}\n\n");
 
     out.push(`pub fn ${typeName}::new(`);
     if (fields.length > 0) {
@@ -369,6 +370,7 @@ class MoonbitSourceFileGenerator {
       docToCommentText(record.record.doc),
     );
 
+    out.push("#derive(@builtin.Eq, @debug.Debug)\n");
     out.push(`pub enum ${typeName} {\n`);
     out.push("  Unknown(@client.Internal_UnrecognizedVariant?)\n");
     const variantNames: Array<{
@@ -392,7 +394,7 @@ class MoonbitSourceFileGenerator {
         out.push(`  ${variantName}\n`);
       }
     }
-    out.push("} derive(@builtin.Eq, @debug.Debug)\n\n");
+    out.push("}\n\n");
 
     out.push(`let ${unknownVarName} : ${typeName} = `);
     out.push(`${typeName}::Unknown(None)\n\n`);
@@ -566,12 +568,13 @@ class MoonbitSourceFileGenerator {
     out.push("}\n\n");
 
     if (this.keyedArrayContext.isEnumUsedAsKey(record.record)) {
+      out.push("#derive(@builtin.Eq, @builtin.Hash, @debug.Debug)\n");
       out.push(`pub(all) enum ${typeName}_kind {\n`);
       out.push("  Unknown\n");
       for (const variant of variantNames) {
         out.push(`  ${variant.variantName}\n`);
       }
-      out.push("} derive(@builtin.Eq, @builtin.Hash, @debug.Debug)\n\n");
+      out.push("}\n\n");
 
       out.push(
         `pub fn ${typeName}::kind(self : ${typeName}) -> ${typeName}_kind {\n`,
@@ -649,12 +652,12 @@ class MoonbitSourceFileGenerator {
 
       const methodSuffix = keySpec.keyExtractor.replace(/\./g, "_");
 
-      out.push(`pub struct ${wrapperTypeName} {
-`);
+      out.push("#derive(@builtin.Eq, @debug.Debug)\n");
+      out.push(`pub struct ${wrapperTypeName} {\n`);
       out.push(
         `  priv vector : @client.Internal_KeyedVector[${typeName}, ${keySpec.moonbitKeyType}]\n`,
       );
-      out.push("} derive(@builtin.Eq, @debug.Debug)\n\n");
+      out.push("}\n\n");
 
       out.push(
         `pub fn ${wrapperTypeName}::vector(self : ${wrapperTypeName}) -> @client.ImmutVector[${typeName}] {\n`,

@@ -11,10 +11,11 @@ pub struct Internal_UnrecognizedVariant {
 }
 
 ///|
+#derive(Eq, Debug)
 priv enum UnrecognizedFormat {
   DenseJson(Json)
   Bytes(Bytes)
-} derive(Eq, Debug)
+}
 
 ///|
 fn unrecognized_fields_from_json(

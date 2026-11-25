@@ -56,18 +56,24 @@ pub async fn[Req, Resp] ServiceClient::invoke_remote(
     "::" +
     request_json
 
-  let merged_headers = self.default_headers.copy()
+  let merged_headers : Array[(@http.CaseInsensitiveString, String)] = []
+  for key, value in self.default_headers {
+    merged_headers.push((@http.CaseInsensitiveString(key), value))
+  }
   for _, pair in extra_headers {
     match pair {
-      (key, value) => merged_headers.set(key, value)
+      (key, value) =>
+        merged_headers.push((@http.CaseInsensitiveString(key), value))
     }
   }
-  merged_headers.set("Content-Type", "text/plain; charset=utf-8")
+  merged_headers.push(
+    (@http.CaseInsensitiveString("Content-Type"), "text/plain; charset=utf-8"),
+  )
 
   let (response, body) = @http.post(
     self.service_url,
     wire_body,
-    headers=Map(merged_headers.to_array()),
+    headers=Map(merged_headers),
   ) catch {
     e => return Err({ status_code: 0, message: e.to_string(), })
   }

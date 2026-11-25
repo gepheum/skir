@@ -18,8 +18,27 @@ export function modulePathToAlias(modulePath: string): string {
 }
 
 export function getTypeName(record: RecordLocation): string {
-  return record.recordAncestors.map((r) => r.name.text).join("_");
+  const candidate = record.recordAncestors.map((r) => r.name.text).join("_");
+  return RESERVED_TYPE_NAMES.has(candidate) ? `${candidate}_` : candidate;
 }
+
+const RESERVED_TYPE_NAMES = new Set<string>([
+  "Bool",
+  "Byte",
+  "Bytes",
+  "Char",
+  "Double",
+  "Error",
+  "Float",
+  "Int",
+  "Int16",
+  "Int64",
+  "String",
+  "UInt",
+  "UInt16",
+  "UInt64",
+  "Unit",
+]);
 
 export function getTypeNameLower(record: RecordLocation): string {
   const { recordAncestors } = record;

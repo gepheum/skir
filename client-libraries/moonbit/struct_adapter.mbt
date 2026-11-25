@@ -439,7 +439,7 @@ pub fn[T, Mutable] Internal_StructAdapter::serializer(
     encode: fn(input : T, out : OutputStream) {
       let unrecognized = (self.get_unrecognized)(input)
       let mut total_slot_count = self.get_slot_count(input)
-      let mut extra_bytes = Bytes::default()
+      let mut extra_bytes : Bytes = Default::default()
       match unrecognized {
         Some(u) =>
           match u.bytes() {

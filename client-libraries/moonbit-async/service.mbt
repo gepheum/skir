@@ -69,6 +69,7 @@ pub(all) struct RawResponse {
 ///
 /// The constructors mirror common 4xx/5xx responses and can be converted
 /// to integers via `HttpErrorCode::as_int`.
+#derive(Eq, Hash, Debug)
 pub(all) enum HttpErrorCode {
   Code_400_BadRequest
   Code_401_Unauthorized
@@ -110,7 +111,7 @@ pub(all) enum HttpErrorCode {
   Code_508_LoopDetected
   Code_510_NotExtended
   Code_511_NetworkAuthenticationRequired
-} derive(Eq, Hash, Debug)
+}
 
 ///|
 /// Converts a status enum value to its integer HTTP code.
@@ -313,18 +314,20 @@ fn[Meta] Service::serve_list(self : Service[Meta]) -> RawResponse {
   let methods : Array[Json] = []
   for _, entry in self.by_num {
     let fields : Array[(String, Json)] = [
-      ("method", entry.name.to_json()),
-      ("number", entry.number.to_json()),
+      ("method", ToJson::to_json(entry.name)),
+      ("number", ToJson::to_json(entry.number)),
       ("request", entry.request_type_descriptor_json),
       ("response", entry.response_type_descriptor_json),
     ]
     if entry.doc != "" {
-      fields.push(("doc", entry.doc.to_json()))
+      fields.push(("doc", ToJson::to_json(entry.doc)))
     }
     methods.push(Json::object(Map(fields)))
   }
   raw_ok_json(
-    Json::object(Map([("methods", methods.to_json())])).stringify(indent=2),
+    Json::object(Map([("methods", ToJson::to_json(methods))])).stringify(
+      indent=2,
+    ),
   )
 }
 
@@ -402,7 +405,7 @@ async fn[Meta] Service::handle_colon_request(
   let number_str = chunks[1].to_owned()
   let format = chunks[2].to_owned()
 
-  let request_builder = StringBuilder::new()
+  let request_builder = StringBuilder()
   for i in 3..<chunks.length() {
     if i > 3 {
       request_builder.write_char(':')

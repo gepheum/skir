@@ -111,7 +111,7 @@ pub impl Eq for Timestamp with fn equal(self, other) {
 
 ///|
 pub impl Hash for Timestamp with fn hash_combine(self, hasher) {
-  self.unix_millis.hash_combine(hasher)
+  Hash::hash_combine(self.unix_millis, hasher)
 }
 
 ///|

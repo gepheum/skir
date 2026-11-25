@@ -122,7 +122,7 @@ export class TypeSpeller {
           case "string":
             return '""';
           case "bytes":
-            return "Bytes::default()";
+            return "Default::default()";
         }
       }
     }

@@ -12,7 +12,7 @@ pub fn[T] Serializer::to_dense_json_code(
   self : Serializer[T],
   input : T,
 ) -> String {
-  let builder = StringBuilder::new()
+  let builder = StringBuilder()
   (self.adapter.to_dense_json)(input, builder)
   builder.to_string()
 }

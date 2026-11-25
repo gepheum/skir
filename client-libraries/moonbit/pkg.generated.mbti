@@ -1,0 +1,239 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "gepheum/skir-client"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/immut/vector",
+  "moonbitlang/core/json",
+}
+
+// Values
+pub fn bool_serializer() -> Serializer[Bool]
+
+pub fn bytes_serializer() -> Serializer[Bytes]
+
+pub fn float32_serializer() -> Serializer[Float]
+
+pub fn float64_serializer() -> Serializer[Double]
+
+pub fn hash64_serializer() -> Serializer[UInt64]
+
+pub fn int32_serializer() -> Serializer[Int32]
+
+pub fn int64_serializer() -> Serializer[Int64]
+
+pub fn[T] keyed_vector_serializer(Serializer[T], String) -> Serializer[@vector.Vector[T]]
+
+pub fn[T] optional_serializer(Serializer[T]) -> Serializer[T?]
+
+pub fn parse_from_json(@json.Json) -> Result[TypeDescriptor, String]
+
+pub fn[T] recursive_serializer(Serializer[T]) -> Serializer[Recursive[T]]
+
+pub fn string_serializer() -> Serializer[String]
+
+pub fn timestamp_serializer() -> Serializer[Timestamp]
+
+pub fn[T] vector_serializer(Serializer[T]) -> Serializer[@vector.Vector[T]]
+
+// Errors
+
+// Types and methods
+pub struct ArraySignature {
+  item_type : TypeSignature
+  key_extractor : String
+}
+
+pub struct EnumConstantVariant {
+  name : String
+  number : Int32
+  doc : String
+}
+
+pub struct EnumRecordDescriptor {
+  record_id : String
+  doc : String
+  removed_numbers : @vector.Vector[Int32]
+  variants : @vector.Vector[EnumVariant]
+}
+
+pub enum EnumVariant {
+  Constant(EnumConstantVariant)
+  Wrapper(EnumWrapperVariant)
+}
+
+pub struct EnumWrapperVariant {
+  name : String
+  number : Int32
+  variant_type : TypeSignature
+  doc : String
+}
+
+pub struct Internal_EnumAdapter[T] {
+  // private fields
+}
+pub fn[T] Internal_EnumAdapter::add_constant_variant(Self[T], String, Int32, Int32, String, T) -> Unit
+pub fn[T] Internal_EnumAdapter::add_removed_number(Self[T], Int32) -> Unit
+pub fn[T, V] Internal_EnumAdapter::add_wrapper_variant(Self[T], String, Int32, Int32, Serializer[V], String, (V) -> T, (T) -> V) -> Unit
+pub fn[T] Internal_EnumAdapter::finalize(Self[T]) -> Unit
+pub fn[T] Internal_EnumAdapter::new(String, String, String, T, (T) -> Int32, (Internal_UnrecognizedVariant) -> T, (T) -> Internal_UnrecognizedVariant?) -> Self[T]
+pub fn[T] Internal_EnumAdapter::serializer(Self[T]) -> Serializer[T]
+
+pub struct Internal_KeyedVector[T, K] {
+  vector : @vector.Vector[T]
+  // private fields
+}
+pub fn[T, K] Internal_KeyedVector::empty(Internal_KeyedVectorSpec[T, K]) -> Self[T, K]
+pub fn[T, K : Hash + Eq] Internal_KeyedVector::find_by_key(Self[T, K], K) -> T?
+pub fn[T, K : Hash + Eq] Internal_KeyedVector::find_by_key_or_default(Self[T, K], K) -> T
+pub fn[T, K] Internal_KeyedVector::from_array(Array[T], Internal_KeyedVectorSpec[T, K]) -> Self[T, K]
+pub fn[T, K] Internal_KeyedVector::new(@vector.Vector[T], Internal_KeyedVectorSpec[T, K]) -> Self[T, K]
+pub impl[T : Eq, K] Eq for Internal_KeyedVector[T, K]
+pub impl[T : @debug.Debug, K] @debug.Debug for Internal_KeyedVector[T, K]
+
+pub(all) struct Internal_KeyedVectorSpec[T, K] {
+  get_key : (T) -> K
+  key_extractor : String
+  default_item : T
+}
+
+pub struct Internal_StructAdapter[T, Mutable] {
+  // private fields
+}
+pub fn[T, Mutable, V] Internal_StructAdapter::add_field(Self[T, Mutable], String, Int32, Serializer[V], (T) -> V, (Mutable, V) -> Unit, String) -> Unit
+pub fn[T, Mutable] Internal_StructAdapter::add_removed_number(Self[T, Mutable], Int32) -> Unit
+pub fn[T, Mutable] Internal_StructAdapter::finalize(Self[T, Mutable]) -> Unit
+pub fn[T, Mutable] Internal_StructAdapter::new(String, String, String, () -> Mutable, (Mutable) -> T, (T) -> Internal_UnrecognizedFields?, (Mutable, Internal_UnrecognizedFields?) -> Unit) -> Self[T, Mutable]
+pub fn[T, Mutable] Internal_StructAdapter::serializer(Self[T, Mutable]) -> Serializer[T]
+
+pub struct Internal_UnrecognizedFields {
+  // private fields
+}
+pub impl Eq for Internal_UnrecognizedFields
+pub impl @debug.Debug for Internal_UnrecognizedFields
+
+pub struct Internal_UnrecognizedVariant {
+  // private fields
+}
+pub impl Eq for Internal_UnrecognizedVariant
+pub impl @debug.Debug for Internal_UnrecognizedVariant
+
+#derive(Eq, @debug.Debug)
+pub(all) enum KeepOrSet[T] {
+  Keep
+  Set(T)
+}
+
+pub(all) struct Method[T, U] {
+  name : String
+  number : Int32
+  request_serializer : Serializer[T]
+  response_serializer : Serializer[U]
+  doc : String
+}
+
+pub enum PrimitiveType {
+  Bool
+  Int32
+  Int64
+  Hash64
+  Float32
+  Float64
+  Timestamp
+  String
+  Bytes
+}
+
+pub enum RecordDescriptor {
+  Struct(StructRecordDescriptor)
+  Enum(EnumRecordDescriptor)
+}
+
+#derive(Eq, @debug.Debug)
+pub(all) enum Recursive[T] {
+  Default
+  Some(T)
+}
+
+pub struct Serializer[T] {
+  // private fields
+}
+pub fn[T] Serializer::from_bytes(Self[T], Array[Int32], unrecognized_values? : UnrecognizedValues) -> Result[T, String]
+pub fn[T] Serializer::from_json(Self[T], @json.Json, unrecognized_values? : UnrecognizedValues) -> Result[T, String]
+pub fn[T] Serializer::from_json_code(Self[T], String, unrecognized_values? : UnrecognizedValues) -> Result[T, String]
+pub fn[T] Serializer::to_bytes(Self[T], T) -> Array[Int32]
+pub fn[T] Serializer::to_dense_json_code(Self[T], T) -> String
+pub fn[T] Serializer::to_readable_json(Self[T], T) -> @json.Json
+pub fn[T] Serializer::type_descriptor(Self[T]) -> TypeDescriptor
+
+pub struct StructField {
+  name : String
+  number : Int32
+  field_type : TypeSignature
+  doc : String
+}
+
+pub struct StructRecordDescriptor {
+  record_id : String
+  doc : String
+  removed_numbers : @vector.Vector[Int32]
+  fields : @vector.Vector[StructField]
+}
+
+pub struct Timestamp {
+  // private fields
+}
+pub fn Timestamp::from_unix_millis(Int64) -> Self
+pub fn Timestamp::from_unix_seconds(Double) -> Self
+pub fn Timestamp::max() -> Self
+pub fn Timestamp::min() -> Self
+pub fn Timestamp::now() -> Self
+pub fn Timestamp::to_iso8601(Self) -> String
+pub fn Timestamp::unix_epoch() -> Self
+pub fn Timestamp::unix_millis(Self) -> Int64
+pub fn Timestamp::unix_seconds(Self) -> Double
+pub impl Compare for Timestamp
+pub impl Eq for Timestamp
+pub impl Hash for Timestamp
+pub impl @debug.Debug for Timestamp
+
+type TypeAdapter[T]
+
+pub struct TypeDescriptor {
+  root_type : TypeSignature
+  records : @vector.Vector[RecordDescriptor]
+}
+pub fn TypeDescriptor::as_json(Self) -> @json.Json
+
+pub enum TypeSignature {
+  Primitive(PrimitiveType)
+  Optional(TypeSignature)
+  Array(ArraySignature)
+  Record(String)
+}
+
+pub(all) enum UnrecognizedValues {
+  Keep
+  Drop
+}
+
+// Type aliases
+pub using @vector {type Vector as ImmutVector}
+
+pub type NativeBool = Bool
+
+pub type NativeBytes = Bytes
+
+pub type NativeDouble = Double
+
+pub type NativeFloat = Float
+
+pub type NativeInt = Int32
+
+pub type NativeInt64 = Int64
+
+pub type NativeString = String
+
+pub type NativeUInt64 = UInt64
+
+// Traits

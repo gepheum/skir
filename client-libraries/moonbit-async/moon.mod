@@ -13,6 +13,6 @@ keywords = [ "moonbit", "async", "rpc-framework", "rpc", "skir", "skirrpc" ]
 description = "SkirRPC integration for MoonBit"
 
 import {
-  "moonbitlang/async@0.19.4",
+  "moonbitlang/async@0.22.10",
   "gepheum/skir-client@0.1.1",
 }
