@@ -10,5 +10,5 @@ pip install skir-client
 See:
 
 *   [skir](https://github.com/gepheum/skir): home of the skir compiler
-*   [skir-python-gen](https://github.com/gepheum/skir-python-gen): skir to Python code generator
+*   [Documentation](https://skir.build/docs/python): Skir Python documentation
 *   [skir-python-example](https://github.com/gepheum/skir-python-example): example showing how to use skir's Python code generator in a project

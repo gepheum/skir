@@ -1,8 +1,8 @@
 name: skir_client
 description: A Dart client library for skir serialization
 version: 1.0.12
-homepage: https://github.com/gepheum/skir-dart-client
-repository: https://github.com/gepheum/skir-dart-client
+homepage: https://skir.build/docs/dart
+repository: https://github.com/gepheum/skir/tree/main/client-libraries/dart
 
 environment:
   sdk: '>=3.5.0 <4.0.0'

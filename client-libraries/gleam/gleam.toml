@@ -5,9 +5,9 @@ gleam = ">= 1.5.0"
 licences = ["MIT"]
 description = "Serializable Gleam data types generated from .skir files. Supports JSON and binary serialization."
 
-repository = { type = "github", user = "gepheum", repo = "skir-gleam-client" }
+repository = { type = "github", user = "gepheum", repo = "skir", path = "client-libraries/gleam" }
 links = [
-	{ title = "Repository", href = "https://github.com/gepheum/skir-gleam-client" },
+	{ title = "Repository", href = "https://github.com/gepheum/skir/tree/main/client-libraries/gleam" },
 ]
 
 [dependencies]

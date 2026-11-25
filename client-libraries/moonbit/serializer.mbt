@@ -41,7 +41,7 @@ pub fn[T] Serializer::to_readable_json(self : Serializer[T], input : T) -> Json 
 pub fn[T] Serializer::from_json(
   self : Serializer[T],
   json : Json,
-  unrecognized_values? : UnrecognizedValues = UnrecognizedValues::Drop,
+  unrecognized_values~ : UnrecognizedValues = UnrecognizedValues::Drop,
 ) -> Result[T, String] {
   (self.adapter.from_json)(json, unrecognized_values)
 }
@@ -59,7 +59,7 @@ pub fn[T] Serializer::from_json(
 pub fn[T] Serializer::from_json_code(
   self : Serializer[T],
   code : String,
-  unrecognized_values? : UnrecognizedValues = UnrecognizedValues::Drop,
+  unrecognized_values~ : UnrecognizedValues = UnrecognizedValues::Drop,
 ) -> Result[T, String] {
   let root = @json.parse(code) catch {
     e => return Err("invalid JSON: " + e.to_string())
@@ -69,7 +69,7 @@ pub fn[T] Serializer::from_json_code(
 
 ///|
 /// Serializes `input` to the Skir binary wire format.
-pub fn[T] Serializer::to_bytes(self : Serializer[T], input : T) -> Array[Int] {
+pub fn[T] Serializer::to_bytes(self : Serializer[T], input : T) -> Array[Int32] {
   let mut out = OutputStream::new()
   out = out.write_int(115)
   out = out.write_int(107)
@@ -89,8 +89,8 @@ pub fn[T] Serializer::to_bytes(self : Serializer[T], input : T) -> Array[Int] {
 /// untrusted or malicious sources.
 pub fn[T] Serializer::from_bytes(
   self : Serializer[T],
-  bytes : Array[Int],
-  unrecognized_values? : UnrecognizedValues = UnrecognizedValues::Drop,
+  bytes : Array[Int32],
+  unrecognized_values~ : UnrecognizedValues = UnrecognizedValues::Drop,
 ) -> Result[T, String] {
   match bytes {
     [115, 107, 105, 114, .. payload] =>

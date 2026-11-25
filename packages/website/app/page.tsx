@@ -304,7 +304,7 @@ export default function HomePage() {
                   </a>{' '}
                   and{' '}
                   <a
-                    href="https://github.com/gepheum/skir-language-server"
+                    href="https://github.com/gepheum/skir/tree/main/packages/lsp"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline decoration-muted-foreground/50 hover:text-foreground transition-colors"

@@ -455,7 +455,7 @@ class Service<in RequestMeta> private constructor(private val impl: Impl<Request
     companion object {
         private fun getStudioHtml(studioAppJsUrl: String): String {
             // Copied from
-            //   https://github.com/gepheum/skir-studio/blob/main/index.jsdeliver.html
+            //   https://github.com/gepheum/skir/blob/main/packages/studio/index.jsdeliver.html
             // No escaping needed because 'studioAppJsUrl' is validated as a URI
             return """<!DOCTYPE html>
 

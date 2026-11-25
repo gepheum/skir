@@ -1,5 +1,5 @@
-[![npm](https://img.shields.io/npm/v/skir-dart-gen)](https://www.npmjs.com/package/skir-dart-gen)
-[![build](https://github.com/gepheum/skir-dart-gen/workflows/Build/badge.svg)](https://github.com/gepheum/skir-dart-gen/actions)
+[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
+[![build](https://github.com/gepheum/skir/actions/workflows/ci-dart.yml/badge.svg)](https://github.com/gepheum/skir/actions)
 
 # Skir's Dart code generator
 

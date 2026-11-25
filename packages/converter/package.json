@@ -2,9 +2,9 @@
   "name": "skir-converter",
   "version": "0.1.8",
   "description": "",
-  "homepage": "https://github.com/gepheum/skir-converter#readme",
+  "homepage": "https://github.com/gepheum/skir/tree/main/packages/converter#readme",
   "bugs": {
-    "url": "https://github.com/gepheum/skir-converter/issues"
+    "url": "https://github.com/gepheum/skir/issues"
   },
   "repository": {
     "type": "git",

@@ -1,5 +1,5 @@
-[![npm](https://img.shields.io/npm/v/skir-typescript-gen)](https://www.npmjs.com/package/skir-typescript-gen)
-[![build](https://github.com/gepheum/skir-typescript-gen/workflows/Build/badge.svg)](https://github.com/gepheum/skir-typescript-gen/actions)
+[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
+[![build](https://github.com/gepheum/skir/actions/workflows/ci-typescript.yml/badge.svg)](https://github.com/gepheum/skir/actions)
 
 # Skir's TypeScript code generator
 

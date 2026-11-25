@@ -1,6 +1,6 @@
 # Skir MoonBit example
 
-Example showing how to use skir's [MoonBit code generator](https://github.com/gepheum/skir-moonbit-gen) in a project.
+Example showing how to use skir's [MoonBit code generator](https://skir.build/docs/moonbit) in a project.
 
 ## Build and run the example
 

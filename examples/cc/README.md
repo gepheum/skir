@@ -1,6 +1,6 @@
 # Skir C++ example
 
-Example showing how to use skir's [C++ code generator](https://github.com/gepheum/skir-cc-gen) in a project.
+Example showing how to use skir's [C++ code generator](https://skir.build/docs/cpp) in a project.
 
 ## Build and run the example
 

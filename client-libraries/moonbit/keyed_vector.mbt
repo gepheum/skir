@@ -98,7 +98,7 @@ pub fn[T, K : Hash + Eq] Internal_KeyedVector::find_by_key_or_default(
 ///|
 priv struct MockItem {
   key : String
-  value : Int
+  value : Int32
 }
 
 ///|

@@ -1,6 +1,6 @@
 # Skir Rust example
 
-Example showing how to use skir's [Rust code generator](https://github.com/gepheum/skir-rust-gen) in a project.
+Example showing how to use skir's [Rust code generator](https://skir.build/docs/rust) in a project.
 
 ## Build and run the example
 

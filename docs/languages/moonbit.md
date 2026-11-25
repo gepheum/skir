@@ -1,5 +1,5 @@
-[![npm](https://img.shields.io/npm/v/skir-moonbit-gen)](https://www.npmjs.com/package/skir-moonbit-gen)
-[![build](https://github.com/gepheum/skir-moonbit-gen/workflows/Build/badge.svg)](https://github.com/gepheum/skir-moonbit-gen/actions)
+[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
+[![build](https://github.com/gepheum/skir/actions/workflows/ci-moonbit.yml/badge.svg)](https://github.com/gepheum/skir/actions)
 
 # Skir's MoonBit code generator
 

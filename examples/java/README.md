@@ -1,6 +1,6 @@
 # Skir Java example
 
-Example showing how to use skir's [Java code generator](https://github.com/gepheum/skir-java-gen) in a project.
+Example showing how to use skir's [Java code generator](https://skir.build/docs/java) in a project.
 
 ## Build and run the example
 

@@ -1,6 +1,6 @@
 # Skir Dart example
 
-Example showing how to use skir's [Dart code generator](https://github.com/gepheum/skir-dart-gen) in a project.
+Example showing how to use skir's [Dart code generator](https://skir.build/docs/dart) in a project.
 
 ## Build and run the example
 

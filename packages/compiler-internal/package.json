@@ -2,9 +2,9 @@
   "name": "skir-internal",
   "version": "0.2.22",
   "description": "",
-  "homepage": "https://github.com/gepheum/skir-internal#readme",
+  "homepage": "https://github.com/gepheum/skir/tree/main/packages/compiler-internal#readme",
   "bugs": {
-    "url": "https://github.com/gepheum/skir-internal/issues"
+    "url": "https://github.com/gepheum/skir/issues"
   },
   "repository": {
     "type": "git",

@@ -8,8 +8,8 @@ pub struct Service[Meta] {
   priv can_send_unknown_error_message : (MethodErrorInfo[Meta]) -> Bool
   priv error_logger : (MethodErrorInfo[Meta]) -> Unit
   priv studio_app_js_url : String
-  priv by_num : @hashmap.HashMap[Int, MethodEntry[Meta]]
-  priv by_name : @hashmap.HashMap[String, Int]
+  priv by_num : @hashmap.HashMap[Int32, MethodEntry[Meta]]
+  priv by_name : @hashmap.HashMap[String, Int32]
 }
 
 ///|
@@ -59,7 +59,7 @@ pub async fn[Meta] Service::handle_request(
 /// This is primarily produced by `Service::handle_request`.
 pub(all) struct RawResponse {
   data : String
-  status_code : Int
+  status_code : Int32
   status_text : String
   content_type : String
 }
@@ -115,7 +115,7 @@ pub(all) enum HttpErrorCode {
 
 ///|
 /// Converts a status enum value to its integer HTTP code.
-pub fn HttpErrorCode::as_int(self : HttpErrorCode) -> Int {
+pub fn HttpErrorCode::as_int(self : HttpErrorCode) -> Int32 {
   match self {
     Code_400_BadRequest => 400
     Code_401_Unauthorized => 401
@@ -177,7 +177,7 @@ pub(all) struct ServiceError {
 /// `ServiceError::new("user_id must be non-zero", status_code=Some(HttpErrorCode::Code_400_BadRequest))`
 pub fn ServiceError::new(
   message : String,
-  status_code? : HttpErrorCode? = None,
+  status_code~ : HttpErrorCode? = None,
 ) -> ServiceError {
   { status_code, message, }
 }
@@ -197,7 +197,7 @@ pub(all) struct MethodErrorInfo[Meta] {
 /// Entries are created through `MethodEntry::new`.
 pub struct MethodEntry[Meta] {
   priv name : String
-  priv number : Int
+  priv number : Int32
   priv doc : String
   priv request_type_descriptor_json : Json
   priv response_type_descriptor_json : Json
@@ -273,9 +273,9 @@ pub fn[Req, Resp, Meta] MethodEntry::new(
 /// `)`
 pub fn[Meta] Service::new(
   methods : Array[MethodEntry[Meta]],
-  unrecognized_values? : @client.UnrecognizedValues = @client.UnrecognizedValues::Drop,
-  can_send_unknown_error_message? : (MethodErrorInfo[Meta]) -> Bool = _ => false,
-  error_logger? : (MethodErrorInfo[Meta]) -> Unit = info => {
+  unrecognized_values~ : @client.UnrecognizedValues = @client.UnrecognizedValues::Drop,
+  can_send_unknown_error_message~ : (MethodErrorInfo[Meta]) -> Bool = _ => false,
+  error_logger~ : (MethodErrorInfo[Meta]) -> Unit = info => {
     println(
       "skir: error in method \"" +
       info.method_name +
@@ -283,7 +283,7 @@ pub fn[Meta] Service::new(
       info.error_message,
     )
   },
-  studio_app_js_url? : String = "https://cdn.jsdelivr.net/npm/skir-studio/dist/skir-studio-standalone.js",
+  studio_app_js_url~ : String = "https://cdn.jsdelivr.net/npm/skir-studio/dist/skir-studio-standalone.js",
 ) -> Result[Service[Meta], String] {
   let by_num = @hashmap.HashMap([], capacity=methods.length())
   let by_name = @hashmap.HashMap([], capacity=methods.length())
@@ -619,7 +619,7 @@ fn percent_decode(input : StringView) -> String {
 }
 
 ///|
-fn hex_value(b : Byte) -> Int? {
+fn hex_value(b : Byte) -> Int32? {
   if b >= b'0' && b <= b'9' {
     Some((b - b'0').to_int())
   } else if b >= b'a' && b <= b'f' {

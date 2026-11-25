@@ -18,7 +18,7 @@
     <PackageTags>skir;rpc;serialization;codegen</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <RepositoryUrl>https://github.com/gepheum/skir-csharp-client</RepositoryUrl>
+    <RepositoryUrl>https://github.com/gepheum/skir</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://skir.build</PackageProjectUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>

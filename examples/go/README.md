@@ -1,6 +1,6 @@
 # Skir Go example
 
-Example showing how to use skir's [Go code generator](https://github.com/gepheum/skir-go-gen) in a project.
+Example showing how to use skir's [Go code generator](https://skir.build/docs/go) in a project.
 
 ## Build and run the example
 

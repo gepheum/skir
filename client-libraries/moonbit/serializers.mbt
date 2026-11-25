@@ -53,7 +53,7 @@ fn parse_json(code : String) -> Json {
 }
 
 ///|
-fn hex_digit(n : Int) -> Char {
+fn hex_digit(n : Int32) -> Char {
   match n {
     0 => '0'
     1 => '1'
@@ -111,7 +111,7 @@ fn json_quoted_string(s : String) -> String {
 ///|
 fn read_n_bytes(
   input : InputStream,
-  length : Int,
+  length : Int32,
 ) -> Result[(Bytes, InputStream), String] {
   let mut cur = input
   let out : Array[Byte] = []
@@ -130,8 +130,8 @@ fn read_n_bytes(
 ///|
 fn encode_length_prefixed_bytes(
   out : OutputStream,
-  wire : Int,
-  length : Int,
+  wire : Int32,
+  length : Int32,
 ) -> OutputStream {
   if length < 232 {
     out.write_ints([wire, length])
@@ -328,22 +328,22 @@ pub fn bytes_serializer() -> Serializer[Bytes] {
 }
 
 ///|
-fn encode_u16_le(v : Int) -> Array[Int] {
+fn encode_u16_le(v : Int32) -> Array[Int32] {
   [v & 0xFF, (v >> 8) & 0xFF]
 }
 
 ///|
-fn encode_u32_le(v : Int) -> Array[Int] {
+fn encode_u32_le(v : Int32) -> Array[Int32] {
   [v & 0xFF, (v >> 8) & 0xFF, (v >> 16) & 0xFF, (v >> 24) & 0xFF]
 }
 
 ///|
-fn encode_i64_le(v : Int64) -> Array[Int] {
+fn encode_i64_le(v : Int64) -> Array[Int32] {
   encode_u64_le(v.reinterpret_as_uint64())
 }
 
 ///|
-fn encode_u64_le(v : UInt64) -> Array[Int] {
+fn encode_u64_le(v : UInt64) -> Array[Int32] {
   [
     (v & 0xFFUL).to_int(),
     ((v >> 8) & 0xFFUL).to_int(),
@@ -357,7 +357,7 @@ fn encode_u64_le(v : UInt64) -> Array[Int] {
 }
 
 ///|
-fn encode_i32(v : Int) -> Array[Int] {
+fn encode_i32(v : Int32) -> Array[Int32] {
   if v < -65536 {
     [237, ..encode_u32_le(v)]
   } else if v < -256 {
@@ -374,7 +374,7 @@ fn encode_i32(v : Int) -> Array[Int] {
 }
 
 ///|
-fn read_u16(input : InputStream) -> Result[(Int, InputStream), String] {
+fn read_u16(input : InputStream) -> Result[(Int32, InputStream), String] {
   match input.read_int() {
     Ok((b0, tail0)) =>
       match tail0.read_int() {
@@ -412,7 +412,7 @@ fn read_u32(input : InputStream) -> Result[(Int64, InputStream), String] {
 }
 
 ///|
-fn read_i32(input : InputStream) -> Result[(Int, InputStream), String] {
+fn read_i32(input : InputStream) -> Result[(Int32, InputStream), String] {
   match read_u32(input) {
     Ok((u, rest)) =>
       if u >= 2147483648L {
@@ -518,11 +518,11 @@ fn read_u64(input : InputStream) -> Result[(UInt64, InputStream), String] {
 
 ///|
 fn decode_number_body(
-  wire : Int,
+  wire : Int32,
   input : InputStream,
 ) -> Result[(Int64, InputStream), String] {
   match wire {
-    0..=231 => Ok((wire.to_int64(), input))
+    0..<=231 => Ok((wire.to_int64(), input))
     232 =>
       match read_u16(input) {
         Ok((v, rest)) => Ok((v.to_int64(), rest))
@@ -624,11 +624,11 @@ fn parse_uint64_or_zero(s : String) -> UInt64 {
 
 ///|
 fn decode_number_as_double_body(
-  wire : Int,
+  wire : Int32,
   input : InputStream,
 ) -> Result[(Double, InputStream), String] {
   match wire {
-    0..=231 => Ok((wire.to_double(), input))
+    0..<=231 => Ok((wire.to_double(), input))
     232 =>
       match read_u16(input) {
         Ok((v, rest)) => Ok((v.to_double(), rest))
@@ -713,13 +713,13 @@ fn decode_number_as_double_with_tail(
 }
 
 ///|
-pub fn int32_serializer() -> Serializer[Int] {
+pub fn int32_serializer() -> Serializer[Int32] {
   new_serializer({
-    is_default: fn(input : Int) { input == 0 },
-    to_dense_json: fn(input : Int, builder : StringBuilder) {
+    is_default: fn(input : Int32) { input == 0 },
+    to_dense_json: fn(input : Int32, builder : StringBuilder) {
       builder.write_string(input.to_string())
     },
-    to_readable_json: fn(input : Int) { parse_json(input.to_string()) },
+    to_readable_json: fn(input : Int32) { parse_json(input.to_string()) },
     from_json: fn(json : Json, _policy : UnrecognizedValues) {
       match json {
         Json::Number(n, ..) => Ok(n.to_int())
@@ -727,7 +727,7 @@ pub fn int32_serializer() -> Serializer[Int] {
         _ => Ok(0)
       }
     },
-    encode: fn(input : Int, out : OutputStream) {
+    encode: fn(input : Int32, out : OutputStream) {
       out.write_ints(encode_i32(input))
     },
     decode: fn(input : InputStream, _policy : UnrecognizedValues) {
@@ -778,8 +778,7 @@ pub fn int64_serializer() -> Serializer[Int64] {
       }
     },
     encode: fn(input : Int64, out : OutputStream) {
-      if input >= (-2147483648).to_int64() &&
-        input <= (2147483647).to_int64() {
+      if input >= (-2147483648).to_int64() && input <= (2147483647).to_int64() {
         out.write_ints(encode_i32(input.to_int()))
       } else {
         out.write_ints([238, ..encode_i64_le(input)])
@@ -1272,7 +1271,7 @@ fn expect_ok_bool(r : Result[Bool, String]) -> Bool {
 }
 
 ///|
-fn expect_ok_int(r : Result[Int, String]) -> Int {
+fn expect_ok_int(r : Result[Int32, String]) -> Int32 {
   match r {
     Ok(v) => v
     Err(_) => panic()
@@ -1320,7 +1319,7 @@ fn expect_ok_timestamp(r : Result[Timestamp, String]) -> Timestamp {
 }
 
 ///|
-fn expect_ok_optional_int(r : Result[Int?, String]) -> Int? {
+fn expect_ok_optional_int(r : Result[Int32?, String]) -> Int32? {
   match r {
     Ok(v) => v
     Err(_) => panic()
@@ -1329,8 +1328,8 @@ fn expect_ok_optional_int(r : Result[Int?, String]) -> Int? {
 
 ///|
 fn expect_ok_recursive_int(
-  r : Result[Recursive[Int], String],
-) -> Recursive[Int] {
+  r : Result[Recursive[Int32], String],
+) -> Recursive[Int32] {
   match r {
     Ok(v) => v
     Err(_) => panic()
@@ -1338,7 +1337,10 @@ fn expect_ok_recursive_int(
 }
 
 ///|
-fn assert_recursive_int_eq(lhs : Recursive[Int], rhs : Recursive[Int]) -> Unit {
+fn assert_recursive_int_eq(
+  lhs : Recursive[Int32],
+  rhs : Recursive[Int32],
+) -> Unit {
   match lhs {
     Recursive::Default =>
       match rhs {
@@ -1355,8 +1357,8 @@ fn assert_recursive_int_eq(lhs : Recursive[Int], rhs : Recursive[Int]) -> Unit {
 
 ///|
 fn expect_ok_immut_int_array(
-  r : Result[@immut_vector.Vector[Int], String],
-) -> @immut_vector.Vector[Int] {
+  r : Result[@immut_vector.Vector[Int32], String],
+) -> @immut_vector.Vector[Int32] {
   match r {
     Ok(v) => v
     Err(_) => panic()

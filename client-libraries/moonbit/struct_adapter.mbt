@@ -8,9 +8,9 @@ pub struct Internal_StructAdapter[T, Mutable] {
   priv get_unrecognized : (T) -> Internal_UnrecognizedFields?
   priv set_unrecognized : (Mutable, Internal_UnrecognizedFields?) -> Unit
   priv ordered_entries : Array[StructFieldEntry[T, Mutable]]
-  priv name_to_index : @hashmap.HashMap[String, Int]
-  priv slot_to_index : Array[Int?]
-  priv removed_numbers : Array[Int]
+  priv name_to_index : @hashmap.HashMap[String, Int32]
+  priv slot_to_index : Array[Int32?]
+  priv removed_numbers : Array[Int32]
 }
 
 ///|
@@ -42,7 +42,7 @@ pub fn[T, Mutable] Internal_StructAdapter::new(
 pub fn[T, Mutable, V] Internal_StructAdapter::add_field(
   self : Internal_StructAdapter[T, Mutable],
   name : String,
-  number : Int,
+  number : Int32,
   serializer : Serializer[V],
   getter : (T) -> V,
   setter : (Mutable, V) -> Unit,
@@ -99,7 +99,7 @@ pub fn[T, Mutable, V] Internal_StructAdapter::add_field(
 ///|
 pub fn[T, Mutable] Internal_StructAdapter::add_removed_number(
   self : Internal_StructAdapter[T, Mutable],
-  number : Int,
+  number : Int32,
 ) -> Unit {
   self.removed_numbers.push(number)
 }
@@ -140,7 +140,7 @@ pub fn[T, Mutable] Internal_StructAdapter::finalize(
 fn[T, Mutable] Internal_StructAdapter::get_slot_count(
   self : Internal_StructAdapter[T, Mutable],
   input : T,
-) -> Int {
+) -> Int32 {
   let mut max_non_default = -1
   for e in self.ordered_entries {
     if !(e.is_field_default)(input) && e.number > max_non_default {
@@ -152,7 +152,7 @@ fn[T, Mutable] Internal_StructAdapter::get_slot_count(
 
 ///|
 priv struct StructFieldEntry[T, Mutable] {
-  number : Int
+  number : Int32
   name : String
   doc : String
   field_type : TypeSignature
@@ -276,7 +276,7 @@ fn[T, Mutable] Internal_StructAdapter::from_readable_json_impl(
 }
 
 ///|
-fn struct_int_array_to_bytes(bytes : Array[Int]) -> Bytes {
+fn struct_int_array_to_bytes(bytes : Array[Int32]) -> Bytes {
   let out : Array[Byte] = []
   for b in bytes {
     out.push(b.to_byte())
@@ -332,7 +332,7 @@ fn struct_should_keep_unrecognized(policy : UnrecognizedValues) -> Bool {
 }
 
 ///|
-fn struct_min(a : Int, b : Int) -> Int {
+fn struct_min(a : Int32, b : Int32) -> Int32 {
   if a < b {
     a
   } else {
@@ -341,7 +341,7 @@ fn struct_min(a : Int, b : Int) -> Int {
 }
 
 ///|
-fn skip_n_values(input : InputStream, n : Int) -> Result[InputStream, String] {
+fn skip_n_values(input : InputStream, n : Int32) -> Result[InputStream, String] {
   let mut cur = input
   for _ in 0..<n {
     match skip_value(cur) {
@@ -353,7 +353,7 @@ fn skip_n_values(input : InputStream, n : Int) -> Result[InputStream, String] {
 }
 
 ///|
-fn take_n_bytes(input : InputStream, n : Int) -> Result[InputStream, String] {
+fn take_n_bytes(input : InputStream, n : Int32) -> Result[InputStream, String] {
   let mut cur = input
   for _ in 0..<n {
     match cur.read_int() {
@@ -369,7 +369,7 @@ fn skip_value(input : InputStream) -> Result[InputStream, String] {
   match input.read_int() {
     Ok((wire, rest)) =>
       match wire {
-        0..=231 => Ok(rest)
+        0..<=231 => Ok(rest)
         242 => Ok(rest)
         244 => Ok(rest)
         246 => Ok(rest)
@@ -384,14 +384,14 @@ fn skip_value(input : InputStream) -> Result[InputStream, String] {
             Ok(_) => Err("unexpected negative length in skip_value")
             Err(e) => Err(e)
           }
-        247..=249 => skip_n_values(rest, wire - 246)
+        247..<=249 => skip_n_values(rest, wire - 246)
         250 =>
           match decode_number_with_tail(rest) {
             Ok((n, tail)) if n >= 0 => skip_n_values(tail, n.to_int())
             Ok(_) => Err("unexpected negative array length in skip_value")
             Err(e) => Err(e)
           }
-        251..=254 => skip_value(rest)
+        251..<=254 => skip_value(rest)
         _ => Ok(rest)
       }
     Err(e) => Err(e)

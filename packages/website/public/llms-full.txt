@@ -1916,7 +1916,7 @@ This contract covers compiler input/output only.
 How you render language-specific code (class layout, naming, idioms, etc.) is generator-specific and intentionally outside this contract.
 
 Reference implementation:
-- https://github.com/gepheum/skir-rust-gen
+- https://github.com/gepheum/skir/tree/main/packages/compiler/src/generators/rust
 
 ---
 

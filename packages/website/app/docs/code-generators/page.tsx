@@ -161,7 +161,7 @@ export const GENERATOR = new MyGenerator();`}</CodeBlock>
         <p>
           A good first step is to inspect an existing generator (for example
           <a
-            href="https://github.com/gepheum/skir-rust-gen"
+            href="https://github.com/gepheum/skir/tree/main/packages/compiler/src/generators/rust"
             target="_blank"
             rel="noopener noreferrer"
           >

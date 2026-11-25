@@ -1,5 +1,5 @@
-[![npm](https://img.shields.io/npm/v/skir-rust-gen)](https://www.npmjs.com/package/skir-rust-gen)
-[![build](https://github.com/gepheum/skir-rust-gen/workflows/Build/badge.svg)](https://github.com/gepheum/skir-rust-gen/actions)
+[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
+[![build](https://github.com/gepheum/skir/actions/workflows/ci-rust.yml/badge.svg)](https://github.com/gepheum/skir/actions)
 
 # Skir's Rust code generator
 

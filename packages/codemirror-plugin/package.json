@@ -2,9 +2,9 @@
   "name": "skir-codemirror-plugin",
   "version": "1.0.5",
   "description": "",
-  "homepage": "https://github.com/gepheum/skir-codemirror-plugin#readme",
+  "homepage": "https://github.com/gepheum/skir/tree/main/packages/codemirror-plugin#readme",
   "bugs": {
-    "url": "https://github.com/gepheum/skir-codemirror-plugin/issues"
+    "url": "https://github.com/gepheum/skir/issues"
   },
   "repository": {
     "type": "git",

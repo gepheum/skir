@@ -529,7 +529,7 @@ class _MethodImpl<Request, Response, RequestMeta> {
 /// Generates the Studio HTML content for interactive API testing.
 String _getStudioHtml(String studioAppJsUrl) {
   // Copied from
-  //   https://github.com/gepheum/skir-studio/blob/main/index.jsdeliver.html
+  //   https://github.com/gepheum/skir/blob/main/packages/studio/index.jsdeliver.html
   final escapedUrl = const HtmlEscape().convert(studioAppJsUrl);
   return '''<!DOCTYPE html>
 

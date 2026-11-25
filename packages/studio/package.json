@@ -2,9 +2,9 @@
   "name": "skir-studio",
   "version": "1.10.3",
   "description": "",
-  "homepage": "https://github.com/gepheum/skir-studio#readme",
+  "homepage": "https://github.com/gepheum/skir/tree/main/packages/studio#readme",
   "bugs": {
-    "url": "https://github.com/gepheum/skir-studio/issues"
+    "url": "https://github.com/gepheum/skir/issues"
   },
   "repository": {
     "type": "git",

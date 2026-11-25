@@ -19,7 +19,7 @@ dependencies = []
 requires-python = ">=3.10"
 
 [project.urls]
-Homepage = "https://github.com/gepheum/skir-python-client"
+Homepage = "https://github.com/gepheum/skir/tree/main/client-libraries/python"
 
 [tool.isort]
 profile = "black"

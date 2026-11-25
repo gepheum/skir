@@ -1,6 +1,6 @@
 # Skir Kotlin example
 
-Example showing how to use skir's [Kotlin code generator](https://github.com/gepheum/skir-kotlin-gen) in a project.
+Example showing how to use skir's [Kotlin code generator](https://skir.build/docs/kotlin) in a project.
 
 ## Build and run the example
 

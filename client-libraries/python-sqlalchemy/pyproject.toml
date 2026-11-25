@@ -23,7 +23,7 @@ dependencies = [
 requires-python = ">=3.10"
 
 [project.urls]
-Homepage = "https://github.com/gepheum/skir-sqlalchemy"
+Homepage = "https://github.com/gepheum/skir/tree/main/client-libraries/python-sqlalchemy"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

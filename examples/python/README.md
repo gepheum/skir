@@ -1,6 +1,6 @@
 # Skir Python example
 
-Example showing how to use skir's [Python code generator](https://github.com/gepheum/skir-python-gen) in a project.
+Example showing how to use skir's [Python code generator](https://skir.build/docs/python) in a project.
 
 ## Build and run the example
 

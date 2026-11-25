@@ -397,7 +397,7 @@ def _make_server_error_response(
 
 def _get_studio_html(studio_app_js_url: str) -> str:
     # Copied from
-    #   https://github.com/gepheum/skir-studio/blob/main/index.jsdeliver.html
+    #   https://github.com/gepheum/skir/blob/main/packages/studio/index.jsdeliver.html
     escaped_url = html.escape(studio_app_js_url, quote=True)
     return f"""<!DOCTYPE html>
 

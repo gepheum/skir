@@ -4,7 +4,7 @@ version = "0.1.2"
 
 readme = "README.md"
 
-repository = "https://github.com/gepheum/skir-moonbit-client-async"
+repository = "https://github.com/gepheum/skir"
 
 license = "MIT"
 

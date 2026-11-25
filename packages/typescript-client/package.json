@@ -2,9 +2,9 @@
   "name": "skir-client",
   "version": "1.0.22",
   "description": "",
-  "homepage": "https://github.com/gepheum/skir-typescript-client#readme",
+  "homepage": "https://github.com/gepheum/skir/tree/main/packages/typescript-client#readme",
   "bugs": {
-    "url": "https://github.com/gepheum/skir-typescript-client/issues"
+    "url": "https://github.com/gepheum/skir/issues"
   },
   "repository": {
     "type": "git",

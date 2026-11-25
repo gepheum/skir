@@ -1,6 +1,6 @@
 # Skir Zig example
 
-Example showing how to use skir's [Zig code generator](https://github.com/gepheum/skir-zig-gen) in a project.
+Example showing how to use skir's [Zig code generator](https://skir.build/docs/zig) in a project.
 
 ## Build and run the example
 

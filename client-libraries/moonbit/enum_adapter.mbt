@@ -4,12 +4,12 @@ pub struct Internal_EnumAdapter[T] {
   priv qualified_name : String
   priv doc : String
   priv default_value : T
-  priv get_kind_ordinal : (T) -> Int
+  priv get_kind_ordinal : (T) -> Int32
   priv wrap_unrecognized : (Internal_UnrecognizedVariant) -> T
   priv get_unrecognized : (T) -> Internal_UnrecognizedVariant?
-  priv number_to_entry : @hashmap.HashMap[Int, EnumAnyEntry]
-  priv removed_numbers : Array[Int]
-  priv name_to_kind_ordinal : @hashmap.HashMap[String, Int]
+  priv number_to_entry : @hashmap.HashMap[Int32, EnumAnyEntry]
+  priv removed_numbers : Array[Int32]
+  priv name_to_kind_ordinal : @hashmap.HashMap[String, Int32]
   priv kind_ordinal_to_entry : Array[EnumVariantEntry[T]?]
   priv desc_variants : Array[EnumVariant]
 }
@@ -20,7 +20,7 @@ pub fn[T] Internal_EnumAdapter::new(
   qualified_name : String,
   doc : String,
   default_value : T,
-  get_kind_ordinal : (T) -> Int,
+  get_kind_ordinal : (T) -> Int32,
   wrap_unrecognized : (Internal_UnrecognizedVariant) -> T,
   get_unrecognized : (T) -> Internal_UnrecognizedVariant?,
 ) -> Internal_EnumAdapter[T] {
@@ -44,8 +44,8 @@ pub fn[T] Internal_EnumAdapter::new(
 pub fn[T] Internal_EnumAdapter::add_constant_variant(
   self : Internal_EnumAdapter[T],
   name : String,
-  number : Int,
-  kind_ordinal : Int,
+  number : Int32,
+  kind_ordinal : Int32,
   doc : String,
   instance : T,
 ) -> Unit {
@@ -88,8 +88,8 @@ pub fn[T] Internal_EnumAdapter::add_constant_variant(
 pub fn[T, V] Internal_EnumAdapter::add_wrapper_variant(
   self : Internal_EnumAdapter[T],
   name : String,
-  number : Int,
-  kind_ordinal : Int,
+  number : Int32,
+  kind_ordinal : Int32,
   serializer : Serializer[V],
   doc : String,
   wrap : (V) -> T,
@@ -163,7 +163,7 @@ pub fn[T, V] Internal_EnumAdapter::add_wrapper_variant(
 ///|
 pub fn[T] Internal_EnumAdapter::add_removed_number(
   self : Internal_EnumAdapter[T],
-  number : Int,
+  number : Int32,
 ) -> Unit {
   self.number_to_entry.set(number, EnumAnyEntry::Removed)
   self.removed_numbers.push(number)
@@ -180,8 +180,8 @@ pub fn[T] Internal_EnumAdapter::finalize(
 ///|
 priv enum EnumAnyEntry {
   Removed
-  Constant(Int)
-  Wrapper(Int)
+  Constant(Int32)
+  Wrapper(Int32)
 }
 
 ///|
@@ -203,7 +203,7 @@ priv struct EnumVariantEntry[T] {
 ///|
 fn[T] Internal_EnumAdapter::set_kind_ordinal_entry(
   self : Internal_EnumAdapter[T],
-  kind_ordinal : Int,
+  kind_ordinal : Int32,
   entry : EnumVariantEntry[T],
 ) -> Unit {
   while self.kind_ordinal_to_entry.length() <= kind_ordinal {
@@ -215,7 +215,7 @@ fn[T] Internal_EnumAdapter::set_kind_ordinal_entry(
 ///|
 fn[T] Internal_EnumAdapter::contains_removed(
   self : Internal_EnumAdapter[T],
-  number : Int,
+  number : Int32,
 ) -> Bool {
   for n in self.removed_numbers {
     if n == number {
@@ -236,7 +236,7 @@ fn enum_is_keep(policy : UnrecognizedValues) -> Bool {
 ///|
 fn[T] Internal_EnumAdapter::entry_at_kind(
   self : Internal_EnumAdapter[T],
-  ko : Int,
+  ko : Int32,
 ) -> EnumVariantEntry[T]? {
   if ko >= 0 && ko < self.kind_ordinal_to_entry.length() {
     self.kind_ordinal_to_entry[ko]
@@ -246,7 +246,7 @@ fn[T] Internal_EnumAdapter::entry_at_kind(
 }
 
 ///|
-fn enum_int_array_to_bytes(bytes : Array[Int]) -> Bytes {
+fn enum_int_array_to_bytes(bytes : Array[Int32]) -> Bytes {
   let out : Array[Byte] = []
   for b in bytes {
     out.push(b.to_byte())

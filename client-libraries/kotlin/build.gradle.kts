@@ -64,7 +64,7 @@ mavenPublishing {
         name.set("Skir Kotlin Client")
         description.set("Serializable Kotlin data types generated from .skir files")
         inceptionYear.set("2025")
-        url.set("https://github.com/gepheum/skir-kotlin-client")
+        url.set("https://github.com/gepheum/skir")
 
         licenses {
             license {
@@ -84,7 +84,7 @@ mavenPublishing {
 
         // Specify SCM information
         scm {
-            url.set("https://github.com/gepheum/skir-kotlin-client")
+            url.set("https://github.com/gepheum/skir")
         }
     }
 

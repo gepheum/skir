@@ -1,5 +1,5 @@
 [![Maven Central](https://img.shields.io/maven-central/v/build.skir/skir-client)](https://central.sonatype.com/artifact/build.skir/skir-client)
-[![build](https://github.com/gepheum/skir-kotlin-client/workflows/Build/badge.svg)](https://github.com/gepheum/skir-kotlin-client/actions)
+[![build](https://github.com/gepheum/skir/actions/workflows/ci-kotlin.yml/badge.svg)](https://github.com/gepheum/skir/actions)
 
 # Skir Kotlin Client
 
@@ -40,5 +40,5 @@ This library can be used in Java projects as well as Kotlin projects. The genera
 ## See Also
 
 *   [skir](https://github.com/gepheum/skir): home of the skir compiler
-*   [skir-kotlin-gen](https://github.com/gepheum/skir-kotlin-gen): skir to Kotlin code generator
+*   [Documentation](https://skir.build/docs/kotlin): Skir Kotlin documentation
 *   [skir-kotlin-example](https://github.com/gepheum/skir-kotlin-example): example showing how to use skir's Kotlin code generator in a project

@@ -384,7 +384,7 @@ public final class Service<Meta> {
 
 private func studioHtml(_ jsUrl: String) -> String {
   let safe = htmlEscapeAttr(jsUrl)
-  // Copied from https://github.com/gepheum/skir-studio/blob/main/index.jsdeliver.html
+  // Copied from https://github.com/gepheum/skir/blob/main/packages/studio/index.jsdeliver.html
   return """
     <!DOCTYPE html><html>
       <head>

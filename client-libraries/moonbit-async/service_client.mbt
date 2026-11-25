@@ -3,7 +3,7 @@
 ///
 /// `status_code=0` represents transport/decoding failures.
 pub(all) struct RpcError {
-  status_code : Int
+  status_code : Int32
   message : String
 }
 
@@ -26,7 +26,7 @@ pub struct ServiceClient {
 /// `let client = @client_async.ServiceClient::new("http://localhost:8787/myapi")`
 pub fn ServiceClient::new(
   service_url : String,
-  default_headers? : @hashmap.HashMap[String, String] = @hashmap.HashMap([]),
+  default_headers~ : @hashmap.HashMap[String, String] = @hashmap.HashMap([]),
 ) -> ServiceClient {
   let default_headers = default_headers.copy()
   let service_url = match service_url.find("?") {

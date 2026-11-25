@@ -1,5 +1,5 @@
-[![npm](https://img.shields.io/npm/v/skir-zig-gen)](https://www.npmjs.com/package/skir-zig-gen)
-[![build](https://github.com/gepheum/skir-zig-gen/workflows/Build/badge.svg)](https://github.com/gepheum/skir-zig-gen/actions)
+[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
+[![build](https://github.com/gepheum/skir/actions/workflows/ci-zig.yml/badge.svg)](https://github.com/gepheum/skir/actions)
 
 # Skir's Zig code generator
 

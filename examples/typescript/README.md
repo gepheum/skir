@@ -1,6 +1,6 @@
 # Skir TypeScript example
 
-Example showing how to use skir's [TypeScript code generator](https://github.com/gepheum/skir-typescript-gen) in a project.
+Example showing how to use skir's [TypeScript code generator](https://skir.build/docs/typescript) in a project.
 
 ## Build and run the example
 

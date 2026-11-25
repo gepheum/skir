@@ -1,13 +1,13 @@
 ///|
 pub struct Internal_UnrecognizedFields {
   priv format : UnrecognizedFormat
-  priv array_len : Int
+  priv array_len : Int32
 }
 
 ///|
 pub struct Internal_UnrecognizedVariant {
   priv format : UnrecognizedFormat
-  priv number : Int
+  priv number : Int32
 }
 
 ///|
@@ -19,7 +19,7 @@ priv enum UnrecognizedFormat {
 
 ///|
 fn unrecognized_fields_from_json(
-  array_len : Int,
+  array_len : Int32,
   json : Json,
 ) -> Internal_UnrecognizedFields {
   { format: UnrecognizedFormat::DenseJson(json), array_len, }
@@ -27,7 +27,7 @@ fn unrecognized_fields_from_json(
 
 ///|
 fn unrecognized_fields_from_bytes(
-  array_len : Int,
+  array_len : Int32,
   raw_bytes : Bytes,
 ) -> Internal_UnrecognizedFields {
   { format: UnrecognizedFormat::Bytes(raw_bytes), array_len, }
@@ -36,7 +36,7 @@ fn unrecognized_fields_from_bytes(
 ///|
 fn Internal_UnrecognizedFields::array_len(
   self : Internal_UnrecognizedFields,
-) -> Int {
+) -> Int32 {
   self.array_len
 }
 
@@ -62,7 +62,7 @@ fn Internal_UnrecognizedFields::bytes(
 
 ///|
 fn unrecognized_variant_from_bytes(
-  number : Int,
+  number : Int32,
   raw_bytes : Bytes,
 ) -> Internal_UnrecognizedVariant {
   { format: UnrecognizedFormat::Bytes(raw_bytes), number, }
@@ -70,7 +70,7 @@ fn unrecognized_variant_from_bytes(
 
 ///|
 fn unrecognized_variant_from_json(
-  number : Int,
+  number : Int32,
   json : Json,
 ) -> Internal_UnrecognizedVariant {
   { format: UnrecognizedFormat::DenseJson(json), number, }
@@ -79,7 +79,7 @@ fn unrecognized_variant_from_json(
 ///|
 fn Internal_UnrecognizedVariant::number(
   self : Internal_UnrecognizedVariant,
-) -> Int {
+) -> Int32 {
   self.number
 }
 

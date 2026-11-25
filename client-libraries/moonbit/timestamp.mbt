@@ -171,7 +171,7 @@ fn int64_rem_euclid(a : Int64, b : Int64) -> Int64 {
 }
 
 ///|
-fn zero_pad(n : Int, width : Int) -> String {
+fn zero_pad(n : Int32, width : Int32) -> String {
   let s = n.to_string()
   if s.length() >= width {
     s

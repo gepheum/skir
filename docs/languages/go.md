@@ -1,5 +1,5 @@
-[![npm](https://img.shields.io/npm/v/skir-go-gen)](https://www.npmjs.com/package/skir-go-gen)
-[![build](https://github.com/gepheum/skir-go-gen/workflows/Build/badge.svg)](https://github.com/gepheum/skir-go-gen/actions)
+[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
+[![build](https://github.com/gepheum/skir/actions/workflows/ci-go.yml/badge.svg)](https://github.com/gepheum/skir/actions)
 
 # Skir's Go code generator
 

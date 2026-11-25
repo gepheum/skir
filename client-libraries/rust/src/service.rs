@@ -602,7 +602,7 @@ fn serve_studio(js_url: &str) -> RawResponse {
 
 fn studio_html(js_url: &str) -> String {
     let safe = html_escape_attr(js_url);
-    // Copied from https://github.com/gepheum/skir-studio/blob/main/index.jsdeliver.html
+    // Copied from https://github.com/gepheum/skir/blob/main/packages/studio/index.jsdeliver.html
     format!(
         r#"<!DOCTYPE html><html>
   <head>

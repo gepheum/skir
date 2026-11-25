@@ -1,5 +1,5 @@
-[![npm](https://img.shields.io/npm/v/skir-gleam-gen)](https://www.npmjs.com/package/skir-gleam-gen)
-[![build](https://github.com/gepheum/skir-gleam-gen/workflows/Build/badge.svg)](https://github.com/gepheum/skir-gleam-gen/actions)
+[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
+[![build](https://github.com/gepheum/skir/actions/workflows/ci-gleam.yml/badge.svg)](https://github.com/gepheum/skir/actions)
 
 # Skir's Gleam code generator
 

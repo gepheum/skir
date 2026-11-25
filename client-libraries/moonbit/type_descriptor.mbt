@@ -41,7 +41,7 @@ pub enum RecordDescriptor {
 pub struct StructRecordDescriptor {
   record_id : String
   doc : String
-  removed_numbers : @immut_vector.Vector[Int]
+  removed_numbers : @immut_vector.Vector[Int32]
   fields : @immut_vector.Vector[StructField]
 }
 
@@ -49,14 +49,14 @@ pub struct StructRecordDescriptor {
 pub struct EnumRecordDescriptor {
   record_id : String
   doc : String
-  removed_numbers : @immut_vector.Vector[Int]
+  removed_numbers : @immut_vector.Vector[Int32]
   variants : @immut_vector.Vector[EnumVariant]
 }
 
 ///|
 pub struct StructField {
   name : String
-  number : Int
+  number : Int32
   field_type : TypeSignature
   doc : String
 }
@@ -70,14 +70,14 @@ pub enum EnumVariant {
 ///|
 pub struct EnumConstantVariant {
   name : String
-  number : Int
+  number : Int32
   doc : String
 }
 
 ///|
 pub struct EnumWrapperVariant {
   name : String
-  number : Int
+  number : Int32
   variant_type : TypeSignature
   doc : String
 }
@@ -553,7 +553,7 @@ fn get_required_array(v : Json, key : String) -> Result[Array[Json], String] {
 }
 
 ///|
-fn get_required_int(v : Json, key : String) -> Result[Int, String] {
+fn get_required_int(v : Json, key : String) -> Result[Int32, String] {
   match get_object_field(v, key) {
     Some(raw) => json_as_int(raw)
     None => Err("missing integer field")
@@ -564,10 +564,10 @@ fn get_required_int(v : Json, key : String) -> Result[Int, String] {
 fn get_optional_int_vector(
   v : Json,
   key : String,
-) -> Result[@immut_vector.Vector[Int], String] {
+) -> Result[@immut_vector.Vector[Int32], String] {
   match get_object_field(v, key) {
     Some(Json::Array(arr)) => {
-      let out : Array[Int] = []
+      let out : Array[Int32] = []
       for item in arr {
         match json_as_int(item) {
           Ok(v0) => out.push(v0)
@@ -590,7 +590,7 @@ fn json_as_string(v : Json) -> Result[String, String] {
 }
 
 ///|
-fn json_as_int(v : Json) -> Result[Int, String] {
+fn json_as_int(v : Json) -> Result[Int32, String] {
   match v {
     Json::Number(n, ..) => Ok(n.to_int())
     _ => Err("expected JSON number")
@@ -603,7 +603,7 @@ fn quote_json_string(s : String) -> String {
 }
 
 ///|
-fn join_int_vector(items : @immut_vector.Vector[Int]) -> String {
+fn join_int_vector(items : @immut_vector.Vector[Int32]) -> String {
   let mut out = ""
   let mut first = true
   for i in items.iter() {

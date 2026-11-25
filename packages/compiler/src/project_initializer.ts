@@ -68,8 +68,8 @@ const SKIR_YML_CONTENT = `# Configuration file for Skir code generator
 generators:
   # --------------------------------------------------------------------------
   # C++ code generator
-  # Home: https://github.com/gepheum/skir-cc-gen
-  # To install runtime dependencies, follow instructions in repository README
+  # Home: https://skir.build/docs/cpp
+  # To install runtime dependencies, follow instructions in documentation
   # --------------------------------------------------------------------------
   - mod: skir-cc-gen
     outDir: ./skirout
@@ -79,7 +79,7 @@ generators:
 
   # # --------------------------------------------------------------------------
   # # C# code generator
-  # # Home: https://github.com/gepheum/skir-csharp-gen
+  # # Home: https://skir.build/docs/csharp
   # # To install runtime dependencies: dotnet add package skir_client
   # # --------------------------------------------------------------------------
   # - mod: skir-csharp-gen
@@ -88,7 +88,7 @@ generators:
 
   # # --------------------------------------------------------------------------
   # # Dart code generator
-  # # Home: https://github.com/gepheum/skir-dart-gen
+  # # Home: https://skir.build/docs/dart
   # # To install runtime dependencies: dart pub add skir_client
   # # --------------------------------------------------------------------------
   # - mod: skir-dart-gen
@@ -107,7 +107,7 @@ generators:
 
   # # --------------------------------------------------------------------------
   # # Gleam code generator
-  # # Home: https://github.com/gepheum/skir-gleam-gen
+  # # Home: https://skir.build/docs/gleam
   # # To install runtime dependencies: gleam add skir_client
   # # --------------------------------------------------------------------------
   # - mod: skir-gleam-gen
@@ -120,7 +120,7 @@ generators:
 
   # # --------------------------------------------------------------------------
   # # Go code generator
-  # # Home: https://github.com/gepheum/skir-go-gen
+  # # Home: https://skir.build/docs/go
   # # To install runtime dependencies: go get github.com/gepheum/skir-go-client
   # # --------------------------------------------------------------------------
   # - mod: skir-go-gen
@@ -131,7 +131,7 @@ generators:
 
   # # --------------------------------------------------------------------------
   # # Java code generator
-  # # Home: https://github.com/gepheum/skir-java-gen
+  # # Home: https://skir.build/docs/java
   # # Add the following line to your build.gradle dependencies:
   # #    implementation("build.skir:skir-client:latest.release")
   # # --------------------------------------------------------------------------
@@ -145,7 +145,7 @@ generators:
 
   # # --------------------------------------------------------------------------
   # # Kotlin code generator
-  # # Home: https://github.com/gepheum/skir-kotlin-gen
+  # # Home: https://skir.build/docs/kotlin
   # # Add the following line to your build.gradle dependencies:
   # #   implementation("build.skir:skir-client:latest.release")
   # # --------------------------------------------------------------------------
@@ -159,7 +159,7 @@ generators:
 
   # # --------------------------------------------------------------------------
   # # MoonBit code generator
-  # # Home: https://github.com/gepheum/skir-moonbit-gen
+  # # Home: https://skir.build/docs/moonbit
   # # To install runtime dependencies: moon add gepheum/skir-client
   # # --------------------------------------------------------------------------
   # - mod: skir-moonbit-gen
@@ -168,7 +168,7 @@ generators:
 
   # # --------------------------------------------------------------------------
   # # Python code generator
-  # # Home: https://github.com/gepheum/skir-python-gen
+  # # Home: https://skir.build/docs/python
   # # To install runtime dependencies: pip install skir-client
   # # --------------------------------------------------------------------------
   # - mod: skir-python-gen
@@ -181,7 +181,7 @@ generators:
 
   # # --------------------------------------------------------------------------
   # # Rust code generator
-  # # Home: https://github.com/gepheum/skir-rust-gen
+  # # Home: https://skir.build/docs/rust
   # # Complete these 3 steps:
   # # (1) Install runtime dependencies: cargo add skir-client
   # # (2) In ./src/lib.rs, add this line: 'pub mod skirout;'
@@ -193,7 +193,7 @@ generators:
 
   # # --------------------------------------------------------------------------
   # # Swift code generator
-  # # Home: https://github.com/gepheum/skir-swift-gen
+  # # Home: https://skir.build/docs/swift
   # # To install runtime dependencies:
   # #   swift package add-dependency \
   # #       https://github.com/gepheum/skir-swift-client --branch main
@@ -207,7 +207,7 @@ generators:
 
   # # --------------------------------------------------------------------------
   # # TypeScript/JavaScript code generator
-  # # Home: https://github.com/gepheum/skir-typescript-gen
+  # # Home: https://skir.build/docs/typescript
   # # To install runtime dependencies: npm i skir-client
   # # --------------------------------------------------------------------------
   # - mod: skir-typescript-gen
@@ -218,7 +218,7 @@ generators:
 
   # # --------------------------------------------------------------------------
   # # Zig code generator
-  # # Home: https://github.com/gepheum/skir-zig-gen
+  # # Home: https://skir.build/docs/zig
   # # To install runtime dependencies: zig fetch --save https://github.com/gepheum/skir-zig-client/archive/refs/tags/\${latest_tag}.tar.gz
   # # --------------------------------------------------------------------------
   # - mod: skir-zig-gen
