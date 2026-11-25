@@ -1,6 +1,6 @@
 name = "gepheum/skir-client-async"
 
-version = "0.1.1"
+version = "0.1.2"
 
 readme = "README.md"
 
@@ -14,5 +14,5 @@ description = "SkirRPC integration for MoonBit"
 
 import {
   "moonbitlang/async@0.22.10",
-  "gepheum/skir-client@0.1.1",
+  "gepheum/skir-client@0.1.2",
 }
