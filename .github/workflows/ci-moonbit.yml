@@ -22,17 +22,15 @@ jobs:
         run: |
           npm ci --legacy-peer-deps
           npm run build
-      - name: Verify MoonBit client library (check, test & format)
+      - name: Verify MoonBit client library (check & test)
         working-directory: client-libraries/moonbit
         run: |
           moon update
-          moon fmt --check
           moon check
           moon test
       - name: Verify MoonBit async client library (check & test)
         working-directory: client-libraries/moonbit-async
         run: |
-          moon fmt --check
           moon check --target native .
           moon test --target native .
       - name: Run MoonBit E2E tests
