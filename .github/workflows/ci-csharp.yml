@@ -34,4 +34,4 @@ jobs:
       - name: Verify C# E2E tests formatting & test suite
         run: |
           ./e2e-tests/test.sh --lang=csharp
-          (cd e2e-tests/csharp && dotnet format CsharpE2eTest.csproj --exclude skirout --verify-no-changes && dotnet format SkirClientTest/SkirClientTest.csproj --verify-no-changes)
+          (cd e2e-tests/csharp && dotnet format CsharpE2eTest.csproj --verify-no-changes && dotnet format SkirClientTest/SkirClientTest.csproj --verify-no-changes)

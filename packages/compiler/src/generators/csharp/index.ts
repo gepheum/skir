@@ -273,7 +273,7 @@ class CsharpSourceFileGenerator {
     const fqName = this.getFullyQualifiedTypeName(record);
 
     // Add XML documentation for the struct
-    this.lines.push(...this.formatDocAsXmlSummary(record.record.doc));
+    this.lines.push(...this.formatDocAsXmlSummary(record.record.doc, ""));
     this.lines.push(`public readonly record struct ${name}`);
     this.lines.push("{");
 
@@ -425,7 +425,7 @@ class CsharpSourceFileGenerator {
     }));
 
     // Add XML documentation for the enum
-    this.lines.push(...this.formatDocAsXmlSummary(record.record.doc));
+    this.lines.push(...this.formatDocAsXmlSummary(record.record.doc, ""));
     this.lines.push(`public sealed record ${name}`);
     this.lines.push("{");
 
@@ -945,7 +945,7 @@ class CsharpSourceFileGenerator {
 
   /** Formats doc text as XML documentation comment lines. Returns an array of strings
    * (one per line) ready to be pushed to this.lines. Returns empty array if doc is empty. */
-  private formatDocAsXmlSummary(doc: Doc): string[] {
+  private formatDocAsXmlSummary(doc: Doc, indent = " "): string[] {
     const text = this.getDocText(doc);
     if (!text) {
       return [];
@@ -962,16 +962,16 @@ class CsharpSourceFileGenerator {
     const lines = escaped.split("\n");
     if (lines.length === 1) {
       // Single-line doc: use inline summary
-      return [` /// <summary>${lines[0]}</summary>`];
+      return [`${indent}/// <summary>${lines[0]}</summary>`];
     }
 
     // Multi-line doc: use block summary
     const result: string[] = [];
-    result.push(" /// <summary>");
+    result.push(`${indent}/// <summary>`);
     for (const line of lines) {
-      result.push(` /// ${line}`);
+      result.push(`${indent}/// ${line}`);
     }
-    result.push(" /// </summary>");
+    result.push(`${indent}/// </summary>`);
     return result;
   }
 

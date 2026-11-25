@@ -98,7 +98,7 @@ fi
 if should_run "csharp"; then
   echo "=== Formatting C# client & E2E tests ==="
   node "$SKIR_CLI" format -r csharp
-  (cd csharp && dotnet format CsharpE2eTest.csproj --exclude skirout && dotnet format SkirClientTest/SkirClientTest.csproj)
+  (cd csharp && dotnet format CsharpE2eTest.csproj && dotnet format SkirClientTest/SkirClientTest.csproj)
   (cd "$ROOT_DIR/client-libraries/csharp" && dotnet format SkirClient.csproj && dotnet format SkirClientTest/SkirClientTest.csproj)
 fi
 
