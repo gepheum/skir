@@ -1,0 +1,5 @@
+members = [
+  "./client-libraries/moonbit",
+  "./client-libraries/moonbit-async",
+  "./e2e-tests/moonbit",
+]

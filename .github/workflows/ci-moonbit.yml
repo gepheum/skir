@@ -26,8 +26,8 @@ jobs:
         working-directory: client-libraries/moonbit
         run: |
           moon update
-          moon check
-          moon test
+          moon check .
+          moon test .
       - name: Verify MoonBit async client library (check & test)
         working-directory: client-libraries/moonbit-async
         run: |
