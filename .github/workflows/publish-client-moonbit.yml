@@ -1,0 +1,34 @@
+name: "Publish Client: MoonBit (mooncakes.io)"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client-libraries/moonbit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hustcer/setup-moonbit@v1
+        with:
+          version: latest
+      - name: Configure Mooncakes credentials
+        env:
+          MOONCAKES_CREDENTIALS: ${{ secrets.MOONCAKES_CREDENTIALS }}
+        run: |
+          mkdir -p "$HOME/.moon"
+          if [[ "$MOONCAKES_CREDENTIALS" == \{* ]]; then
+            printf '%s\n' "$MOONCAKES_CREDENTIALS" > "$HOME/.moon/credentials.json"
+          else
+            printf '{"token":"%s","username":"gepheum"}\n' "$MOONCAKES_CREDENTIALS" > "$HOME/.moon/credentials.json"
+          fi
+          chmod 600 "$HOME/.moon/credentials.json"
+      - name: Publish gepheum/skir-client to mooncakes.io
+        run: |
+          rm -f ../../moon.work
+          moon update
+          moon check
+          moon test
+          moon publish
