@@ -43,7 +43,7 @@ jobs:
 
       - name: Check Backend syntax
         working-directory: backend
-        run: python3 -m py_compile server.py
+        run: python3 -m py_compile backend.py
 
       - name: Lint Backend
         working-directory: backend

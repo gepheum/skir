@@ -36,8 +36,8 @@ if [ -f "requirements.txt" ]; then
 fi
 
 # Basic Syntax Check
-echo "   Checking server.py syntax..."
-python3 -m py_compile server.py
+echo "   Checking backend.py syntax..."
+python3 -m py_compile backend.py
 
 # Optional: flake8 if installed
 if command -v flake8 >/dev/null 2>&1; then

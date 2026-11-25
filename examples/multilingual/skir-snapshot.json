@@ -15,7 +15,7 @@
     "To verify the snapshot is up-to-date in CI:",
     "  npx skir snapshot --ci"
   ],
-  "lastChange": "2026-05-27T22:25:04.526Z",
+  "lastChange": "2026-11-25T18:22:52.538Z",
   "trackedRecordIds": [
     "api.skir:GreetRequest",
     "api.skir:GreetResponse",
@@ -30,7 +30,7 @@
   "untrackedRecordIds": [],
   "modules": {
     "shapes.skir": "// 'shapes.skir' on Tuesday\n\nstruct Point2D {  // Renaming types is safe\n  x: float64;  // float32 -> float64 is safe\n  y: float64;\n}\n\nenum Shape {\n  empty;\n  polygon: [Point2D];\n  circle: struct {\n    center: Point2D;\n    radius: float32;\n  };\n  union: [Shape];\n}\n\nmethod GetArea(\n  Shape\n): float32 = 412938;\n",
-    "greet.skir": "// 'greet.skir' on Monday\n\nstruct GreetRequest {\n  first_name: string;  // Renaming fields: safe\n  temperature_c: float32;  // \n}\n\nstruct GreetResponse {\n  enum Action {\n    wave;\n    say: string;\n  }\n  actions: [Action];\n}\n\nmethod Greet(\n  GreetRequest\n): GreetResponse = 102787;\n",
+    "greet.skir": "// 'greet.skir' on Monday\n\nstruct GreetRequest {\n  name: string;\n  temperature_c: float32;\n}\n\nstruct GreetResponse {\n  enum Action {\n    wave;\n    say: string;\n  }\n  actions: [Action];\n}\n\nmethod Greet(\n  GreetRequest\n): GreetResponse = 102787;\n",
     "api.skir": "struct GreetRequest {\n  name: string;\n  temperature_c: float32;\n  sunny: bool;\n}\n\nstruct GreetResponse {\n  enum Action {\n    wave;\n    say: string;\n  }\n  actions: [Action];\n}\n\nmethod Greet(\n  GreetRequest\n): GreetResponse = 102788;\n"
   }
 }

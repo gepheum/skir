@@ -2,7 +2,7 @@
 
 set -e
 
-gleam format
+gleam format src/*.gleam
 npx skir format
 npx skir gen
 gleam build

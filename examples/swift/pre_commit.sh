@@ -2,7 +2,7 @@
 
 set -e
 
-find Sources Tests -name "*.swift" | xargs xcrun swift-format format --in-place
+find Sources -name "*.swift" -not -path "*/skirout/*" | xargs xcrun swift-format format --in-place
 
 npx skir format
 npx skir gen

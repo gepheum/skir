@@ -16,6 +16,6 @@ cd ..
 # ─── Frontend ───────────────────────────────────────────────────────────────
 cd frontend
 dart pub get
-dart format .
+dart format lib/*.dart
 dart analyze
 cd ..

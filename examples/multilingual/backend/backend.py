@@ -19,17 +19,12 @@ def greet_impl(req: GreetRequest) -> GreetResponse:
         ],
     )
 
+
 app = Flask(__name__)
 CORS(app)
 
 # Create Skir Service
 service = Service[Headers]()
-
-
-
-
-
-
 
 # Register metadata and implementation
 service.add_method(Greet, greet_impl)

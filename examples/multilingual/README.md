@@ -29,7 +29,7 @@ This is a simple web application demonstrating how to use Skir with a Python bac
    python3 -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt
-   python server.py
+   python backend.py
    ```
    The server will run on `http://localhost:8080`.
 

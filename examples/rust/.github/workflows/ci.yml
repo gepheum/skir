@@ -1,4 +1,4 @@
-name: CI
+name: Build
 
 on:
   push:
@@ -7,19 +7,30 @@ on:
     branches: [main]
 
 jobs:
-  build-and-test:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Generate Skir code
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Check Skir formatting
+        run: npx -y skir format --ci
+
+      - name: Run Skir-to-Rust codegen
+        run: npx -y skir gen
+
+      - name: Build and run snippets
         run: |
-          npm ci
-          npx skir gen
-      - name: Build and test Rust example
-        run: |
+          cargo clippy -- -D warnings
           cargo build
-          cargo test
+          cargo run --bin snippets

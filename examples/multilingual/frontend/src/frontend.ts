@@ -18,8 +18,7 @@ sendBtn.addEventListener("click", async () => {
     sunny: true,
   });
 
-  const response =
-    await client.invokeRemote(Greet, request);
+  const response = await client.invokeRemote(Greet, request);
   for (const action of response.actions) {
     performAction(action);
   }
