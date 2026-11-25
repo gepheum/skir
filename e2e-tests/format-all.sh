@@ -135,6 +135,7 @@ if should_run "moonbit"; then
   node "$SKIR_CLI" format -r moonbit
   (cd "$ROOT_DIR/client-libraries/moonbit" && moon fmt)
   (cd "$ROOT_DIR/client-libraries/moonbit-async" && moon fmt)
+  (cd "$ROOT_DIR/examples/moonbit" && MOON_WORK=off moon fmt)
 fi
 
 if should_run "cc"; then
