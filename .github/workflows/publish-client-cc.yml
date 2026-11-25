@@ -20,7 +20,10 @@ jobs:
         run: |
           set -euo pipefail
           git clone "https://x-access-token:${MIRROR_TOKEN}@github.com/gepheum/skir-cc-gen.git" /tmp/mirror
-          rsync -a --delete --exclude='.git' --exclude='build' client-libraries/cc/ /tmp/mirror/
+          find /tmp/mirror -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          mkdir -p /tmp/mirror/client
+          rsync -a --delete --exclude='.git' --exclude='build' client-libraries/cc/ /tmp/mirror/client/
+          rsync -a --exclude='.git' --exclude='build' client-libraries/cc/ /tmp/mirror/
           cd /tmp/mirror
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
