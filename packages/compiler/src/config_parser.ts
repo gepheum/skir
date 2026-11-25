@@ -1,10 +1,10 @@
+import * as ElixirGen from "skir-elixir-gen";
 import { CodeGenerator } from "skir-internal";
 import { LineCounter, parseDocument, Scalar, YAMLMap } from "yaml";
 import { SkirConfig } from "./config.js";
 import * as CcGen from "./generators/cc/index.js";
 import * as CSharpGen from "./generators/csharp/index.js";
 import * as DartGen from "./generators/dart/index.js";
-import * as ElixirGen from "./generators/elixir/index.js";
 import * as GleamGen from "./generators/gleam/index.js";
 import * as GoGen from "./generators/go/index.js";
 import * as JavaGen from "./generators/java/index.js";

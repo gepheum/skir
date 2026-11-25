@@ -4,7 +4,7 @@
 
 - **`packages/`** — npm workspaces (built & tested together from the root):
   - `packages/compiler-internal` (`skir-internal`): Shared AST, CodeGenerator interface, and casing/hashing helpers.
-  - `packages/compiler` (`skir`): The Skir CLI, schema compiler, language server core, and **all 14 built-in language code generators** (`src/generators/<lang>`).
+  - `packages/compiler` (`skir`): The Skir CLI, schema compiler, language server core, and **all 13 built-in language code generators** (`src/generators/<lang>`).
   - `packages/typescript-client` (`skir-client`): TypeScript/JavaScript runtime client library.
   - `packages/codemirror-plugin` (`skir-codemirror-plugin`): CodeMirror 6 editor integration.
   - `packages/studio` (`skir-studio`): Skir Studio web UI component.
