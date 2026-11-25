@@ -1,6 +1,6 @@
 {
   "name": "skir",
-  "version": "1.2.27",
+  "version": "1.2.28",
   "description": "Skir schema compiler and multi-language code generator",
   "homepage": "https://skir.build/",
   "bugs": {
