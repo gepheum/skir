@@ -22,10 +22,12 @@ jobs:
       - name: Verify Swift client library formatting, build & unit tests
         working-directory: client-libraries/swift
         run: |
-          find Sources Tests -name "*.swift" -exec xcrun swift-format lint --strict {} +
+          find Sources Tests -name "*.swift" -exec xcrun swift-format format --in-place {} +
+          git diff --exit-code Sources Tests
           swift build
           swift test
       - name: Verify Swift E2E tests formatting & test suite
         run: |
-          xcrun swift-format lint --strict e2e-tests/swift/Tests/*.swift
+          xcrun swift-format format --in-place e2e-tests/swift/Tests/*.swift
+          git diff --exit-code e2e-tests/swift/Tests
           ./e2e-tests/test.sh --lang=swift
