@@ -24,6 +24,8 @@ target/
 .gradle/
 .kotlin/
 build/
+!**/src/**/build/
+!**/src/**/build/**
 
 # IDE
 .idea/
