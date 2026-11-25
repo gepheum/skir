@@ -78,7 +78,7 @@ fi
 if should_run "go"; then
   echo "=== Formatting Go client & E2E tests ==="
   node "$SKIR_CLI" format -r go
-  (cd go && gofmt -w .)
+  (cd go && gofmt -w *.go)
   (cd "$ROOT_DIR/client-libraries/go" && gofmt -w .)
 fi
 
@@ -98,21 +98,21 @@ fi
 if should_run "csharp"; then
   echo "=== Formatting C# client & E2E tests ==="
   node "$SKIR_CLI" format -r csharp
-  (cd csharp && dotnet format CsharpE2eTest.csproj && dotnet format SkirClientTest/SkirClientTest.csproj)
+  (cd csharp && dotnet format CsharpE2eTest.csproj --include Program.cs && dotnet format SkirClientTest/SkirClientTest.csproj --include SkirClientTest)
   (cd "$ROOT_DIR/client-libraries/csharp" && dotnet format SkirClient.csproj && dotnet format SkirClientTest/SkirClientTest.csproj)
 fi
 
 if should_run "dart"; then
   echo "=== Formatting Dart client & E2E tests ==="
   node "$SKIR_CLI" format -r dart
-  (cd dart && dart format .)
+  (cd dart && dart format test)
   (cd "$ROOT_DIR/client-libraries/dart" && dart format .)
 fi
 
 if should_run "gleam"; then
   echo "=== Formatting Gleam client & E2E tests ==="
   node "$SKIR_CLI" format -r gleam
-  (cd gleam && gleam format src test)
+  (cd gleam && gleam format test)
   (cd "$ROOT_DIR/client-libraries/gleam" && gleam format src test)
 fi
 

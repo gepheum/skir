@@ -14,6 +14,12 @@ kotlin {
     }
 }
 
+ktlint {
+    filter {
+        exclude { it.file.path.contains("skirout") }
+    }
+}
+
 repositories {
     mavenCentral()
 }
