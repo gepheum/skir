@@ -4,6 +4,3 @@ root = true
 # Fail on unnecessary using directives (e.g. those already covered by global
 # implicit usings introduced by <ImplicitUsings>enable</ImplicitUsings>).
 dotnet_diagnostic.IDE0005.severity = warning
-
-[skirout/**.cs]
-generated_code = true

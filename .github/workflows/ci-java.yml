@@ -7,6 +7,8 @@ jobs:
   ci-java:
     name: Verify Java E2E Tests & JVM Client
     runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

@@ -365,10 +365,8 @@ async function format(
     console.log();
     console.log(
       makeRed(
-        `${numFilesNotFormatted} file${
-          numFilesNotFormatted > 1 ? "s" : ""
-        } not formatted; run with 'format fix' to format ${
-          numFilesNotFormatted > 1 ? "them" : "it"
+        `${numFilesNotFormatted} file${numFilesNotFormatted > 1 ? "s" : ""
+        } not formatted; run with 'format fix' to format ${numFilesNotFormatted > 1 ? "them" : "it"
         }`,
       ),
     );
@@ -381,7 +379,7 @@ async function getDependencies(
   root: string,
   githubTokenEnvVar: string,
 ): Promise<ModuleSet> {
-  let githubToken: string | undefined = undefined;
+  let githubToken: string | undefined;
   if (githubTokenEnvVar) {
     githubToken = process.env[githubTokenEnvVar];
     if (githubToken === undefined) {
@@ -392,6 +390,8 @@ async function getDependencies(
       );
       process.exit(1);
     }
+  } else {
+    githubToken = process.env["GITHUB_TOKEN"] || undefined;
   }
   const manager = new DependencyManager(root, githubToken);
   const result = await manager.getDependencies(dependencies);
