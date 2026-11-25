@@ -26,17 +26,15 @@ jobs:
         working-directory: client-libraries/moonbit
         run: |
           moon update
-          moon install
           moon fmt --check
           moon check
           moon test
       - name: Verify MoonBit async client library (check & test)
         working-directory: client-libraries/moonbit-async
         run: |
-          moon update
-          moon install
           moon fmt --check
-          moon check
+          moon check --target native .
+          moon test --target native .
       - name: Run MoonBit E2E tests
         run: |
           (cd e2e-tests/moonbit && moon update)
