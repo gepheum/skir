@@ -22,10 +22,13 @@ jobs:
         run: |
           npm ci --legacy-peer-deps
           npm run build
+      - name: Update MoonBit registry & run E2E tests (generates e2e-tests/moonbit/skirout)
+        run: |
+          moon update
+          ./e2e-tests/test.sh --lang=moonbit
       - name: Verify MoonBit client library (check & test)
         working-directory: client-libraries/moonbit
         run: |
-          moon update
           moon check .
           moon test .
       - name: Verify MoonBit async client library (check & test)
@@ -33,7 +36,3 @@ jobs:
         run: |
           moon check --target native .
           moon test --target native .
-      - name: Run MoonBit E2E tests
-        run: |
-          (cd e2e-tests/moonbit && moon update)
-          ./e2e-tests/test.sh --lang=moonbit
