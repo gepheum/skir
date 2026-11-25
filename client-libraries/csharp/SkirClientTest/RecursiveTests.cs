@@ -125,7 +125,7 @@ public sealed class RecursiveTests
     {
         var withValue = Recursive<int>.FromValue(50);
         var withoutValue = Recursive<int>.Default;
-        
+
         Assert.True(withValue.HasValue);
         Assert.False(withoutValue.HasValue);
     }
@@ -135,7 +135,7 @@ public sealed class RecursiveTests
     {
         var innerRecursive = Recursive<int>.FromValue(42);
         var outerRecursive = Recursive<Recursive<int>>.FromValue(innerRecursive);
-        
+
         Assert.True(outerRecursive.HasValue);
         Assert.True(outerRecursive.Value.HasValue);
         Assert.Equal(42, outerRecursive.Value.Value);
