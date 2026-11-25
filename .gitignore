@@ -31,8 +31,8 @@ build/
 .idea/
 
 # C# / .NET
-bin/
-obj/
+**/csharp/**/bin/
+**/csharp/**/obj/
 artifacts/
 
 # Dart / Flutter
