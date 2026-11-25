@@ -1,0 +1,25 @@
+name: Skir C++ Examples CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run clang-format style check for C/C++/Protobuf programs.
+        uses: jidicula/clang-format-action@v4.15.0
+        with:
+          clang-format-version: 20
+      - run: npx skir format --ci
+      - run: npx skir gen
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build C++
+        run: cmake --build build -j$(nproc)
+      - name: Run unit tests
+        run: cd build && ctest --output-on-failure

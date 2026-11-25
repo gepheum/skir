@@ -1,0 +1,44 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Moon
+        uses: hustcer/setup-moonbit@v1
+        with:
+          version: latest
+
+      - name: Show toolchain version
+        run: moon version
+
+      - run: moon update
+
+      - name: Check formatting
+        run: moon fmt --check
+
+      - name: Check Skir formatting
+        run: npx skir format --ci
+
+      - name: Run Skir-to-MoonBit codegen
+        run: npx skir gen
+
+      - name: Typecheck
+        run: moon check --target native
+
+      - name: Run tests
+        run: moon test src --target native --filter snippets

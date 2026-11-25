@@ -1,0 +1,31 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Erlang and Gleam
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: "27.3.4.11"
+          rebar3-version: "3.22.1"
+          version-type: strict
+          gleam-version: "1.15.4"
+
+      - name: Run Skir formatting
+        run: npx skir format --ci
+
+      - name: Run Skir codegen
+        run: npx skir gen
+
+      - name: Run pre-commit checks
+        run: ./pre_commit.sh

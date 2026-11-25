@@ -1,0 +1,99 @@
+name: "Sync Example Repositories"
+
+on:
+  workflow_dispatch:
+    inputs:
+      example:
+        description: "Example repository to sync (or 'all' to sync all language examples)"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - cc
+          - csharp
+          - dart
+          - gleam
+          - go
+          - java
+          - kotlin
+          - moonbit
+          - python
+          - rust
+          - swift
+          - typescript
+          - zig
+          - fantasy_game
+          - geometry_service
+          - hello_flutter
+          - lost_and_found
+
+jobs:
+  sync-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync selected example directory to its mirror GitHub repository
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_GITHUB_TOKEN }}
+          TARGET_EXAMPLE: ${{ inputs.example }}
+        run: |
+          set -euo pipefail
+          EXAMPLES=(
+            "cc:gepheum/skir-cc-example"
+            "csharp:gepheum/skir-csharp-example"
+            "dart:gepheum/skir-dart-example"
+            "gleam:gepheum/skir-gleam-example"
+            "go:gepheum/skir-go-example"
+            "java:gepheum/skir-java-example"
+            "kotlin:gepheum/skir-kotlin-example"
+            "moonbit:gepheum/skir-moonbit-example"
+            "python:gepheum/skir-python-example"
+            "rust:gepheum/skir-rust-example"
+            "swift:gepheum/skir-swift-example"
+            "typescript:gepheum/skir-typescript-example"
+            "zig:gepheum/skir-zig-example"
+            "fantasy_game:gepheum/skir-fantasy-game-example"
+            "geometry_service:gepheum/skir-studio-demo"
+            "hello_flutter:gepheum/hello-skir-flutter"
+            "lost_and_found:gepheum/skir-lost-and-found-example"
+          )
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          for entry in "${EXAMPLES[@]}"; do
+            DIR="${entry%%:*}"
+            REPO="${entry##*:}"
+            if [[ "$TARGET_EXAMPLE" != "all" && "$TARGET_EXAMPLE" != "$DIR" ]]; then
+              continue
+            fi
+            echo "=== Syncing examples/${DIR} -> ${REPO} ==="
+            rm -rf /tmp/example-mirror
+            git clone "https://x-access-token:${MIRROR_TOKEN}@github.com/${REPO}.git" /tmp/example-mirror
+            rsync -a --delete \
+              --exclude='.git' \
+              --exclude='node_modules' \
+              --exclude='build' \
+              --exclude='_build' \
+              --exclude='.build' \
+              --exclude='target' \
+              --exclude='.gradle' \
+              --exclude='.dart_tool' \
+              --exclude='.zig-cache' \
+              --exclude='zig-out' \
+              --exclude='.mooncakes' \
+              --exclude='.venv' \
+              --exclude='venv' \
+              "examples/${DIR}/" /tmp/example-mirror/
+            pushd /tmp/example-mirror >/dev/null
+            git add -A
+            if ! git diff --cached --quiet; then
+              git commit -m "Sync examples/${DIR} from gepheum/skir monorepo"
+              git push origin HEAD:main -f
+              echo "✓ Pushed updates to ${REPO}"
+            else
+              echo "✓ ${REPO} is already up to date"
+            fi
+            popd >/dev/null
+          done
