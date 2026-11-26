@@ -161,7 +161,7 @@ Skir provides a hosted converter at [skir.build/converter](/converter.html) to c
 The converter needs a schema, which you can provide in two ways:
 
 - A type descriptor JSON from generated code. In Python, for example, you can get it from `User.serializer.type_descriptor.as_json_code()`. The syntax is similar in other languages. A common pattern is to store the type descriptor JSON as metadata next to your serialized data, so it is always at hand when you need to inspect a value.
-- A GitHub URL pointing to a specific line where a record is defined in a `.skir` file, for example [`https://github.com/gepheum/skir-fantasy-game-example/blob/v1.0.0/skir-src/fantasy_game.skir#L123`](https://github.com/gepheum/skir-fantasy-game-example/blob/v1.0.0/skir-src/fantasy_game.skir#L123) .
+- A GitHub URL pointing to a specific line where a record is defined in a `.skir` file, for example [`https://github.com/gepheum/skir-fantasy-game-example/blob/v1.0.0/skir-src/fantasy_game.skir#L123`](https://github.com/gepheum/skir-fantasy-game-example/blob/v1.0.0/skir-src/fantasy_game.skir#L123).
 
 ### Paste a value
 

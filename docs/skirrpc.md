@@ -143,7 +143,7 @@ async def main():
 | Language | Server side | Client side |
 | --- | --- | --- |
 | TypeScript | [Express](https://github.com/gepheum/skir-typescript-example/blob/main/src/server.ts) | [Client](https://github.com/gepheum/skir-typescript-example/blob/main/src/client.ts) |
-| Python | [Flask](https://github.com/gepheum/skir-python-example/blob/main/start_service_flask.py) , [FastAPI](https://github.com/gepheum/skir-python-example/blob/main/start_service_fastapi.py) , [Litestar](https://github.com/gepheum/skir-python-example/blob/main/start_service_starlite.py) | [Client](https://github.com/gepheum/skir-python-example/blob/main/call_service.py) |
+| Python | [Flask](https://github.com/gepheum/skir-python-example/blob/main/start_service_flask.py), [FastAPI](https://github.com/gepheum/skir-python-example/blob/main/start_service_fastapi.py), [Litestar](https://github.com/gepheum/skir-python-example/blob/main/start_service_starlite.py) | [Client](https://github.com/gepheum/skir-python-example/blob/main/call_service.py) |
 | C++ | [cpp-httplib](https://github.com/gepheum/skir-cc-example/blob/main/service_start.cc) | [Client](https://github.com/gepheum/skir-cc-example/blob/main/service_client.cc) |
 | Java | [Spring Boot](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/StartService.java) | [Client](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/CallService.java) |
 | C# | [ASP.NET Core](https://github.com/gepheum/skir-csharp-example/blob/main/StartService.cs) | [Client](https://github.com/gepheum/skir-csharp-example/blob/main/CallService.cs) |
@@ -174,7 +174,7 @@ Skir enforces this contract at compile time. Both your server implementation and
 | Client | Manual fetch/axios calls | Typesafe, handles serialization and transport |
 
 > [!NOTE]
-> Skir solves the same problem as [**tRPC**](https://trpc.io) , but it is **language-agnostic**. While tRPC is excellent for full-stack TypeScript applications, Skir brings that same level of developer experience and safety to polyglot environments (e.g., a TypeScript frontend talking to a Kotlin or Python backend).
+> Skir solves the same problem as [**tRPC**](https://trpc.io), but it is **language-agnostic**. While tRPC is excellent for full-stack TypeScript applications, Skir brings that same level of developer experience and safety to polyglot environments (e.g., a TypeScript frontend talking to a Kotlin or Python backend).
 
 ## Tooling
 

@@ -15,7 +15,7 @@ In your `skir.yml` file, add the following snippet under `generators`:
 
 ## Runtime dependencies
 
-The generated C++ code depends on the [skir client library](https://github.com/gepheum/skir-cc-gen/tree/main/client) , [absl](https://abseil.io/) and optionally [GoogleTest](https://github.com/google/googletest) .
+The generated C++ code depends on the [skir client library](https://github.com/gepheum/skir-cc-gen/tree/main/client), [absl](https://abseil.io/) and optionally [GoogleTest](https://github.com/google/googletest).
 
 Add this to your `CMakeLists.txt`:
 
@@ -31,7 +31,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(skir-client)
 ```
 
-See this [example](https://github.com/gepheum/skir-cc-example/blob/main/CMakeLists.txt) .
+See this [example](https://github.com/gepheum/skir-cc-example/blob/main/CMakeLists.txt).
 
 ## Generated code guide
 
@@ -91,7 +91,19 @@ User lyla = User::whole{
 };
 ```
 
-### Constructing enums
+### Enums
+
+The definition of the `SubscriptionStatus` enum in the .skir file is:
+
+```skir
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+}
+```
+
+#### Making enum values
 
 ```cpp
 // Use skirout::${kFieldName} or ${Enum}::${kFieldName} for constant variants.
@@ -294,9 +306,9 @@ assert(tarzan.name == "Tarzan");
 
 ### SkirRPC services
 
-**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-cc-example/blob/main/service_start.cc) .
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-cc-example/blob/main/service_start.cc).
 
-**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-cc-example/blob/main/service_client.cc) .
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-cc-example/blob/main/service_client.cc).
 
 ### Dynamic reflection
 
@@ -318,7 +330,7 @@ assert(reserialized_type_descriptor.ok());
 
 Static reflection allows you to inspect and modify values of generated skir types in a typesafe manner.
 
-See [string_capitalizer.h](https://github.com/gepheum/skir-cc-example/blob/main/string_capitalizer.h) .
+See [string_capitalizer.h](https://github.com/gepheum/skir-cc-example/blob/main/string_capitalizer.h).
 
 ```cpp
 User tarzan_copy = skirout_user::k_tarzan();
@@ -346,7 +358,7 @@ std::cout << tarzan_copy << "\n";
 
 ### Writing unit tests with GoogleTest
 
-Full example [here](https://github.com/gepheum/skir-cc-example/blob/main/example.test.cc) .
+Full example [here](https://github.com/gepheum/skir-cc-example/blob/main/example.test.cc).
 
 #### Struct matchers
 

@@ -1,8 +1,6 @@
 # C#
 
-Official plugin for generating C# code from .skir files.
-
-Targets C# 12 on .NET 10 and higher.
+This guide explains how to use Skir in a C# project. Targets C# 12 on .NET 10 and higher.
 
 ## Set up
 
@@ -22,9 +20,9 @@ The generated C# code has a runtime dependency on the `skir_client` NuGet packag
 </ItemGroup>
 ```
 
-For more information, see this C# project [example](https://github.com/gepheum/skir-csharp-example) .
+For more information, see this C# project [example](https://github.com/gepheum/skir-csharp-example).
 
-## C# generated code guide
+## Generated code guide
 
 The examples below are for the code generated from [this](https://github.com/gepheum/skir-csharp-example/blob/main/skir-src/user.skir) .skir file.
 
@@ -38,11 +36,11 @@ using Skirout_User;
 // Now you can use: User, UserRegistry, SubscriptionStatus, Consts.Tarzan, Methods, etc.
 ```
 
-### Struct types
+### Structs
 
 Skir generates a readonly record struct for every struct in the .skir file.
 
-Every generated field is `required` and `init` -only.
+Every generated field is `required` and `init`-only.
 
 ```csharp
 var john = new User
@@ -86,11 +84,21 @@ Console.WriteLine(john.Name);       // John Doe (john is unchanged)
 Console.WriteLine(User.Default == (User.Default with { })); // True
 ```
 
-### Enum types
+### Enums
 
-Skir generates a sealed C# class for every enum in the .skir file.
+Skir generates a sealed C# class for every enum in the .skir file. The `Unknown` variant is added automatically and is the default value.
 
-The `Unknown` variant is added automatically and is the default value.
+The definition of the `SubscriptionStatus` enum in the .skir file is:
+
+```skir
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+}
+```
+
+#### Making enum values
 
 ```csharp
 var statuses = new SubscriptionStatus[]
@@ -154,7 +162,7 @@ var johnReserializedFromBytes = serializer.FromBytes(johnBytes);
 Console.WriteLine(johnReserializedFromBytes.Name); // John Doe
 ```
 
-### Primitive serializers
+#### Primitive serializers
 
 ```csharp
 Console.WriteLine(Serializers.Bool.ToJson(true));
@@ -189,7 +197,7 @@ Console.WriteLine(Serializers.Bytes.ToJson(ImmutableBytes.CopyFrom([0xDE, 0xAD, 
 // "3q2+7w=="
 ```
 
-### Composite serializers
+#### Composite serializers
 
 ```csharp
 Console.WriteLine(Serializers.Optional(Serializers.String).ToJson("foo"));
@@ -229,13 +237,9 @@ Console.WriteLine(notFoundOrDefault == User.Default); // True
 
 ### SkirRPC services
 
-#### Starting a SkirRPC service on an HTTP server
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-csharp-example/blob/main/StartService.cs).
 
-Full example [here](https://github.com/gepheum/skir-csharp-example/blob/main/StartService.cs) .
-
-#### Sending RPCs to a SkirRPC service
-
-Full example [here](https://github.com/gepheum/skir-csharp-example/blob/main/CallService.cs) .
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-csharp-example/blob/main/CallService.cs).
 
 ### Reflection
 

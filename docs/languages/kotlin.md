@@ -22,7 +22,7 @@ The generated Kotlin code has a runtime dependency on `build.skir:skir-client`. 
 implementation("build.skir:skir-client:latest.release")
 ```
 
-For more information, see this Kotlin project [example](https://github.com/gepheum/skir-kotlin-example) .
+For more information, see this Kotlin project [example](https://github.com/gepheum/skir-kotlin-example).
 
 ## Generated code guide
 
@@ -198,6 +198,18 @@ greet(lyla)
 ### Enums
 
 Skir generates a deeply immutable Kotlin class for every enum in the .skir file. This class is not a Kotlin enum, although the syntax for referring to constants is similar.
+
+The definition of the `SubscriptionStatus` enum in the .skir file is:
+
+```skir
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+}
+```
+
+#### Making enum values
 
 ```kotlin
 val someStatuses =
@@ -433,9 +445,9 @@ assert(jack.pets === jade.pets)
 
 ### SkirRPC services
 
-**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-kotlin-example/blob/main/src/main/kotlin/startservice/StartService.kt) .
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-kotlin-example/blob/main/src/main/kotlin/startservice/StartService.kt).
 
-**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-kotlin-example/blob/main/src/main/kotlin/callservice/CallService.kt) .
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-kotlin-example/blob/main/src/main/kotlin/callservice/CallService.kt).
 
 ### Reflection
 

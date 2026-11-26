@@ -12,13 +12,13 @@ In your `skir.yml` file, add the following snippet under `generators`:
   config: {}
 ```
 
-The generated TypeScript code has a runtime dependency on the `skir_client` library. Install it with:
+The generated TypeScript code has a runtime dependency on the `skir-client` library. Install it with:
 
-```shell
+```bash
 npm i skir-client
 ```
 
-For more information, see this TypeScript project [example](https://github.com/gepheum/skir-typescript-example) .
+For more information, see this TypeScript project [example](https://github.com/gepheum/skir-typescript-example).
 
 ## Generated code guide
 
@@ -380,9 +380,9 @@ console.log(TARZAN);
 
 ### SkirRPC services
 
-**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-typescript-example/blob/main/src/server.ts) .
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-typescript-example/blob/main/src/server.ts).
 
-**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-typescript-example/blob/main/src/client.ts) .
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-typescript-example/blob/main/src/client.ts).
 
 ### Reflection
 
@@ -405,7 +405,7 @@ const typeDescriptor = parseTypeDescriptorFromJson(
 
 ### Writing unit tests
 
-With mocha and [buckwheat](https://github.com/gepheum/buckwheat) .
+With mocha and [buckwheat](https://github.com/gepheum/buckwheat).
 
 ```typescript
 expect(tarzan).toMatch({

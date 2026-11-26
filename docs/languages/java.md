@@ -11,7 +11,7 @@ In your `skir.yml` file, add the following snippet under `generators`:
   outDir: ./src/main/java/skirout
   config: {}
   # Alternatively:
-  # outDir: ./src/main/kotlin/my/project/skirout
+  # outDir: ./src/main/java/my/project/skirout
   # config:
   #   packagePrefix: my.project.
 ```
@@ -22,7 +22,7 @@ The generated Java code has a runtime dependency on `build.skir:skir-client`. Ad
 implementation 'build.skir:skir-client:latest.release'
 ```
 
-For more information, see this Java project [example](https://github.com/gepheum/skir-java-example) .
+For more information, see this Java project [example](https://github.com/gepheum/skir-java-example).
 
 ## Generated code guide
 
@@ -261,7 +261,7 @@ assert reserializedEvilJohn.equals(evilJohn);
 assert serializer.fromBytes(johnBytes).equals(john);
 ```
 
-### Primitive serializers
+#### Primitive serializers
 
 ```java
 assert Serializers.bool().toJsonCode(true).equals("1");
@@ -383,9 +383,9 @@ System.out.println(Constants.TARZAN);
 
 ### SkirRPC services
 
-**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/StartService.java) .
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/StartService.java).
 
-**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/CallService.java) .
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/CallService.java).
 
 ### Reflection
 

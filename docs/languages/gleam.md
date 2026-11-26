@@ -27,26 +27,26 @@ The generated Gleam code has a runtime dependency on `skir_client`. Add it to yo
 gleam add skir_client
 ```
 
-For more information, see this Gleam project [example](https://github.com/gepheum/skir-gleam-example) .
+For more information, see this Gleam project [example](https://github.com/gepheum/skir-gleam-example).
 
-## Gleam generated code guide
+## Generated code guide
 
 The examples below are for the code generated from [this](https://github.com/gepheum/skir-gleam-example/blob/main/skir-src/user.skir) .skir file.
 
 ### Referring to generated symbols
 
-```swift [Gleam]
+```gleam
 // Import the module generated from "user.skir"
 import skirout/user
 
 // Now you can use: user.User, user.SubscriptionStatus, user.tarzan_const, etc.
 ```
 
-### Struct types
+### Structs
 
 Skir generates a plain Gleam record for every struct in the .skir file.
 
-```swift [Gleam]
+```gleam
 import skir_client
 import skir_client/timestamp
 import skirout/user
@@ -86,7 +86,7 @@ io.println(int.to_string(list.length(jane.pets)))
 
 #### Creating modified copies
 
-```swift [Gleam]
+```gleam
 // Gleam records are immutable.
 // To make a modified copy, use record update syntax on the original.
 let evil_john =
@@ -102,11 +102,11 @@ io.println(int.to_string(evil_john.user_id))
 // 42 (copied from john)
 ```
 
-### Enum types
+### Enums
 
-The definition of the SubscriptionStatus enum in the .skir file is:
+The definition of the `SubscriptionStatus` enum in the .skir file is:
 
-```rust [Skir]
+```skir
 enum SubscriptionStatus {
   free;
   trial: Trial;
@@ -118,7 +118,7 @@ Skir generates a Gleam custom type for every enum in the .skir file.
 
 #### Constructing enum values
 
-```swift [Gleam]
+```gleam
 let _statuses = [
   // Unknown is the default and is present in all Skir enums.
   user.subscription_status_unknown,
@@ -135,7 +135,7 @@ let _statuses = [
 
 #### Pattern matching on enums
 
-```swift [Gleam]
+```gleam
 let get_info_text = fn(status: user.SubscriptionStatus) -> String {
   case status {
     user.SubscriptionStatusFree -> "Free user"
@@ -163,7 +163,7 @@ io.println(get_info_text(trial_status))
 
 The serializer for a type is returned by calling the generated `*_serializer()` function. Use functions from `skir_client` to serialize and deserialize values.
 
-```swift [Gleam]
+```gleam
 let serializer = user.user_serializer()
 
 // Serialize to dense JSON (field-number-based; the default mode).
@@ -196,9 +196,9 @@ let assert Ok(from_bytes) = skir_client.from_bytes(serializer, john_bytes)
 let assert True = from_bytes == john
 ```
 
-### Primitive serializers
+#### Primitive serializers
 
-```swift [Gleam]
+```gleam
 io.println(skir_client.to_dense_json_code(skir_client.bool_serializer(), True))
 // 1
 io.println(skir_client.to_dense_json_code(skir_client.int32_serializer(), 3))
@@ -230,9 +230,9 @@ io.println(skir_client.to_dense_json_code(
 // 1743682787000
 ```
 
-### Composite serializers
+#### Composite serializers
 
-```swift [Gleam]
+```gleam
 // Optional serializer:
 io.println(skir_client.to_dense_json_code(
   skir_client.optional_serializer(skir_client.string_serializer()),
@@ -258,7 +258,7 @@ io.println(
 
 ### Constants
 
-```swift [Gleam]
+```gleam
 // Constants declared with 'const' in the .skir file are available as
 // top-level constants in the generated Gleam code.
 io.println(skir_client.to_readable_json_code(
@@ -290,15 +290,15 @@ io.println(skir_client.to_readable_json_code(
 
 ### SkirRPC services
 
-**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-gleam-example/blob/main/src/start_service.gleam) .
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-gleam-example/blob/main/src/start_service.gleam).
 
-**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-gleam-example/blob/main/src/call_service.gleam) .
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-gleam-example/blob/main/src/call_service.gleam).
 
 ### Reflection
 
 Reflection allows you to inspect a Skir type at runtime.
 
-```swift [Gleam]
+```gleam
 import gleam/dict
 import gleam/list
 import skir_client

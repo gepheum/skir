@@ -21,7 +21,7 @@ The generated Go code has a runtime dependency on the `skir-go-client` module. A
 go get github.com/gepheum/skir-go-client
 ```
 
-For more information, see this Go project [example](https://github.com/gepheum/skir-go-example) .
+For more information, see this Go project [example](https://github.com/gepheum/skir-go-example).
 
 ## Generated code guide
 
@@ -38,7 +38,7 @@ import user "github.com/my-org/my-project/skirout/user"
 // user.SubscriptionStatus_freeConst(), user.User_serializer(), etc.
 ```
 
-### Struct types
+### Structs
 
 Skir generates a deeply immutable Go interface for every struct in the .skir file. The generated code provides both ordered and partial builders.
 
@@ -88,7 +88,7 @@ fmt.Println(evilJohn.UserId()) // 42 (copied from john)
 fmt.Println(john.Name())       // John Doe (john is unchanged)
 ```
 
-### Enum types
+### Enums
 
 Skir generates a Go struct type for every enum in the .skir file. Unlike the standard Go `iota` pattern, Skir enums can carry a value in wrapper variants.
 
@@ -180,7 +180,7 @@ func (subscriptionStatusInfoVisitor) OnTrialWrapper(t user.SubscriptionStatus_Tr
 
 ### Serialization
 
-`User_serializer()` returns a `skir.Serializer[User]` which can serialise and deserialise instances of `User`.
+`User_serializer()` returns a `skir.Serializer[User]` which can serialize and deserialize instances of `User`.
 
 ```go
 serializer := user.User_serializer()
@@ -226,7 +226,7 @@ if err != nil {
 _ = fromBytes
 ```
 
-### Primitive serializers
+#### Primitive serializers
 
 ```go
 fmt.Println(skir.BoolSerializer().ToJson(true))
@@ -247,7 +247,7 @@ fmt.Println(
 // 1743682787000
 ```
 
-### Composite serializers
+#### Composite serializers
 
 ```go
 fmt.Println(
@@ -327,13 +327,9 @@ fmt.Println(notFound.IsPresent()) // false
 
 ### SkirRPC services
 
-#### Starting a SkirRPC service on an HTTP server
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-go-example/blob/main/cmd/start-service/main.go).
 
-Full example [here](https://github.com/gepheum/skir-go-example/blob/main/cmd/start-service/main.go) .
-
-#### Sending RPCs to a SkirRPC service
-
-Full example [here](https://github.com/gepheum/skir-go-example/blob/main/cmd/call-service/main.go) .
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-go-example/blob/main/cmd/call-service/main.go).
 
 ### Reflection
 

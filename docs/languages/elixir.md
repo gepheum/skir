@@ -23,7 +23,7 @@ In your `skir.yml` file, add the following snippet under `generators`:
 
 The `namespace` option sets the prefix for generated modules. It defaults to `Skir.Generated` when omitted.
 
-The generated code has a runtime dependency on [`skir_elixir_client`](https://hex.pm/packages/skir_elixir_client) . Add it to the dependencies in your `mix.exs`:
+The generated code has a runtime dependency on [`skir_elixir_client`](https://hex.pm/packages/skir_elixir_client). Add it to the dependencies in your `mix.exs`:
 
 ```elixir
 {:skir_elixir_client, "~> 0.2.1"}
@@ -35,11 +35,11 @@ npx skir gen
 mix compile
 ```
 
-For a complete project with an HTTP service and Elixir and TypeScript clients, see the [Elixir example](https://github.com/mishmish-dev/skir-elixir-example) . The example requires Node.js 22+.
+For a complete project with an HTTP service and Elixir and TypeScript clients, see the [Elixir example](https://github.com/mishmish-dev/skir-elixir-example). The example requires Node.js 22+.
 
-## Elixir generated code guide
+## Generated code guide
 
-The examples below use the code generated from [this `.skir` file](https://github.com/mishmish-dev/skir-elixir-example/blob/main/skir-src/user.skir) . Runnable examples are in [`scripts/snippets.exs`](https://github.com/mishmish-dev/skir-elixir-example/blob/main/scripts/snippets.exs) .
+The examples below use the code generated from [this `.skir` file](https://github.com/mishmish-dev/skir-elixir-example/blob/main/skir-src/user.skir). Runnable examples are in [`scripts/snippets.exs`](https://github.com/mishmish-dev/skir-elixir-example/blob/main/scripts/snippets.exs).
 
 ### Referring to generated symbols
 
@@ -54,7 +54,7 @@ alias UserSkir.{SubscriptionStatus, User, UserRegistry}
 alias User.Pet
 ```
 
-### Struct types
+### Structs
 
 Skir generates a native Elixir struct for every struct in the `.skir` file. The `new/1` function accepts a keyword list or map; omitted fields use their default values.
 
@@ -93,7 +93,7 @@ evil_john = %{john | name: "Evil John", quote: "I solemnly swear I am up to no g
 "John Doe" = john.name
 ```
 
-### Enum types
+### Enums
 
 The definition of the `SubscriptionStatus` enum in the `.skir` file is:
 
@@ -159,7 +159,7 @@ binary = User.encode!(john)
 ^john = User.decode!(binary)
 ```
 
-### Primitive serializers
+#### Primitive serializers
 
 Use `Skir` functions with a type handle to serialize primitive values. Timestamps use Unix milliseconds; bytes use Elixir binaries.
 
@@ -173,7 +173,7 @@ Use `Skir` functions with a type handle to serialize primitive values. Timestamp
 1_743_592_409_000 = Skir.to_json!(:timestamp, start_time)
 ```
 
-### Composite serializers
+#### Composite serializers
 
 Optional values use `nil`; arrays use lists.
 
@@ -222,9 +222,9 @@ users_by_id = UserRegistry.index_users(registry)
 
 The example uses Plug with Bandit to serve SkirRPC. Register handlers with the generated method helpers, then mount `Skir.RPC.Plug` in your router. Phoenix applications can also forward requests to this Plug.
 
-**Starting a SkirRPC service on an HTTP server** - full examples in [`rpc.ex`](https://github.com/mishmish-dev/skir-elixir-example/blob/main/lib/skir_example/rpc.ex) and [`router.ex`](https://github.com/mishmish-dev/skir-elixir-example/blob/main/lib/skir_example/router.ex) .
+**Starting a SkirRPC service on an HTTP server** - full examples in [`rpc.ex`](https://github.com/mishmish-dev/skir-elixir-example/blob/main/lib/skir_example/rpc.ex) and [`router.ex`](https://github.com/mishmish-dev/skir-elixir-example/blob/main/lib/skir_example/router.ex).
 
-**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/mishmish-dev/skir-elixir-example/blob/main/scripts/call_service.exs) .
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/mishmish-dev/skir-elixir-example/blob/main/scripts/call_service.exs).
 
 ```elixir
 alias SkirExample.Protocol.ServiceSkir
@@ -254,4 +254,4 @@ descriptor = Skir.RPC.TypeDescriptor.to_map(User.type())
 IO.puts(Skir.RPC.TypeDescriptor.to_json(User.type()))
 ```
 
-For the full runtime API, see [HexDocs](https://hexdocs.pm/skir_elixir_client) .
+For the full runtime API, see [HexDocs](https://hexdocs.pm/skir_elixir_client).

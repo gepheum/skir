@@ -1,6 +1,6 @@
-# Skir's MoonBit code generator
+# MoonBit
 
-Official plugin for generating MoonBit code from [.skir](https://github.com/gepheum/skir) files.
+This guide explains how to use Skir in a MoonBit project.
 
 ## Set up
 
@@ -18,13 +18,22 @@ The generated MoonBit code has a runtime dependency on `gepheum/skir-client`. Ad
 moon add gepheum/skir-client
 ```
 
-For more information, see this MoonBit project [example](https://github.com/gepheum/skir-moonbit-example) .
+For more information, see this MoonBit project [example](https://github.com/gepheum/skir-moonbit-example).
 
-## MoonBit generated code guide
+## Generated code guide
 
-The examples below are for the code generated from [this](https://github.com/gepheum/skir-moonbit-example/blob/main/skir-src/user.skir) .skir file. Most code snippets are quoted from [moonbit-example/src/snippets.mbt](https://github.com/gepheum/skir-moonbit-example/blob/main/src/snippets.mbt) .
+The examples below are for the code generated from [this](https://github.com/gepheum/skir-moonbit-example/blob/main/skir-src/user.skir) .skir file. Most code snippets are quoted from [moonbit-example/src/snippets.mbt](https://github.com/gepheum/skir-moonbit-example/blob/main/src/snippets.mbt).
 
-### Struct types
+### Referring to generated symbols
+
+Each `.skir` file generates a MoonBit package under `skirout`. Reference generated symbols via their package alias (e.g., `@skirout_user`):
+
+```moonbit
+// Now you can use: @skirout_user.User, @skirout_user.SubscriptionStatus,
+// @skirout_user.UserRegistry, @skirout_user.tarzan_const, etc.
+```
+
+### Structs
 
 Skir generates a plain MoonBit struct for each struct in the .skir schema.
 
@@ -67,7 +76,19 @@ println(jane.quote)
 // (empty string)
 ```
 
-### Enum types
+### Enums
+
+The definition of the `SubscriptionStatus` enum in the .skir file is:
+
+```skir
+enum SubscriptionStatus {
+  free;
+  trial: Trial;
+  premium;
+}
+```
+
+#### Making enum values
 
 ```moonbit
 let trial_payload = @skirout_user.SubscriptionStatus_Trial::new(
@@ -85,7 +106,7 @@ println(some_statuses.length().to_string())
 // 4
 ```
 
-### Conditions on enums
+#### Conditions on enums
 
 ```moonbit
 let subscription_info_text = fn(
@@ -131,7 +152,7 @@ println(john_readable_json)
 let john_binary = user_serializer.to_bytes(john)
 ```
 
-### Deserialization
+#### Deserialization
 
 ```moonbit
 let from_dense = match user_serializer.from_json_code(john_dense_json) {
@@ -158,7 +179,7 @@ if from_dense != john || from_readable != john || from_binary != john {
 }
 ```
 
-### Primitive serializers
+#### Primitive serializers
 
 ```moonbit
 println(@client.bool_serializer().to_dense_json_code(true))
@@ -181,7 +202,7 @@ println(@client.bytes_serializer().to_dense_json_code(@utf8.encode("ABC")))
 // "QUJD"
 ```
 
-### Composite serializers
+#### Composite serializers
 
 ```moonbit
 let opt_string_ser = @client.optional_serializer(@client.string_serializer())
@@ -235,7 +256,15 @@ println(found_or_default.pets.length().to_string())
 // 0
 ```
 
+### SkirRPC services
+
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-moonbit-example/blob/main/src/start_service.mbt).
+
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-moonbit-example/blob/main/src/call_service.mbt).
+
 ### Reflection
+
+Reflection allows you to inspect a Skir type at runtime.
 
 ```moonbit
 let user_td = user_serializer.type_descriptor()
@@ -258,13 +287,3 @@ let parsed_td = match @client.parse_from_json(user_td_json) {
 }
 println(parsed_td.records.length().to_string())
 ```
-
-### SkirRPC services
-
-#### Starting a SkirRPC service on an HTTP server
-
-Full example [here](https://github.com/gepheum/skir-moonbit-example/blob/main/src/start_service.mbt) .
-
-#### Sending RPCs to a SkirRPC service
-
-Full example [here](https://github.com/gepheum/skir-moonbit-example/blob/main/src/call_service.mbt) .

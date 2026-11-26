@@ -14,15 +14,17 @@ In your `skir.yml` file, add the following snippet under `generators`:
 
 The generated Python code has a runtime dependency on the `skir-client` library. Install it with:
 
-```shell
+```bash
 pip install skir-client
 ```
 
-For more information, see this Python project [example](https://github.com/gepheum/skir-python-example) .
+For more information, see this Python project [example](https://github.com/gepheum/skir-python-example).
 
 ## Generated code guide
 
 The examples below are for the code generated from [this](https://github.com/gepheum/skir-python-example/blob/main/skir_src/user.skir) .skir file.
+
+### Referring to generated symbols
 
 First, import the symbols from the generated module:
 
@@ -367,7 +369,7 @@ print(TARZAN)
 
 • [Litestar](https://github.com/gepheum/skir-python-example/blob/main/start_service_starlite.py)
 
-**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-python-example/blob/main/call_service.py) .
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-python-example/blob/main/call_service.py).
 
 ### Reflection
 

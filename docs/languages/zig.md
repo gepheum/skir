@@ -29,9 +29,9 @@ Then fetch the archive once to get the hash:
 zig fetch https://github.com/gepheum/skir-zig-client/archive/refs/heads/main.tar.gz
 ```
 
-For more information, see this Zig project [example](https://github.com/gepheum/skir-zig-example) .
+For more information, see this Zig project [example](https://github.com/gepheum/skir-zig-example).
 
-## Zig generated code guide
+## Generated code guide
 
 The examples below are for the code generated from [this](https://github.com/gepheum/skir-zig-example/blob/main/skir-src/user.skir) .skir file.
 
@@ -46,7 +46,7 @@ const skir = @import("skir_client.zig");
 // user_mod.SubscriptionStatus, user_mod.tarzan_const, etc.
 ```
 
-### Struct types
+### Structs
 
 Skir generates a plain Zig struct for every struct in the .skir file. All fields are value types; the struct is not heap-allocated by the generator.
 
@@ -102,11 +102,11 @@ std.debug.print("{d}\n", .{evil_john.user_id});
 // 42
 ```
 
-### Enum types
+### Enums
 
-The definition of the SubscriptionStatus enum in the .skir file is:
+The definition of the `SubscriptionStatus` enum in the .skir file is:
 
-```skir [Skir]
+```skir
 enum SubscriptionStatus {
   free;
   trial: Trial;
@@ -133,7 +133,7 @@ const some_statuses = [_]user_mod.SubscriptionStatus{
 _ = some_statuses;
 ```
 
-### Enum matching
+#### Conditions on enums
 
 ```zig
 fn subscriptionInfoText(status: user_mod.SubscriptionStatus) []const u8 {
@@ -226,7 +226,7 @@ std.debug.print("{s}\n", .{from_binary.name});
 // John Doe
 ```
 
-### Primitive serializers
+#### Primitive serializers
 
 ```zig
 // skir.boolSerializer(), skir.int32Serializer(), etc. return serializers
@@ -278,7 +278,7 @@ _ = try skir.bytesSerializer().serialize(
 );
 ```
 
-### Composite serializers
+#### Composite serializers
 
 ```zig
 const opt_string_ser = skir.optionalSerializer(skir.stringSerializer());
@@ -353,9 +353,9 @@ std.debug.print("{d}\n", .{found_or_default.pets.len});
 
 ### SkirRPC services
 
-**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-zig-example/blob/main/src/start_service.zig) .
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-zig-example/blob/main/src/start_service.zig).
 
-**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-zig-example/blob/main/src/call_service.zig) .
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-zig-example/blob/main/src/call_service.zig).
 
 ### Reflection
 

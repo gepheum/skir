@@ -31,7 +31,7 @@ Then create `src/skirout.rs` with the following content (the generator will popu
 pub mod base;
 ```
 
-For more information, see this Rust project [example](https://github.com/gepheum/skir-rust-example) .
+For more information, see this Rust project [example](https://github.com/gepheum/skir-rust-example).
 
 ## Generated code guide
 
@@ -48,7 +48,7 @@ use crate::skirout::base::user::{
 // Now you can use: User, SubscriptionStatus, tarzan_const(), etc.
 ```
 
-### Struct types
+### Structs
 
 Skir generates a plain Rust struct for every struct in the .skir file. All fields are public. Every struct implements `Default`, `Clone`, `PartialEq`, and `Debug`.
 
@@ -109,7 +109,7 @@ println!("{}", evil_john_2.user_id); // 42 (copied from john)
 println!("{}", john.name);           // John Doe (john is unchanged)
 ```
 
-### Enum types
+### Enums
 
 Skir generates a Rust enum for every enum in the .skir file. The `Unknown` variant is added automatically and is the default.
 
@@ -160,7 +160,7 @@ println!("{}", get_info_text(&john.subscription_status)); // Free user
 
 ### Serialization
 
-`User::serializer()` returns a `Serializer<User>` which can serialise and deserialise instances of `User`.
+`User::serializer()` returns a `Serializer<User>` which can serialize and deserialize instances of `User`.
 
 ```rust
 use skir_client::{JsonFlavor, Serializer, UnrecognizedValues};
@@ -212,7 +212,7 @@ let from_bytes = serializer
 assert_eq!(from_bytes, john);
 ```
 
-### Primitive serializers
+#### Primitive serializers
 
 ```rust
 println!("{}", Serializer::bool().to_json(&true, JsonFlavor::Dense));
@@ -235,7 +235,7 @@ println!(
 // "Foo"
 ```
 
-### Composite serializers
+#### Composite serializers
 
 ```rust
 // Optional serializer:
@@ -328,13 +328,9 @@ println!("{}", not_found_or_default.pets.len()); // 0
 
 ### SkirRPC services
 
-#### Starting a SkirRPC service on an HTTP server
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-rust-example/blob/main/src/bin/start_service.rs).
 
-Full example [here](https://github.com/gepheum/skir-rust-example/blob/main/src/bin/start_service.rs) .
-
-#### Sending RPCs to a SkirRPC service
-
-Full example [here](https://github.com/gepheum/skir-rust-example/blob/main/src/bin/call_service.rs) .
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-rust-example/blob/main/src/bin/call_service.rs).
 
 ### Reflection
 

@@ -155,7 +155,7 @@ npx skir snapshot --dry-run
 
 This confirms that your changes are safe relative to the last release (snapshot).
 
-If you are using the official [VSCode extension](https://marketplace.visualstudio.com/items?itemName=gepheum.skir-lang) , breaking changes will be highlighted directly in your editor as you type.
+If you are using the official [VSCode extension](https://marketplace.visualstudio.com/items?itemName=gepheum.skir-lang), breaking changes will be highlighted directly in your editor as you type.
 
 | Before | After |
 | :---: | :---: |

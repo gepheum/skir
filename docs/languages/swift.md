@@ -44,11 +44,11 @@ Then make sure the existing target that contains `outDir` links against `SkirCli
 ),
 ```
 
-For more information, see this Swift project [example](https://github.com/gepheum/skir-swift-example) .
+For more information, see this Swift project [example](https://github.com/gepheum/skir-swift-example).
 
 ## Generated code guide
 
-The examples below use the generated code style from the Swift example project.
+The examples below are for the code generated from [this](https://github.com/gepheum/skir-swift-example/blob/main/skir-src/service.skir) .skir file.
 
 ### Referring to generated symbols
 
@@ -61,7 +61,7 @@ let a: Service_skir.User = ...         // fully qualified
 let b: Skir.User = ...                 // via the Skir convenience alias
 ```
 
-### Struct types
+### Structs
 
 Skir generates a Swift struct for every struct in the .skir file. Structs are immutable values and every field is a `let`.
 
@@ -114,7 +114,7 @@ print(renamedJohn.userId)  // 42 (kept from john)
 print(john.name)           // John Doe (john is unchanged)
 ```
 
-### Enum types
+### Enums
 
 Skir generates a Swift enum for every enum in the .skir file. The `.unknown` case is added automatically and is the default.
 
@@ -160,7 +160,7 @@ print(describe(john.subscriptionStatus))  // Free user
 
 ### Serialization
 
-`User.serializer` returns a `Serializer<User>` which can serialise and deserialise instances of `User`.
+`User.serializer` returns a `Serializer<User>` which can serialize and deserialize instances of `User`.
 
 ```swift
 let serializer = Skir.User.serializer
@@ -190,7 +190,7 @@ let johnFromBytes = try! serializer.fromBytes(bytes)
 assert(johnFromBytes == john)
 ```
 
-### Primitive serializers
+#### Primitive serializers
 
 ```swift
 print(Serializers.bool.toJson(true))
@@ -226,7 +226,7 @@ print(Serializers.bytes.toJson(Data([0xDE, 0xAD, 0xBE, 0xEF])))
 // "3q2+7w=="
 ```
 
-### Composite serializers
+#### Composite serializers
 
 ```swift
 // Optional serializer:
@@ -277,13 +277,9 @@ print(notFoundOrDefault.pets.count)  // 0
 
 ### SkirRPC services
 
-#### Starting a SkirRPC service on an HTTP server
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-swift-example/blob/main/Sources/StartService/main.swift).
 
-Full example [here](https://github.com/gepheum/skir-swift-example/blob/main/Sources/StartService/main.swift) .
-
-#### Sending RPCs to a SkirRPC service
-
-Full example [here](https://github.com/gepheum/skir-swift-example/blob/main/Sources/CallService/main.swift) .
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-swift-example/blob/main/Sources/CallService/main.swift).
 
 ### Reflection
 

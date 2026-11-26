@@ -119,4 +119,4 @@ The official [VS Code extension](https://marketplace.visualstudio.com/items?item
 
 <HoverVideo src="/auto-format.mp4" />
 
-Not using VS Code? Use the [Skir Language Server](https://github.com/gepheum/skir/tree/main/packages/language-server) .
+Not using VS Code? Use the [Skir Language Server](https://github.com/gepheum/skir/tree/main/packages/language-server).

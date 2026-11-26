@@ -18,7 +18,7 @@ The generated Dart code has a runtime dependency on the `skir_client` library. A
 skir_client: any
 ```
 
-For more information, see this Dart project [example](https://github.com/gepheum/skir-dart-example) .
+For more information, see this Dart project [example](https://github.com/gepheum/skir-dart-example).
 
 ## Generated code guide
 
@@ -386,9 +386,9 @@ print(tarzan);
 
 ### SkirRPC services
 
-**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-dart-example/blob/main/bin/start_service.dart) .
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-dart-example/blob/main/bin/start_service.dart).
 
-**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-dart-example/blob/main/bin/call_service.dart) .
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-dart-example/blob/main/bin/call_service.dart).
 
 ### Reflection
 
