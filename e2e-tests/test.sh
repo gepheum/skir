@@ -3,10 +3,10 @@ set -e
 
 validate_lang() {
   case "$1" in
-    cc|csharp|dart|gleam|go|java|kotlin|moonbit|python|rust|scala|swift|typescript|zig) ;;
+    cc|csharp|dart|gleam|go|java|kotlin|moonbit|python|ruby|rust|scala|swift|typescript|zig) ;;
     *)
       echo "Unknown language: $1" >&2
-      echo "Supported languages: cc, csharp, dart, gleam, go, java, kotlin, moonbit, python, rust, scala, swift, typescript, zig" >&2
+      echo "Supported languages: cc, csharp, dart, gleam, go, java, kotlin, moonbit, python, ruby, rust, scala, swift, typescript, zig" >&2
       exit 1
       ;;
   esac
@@ -77,6 +77,21 @@ if should_run "python"; then
     test-env/bin/pip install -r requirements.txt
     test-env/bin/python3 -m unittest discover -s tests -p "*.py"
   fi
+  cd "$SCRIPT_DIR"
+fi
+
+# Ruby E2E tests
+if should_run "ruby"; then
+  echo "=== Running Ruby E2E tests ==="
+  if [ -d "/opt/homebrew/opt/ruby@3.4/bin" ]; then
+    export PATH="/opt/homebrew/opt/ruby@3.4/bin:/opt/homebrew/lib/ruby/gems/3.4.0/bin:$PATH"
+  fi
+  node "$SKIR_CLI" format --ci -r ruby
+  node "$SKIR_CLI" gen -r ruby
+  cd ruby
+  srb tc
+  ruby -I../../client-libraries/ruby/lib -I. test/test_goldens.rb
+  ruby -I../../client-libraries/ruby/lib -I. test/test_skirout.rb
   cd "$SCRIPT_DIR"
 fi
 

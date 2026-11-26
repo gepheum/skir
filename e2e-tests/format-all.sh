@@ -3,10 +3,10 @@ set -e
 
 validate_lang() {
   case "$1" in
-    cc|csharp|dart|gleam|go|java|kotlin|moonbit|python|rust|scala|swift|typescript|zig) ;;
+    cc|csharp|dart|gleam|go|java|kotlin|moonbit|python|ruby|rust|scala|swift|typescript|zig) ;;
     *)
       echo "Unknown language: $1" >&2
-      echo "Supported languages: cc, csharp, dart, gleam, go, java, kotlin, moonbit, python, rust, scala, swift, typescript, zig" >&2
+      echo "Supported languages: cc, csharp, dart, gleam, go, java, kotlin, moonbit, python, ruby, rust, scala, swift, typescript, zig" >&2
       exit 1
       ;;
   esac
@@ -66,6 +66,11 @@ if should_run "python"; then
     (cd "$ROOT_DIR/client-libraries/python" && (command -v isort >/dev/null 2>&1 && isort . || true) && black .)
     (cd "$ROOT_DIR/client-libraries/python-sqlalchemy" && (command -v isort >/dev/null 2>&1 && isort . || true) && black .)
   fi
+fi
+
+if should_run "ruby"; then
+  echo "=== Formatting Ruby E2E tests ==="
+  node "$SKIR_CLI" format -r ruby
 fi
 
 if should_run "rust"; then

@@ -69,3 +69,5 @@ skir-external/
 
 # Local scratch / notes
 /todos/
+
+.vscode/settings.json

@@ -1,0 +1,8 @@
+# frozen_string_literal: true
+
+source "https://rubygems.org"
+
+gem "skir-client", path: "../../client-libraries/ruby"
+gem "minitest", ">= 5.0"
+gem "sorbet", ">= 0.5"
+gem "sorbet-runtime", ">= 0.5"

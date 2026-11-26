@@ -1,11 +1,11 @@
 ---
 name: skir
-description: Author, format, evolve, and compile Skir (.skir) data schemas, constants, and SkirRPC methods, configure skir.yml, and integrate generated code across TypeScript, Python, Java, Kotlin, Scala, C++, C#, Go, Rust, Dart, Swift, Zig, Gleam, MoonBit, and Elixir. Use whenever working with .skir files, skir.yml, skir-snapshot.json, skirout directories, npx skir, or SkirRPC services.
+description: Author, format, evolve, and compile Skir (.skir) data schemas, constants, and SkirRPC methods, configure skir.yml, and integrate generated code across TypeScript, Python, Ruby, Java, Kotlin, Scala, C++, C#, Go, Rust, Dart, Swift, Zig, Gleam, MoonBit, and Elixir. Use whenever working with .skir files, skir.yml, skir-snapshot.json, skirout directories, npx skir, or SkirRPC services.
 ---
 
 # Skir
 
-Skir is a declarative schema language for data types, constants, and RPC methods. You write `.skir` files in `skir-src/` and compile them with `npx skir gen` into deeply immutable, type-safe native code (`skirout/`) for 15 languages.
+Skir is a declarative schema language for data types, constants, and RPC methods. You write `.skir` files in `skir-src/` and compile them with `npx skir gen` into deeply immutable, type-safe native code (`skirout/`) for 16 languages.
 
 Full documentation for LLMs: `https://skir.build/llms.txt` (single-file bundle: `https://skir.build/llms-full.txt`).
 
@@ -60,6 +60,7 @@ Note: `outDir` can be a single string or an array of strings (all ending with `/
 | --- | --- | --- | --- | --- |
 | TypeScript | `skir-typescript-gen` | `importPathExtension?: "" \| ".js"` (default `".js"`), `clientModulePath?: string` | `npm i skir-client` | `https://skir.build/docs/typescript.md` |
 | Python | `skir-python-gen` | `packagePrefix?: string` (e.g. `"my_pkg."`) | `pip install skir-client` | `https://skir.build/docs/python.md` |
+| Ruby | `skir-ruby-gen` | `modulePrefix?: string` (e.g. `"MyApp::"`) | `gem install skir-client` | `https://skir.build/docs/ruby.md` |
 | Java | `skir-java-gen` | `packagePrefix?: string` (e.g. `"com.myproject."`) | `build.skir:skir-client:latest.release` | `https://skir.build/docs/java.md` |
 | Kotlin | `skir-kotlin-gen` | `packagePrefix?: string` (e.g. `"com.myproject."`) | `build.skir:skir-client:latest.release` | `https://skir.build/docs/kotlin.md` |
 | Scala | `skir-scala-gen` | `packagePrefix?: string` (e.g. `"com.myproject."`) | `build.skir:skir-client:latest.release` | `https://skir.build/docs/scala.md` |

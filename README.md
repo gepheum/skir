@@ -111,6 +111,7 @@ npx skills add gepheum/skir
 | 💜 **Kotlin** | [Documentation](https://skir.build/docs/kotlin) | [Example](https://github.com/gepheum/skir-kotlin-example) |
 | 🌙 **MoonBit** | [Documentation](https://skir.build/docs/moonbit) | [Example](https://github.com/gepheum/skir-moonbit-example) |
 | 🐍 **Python** | [Documentation](https://skir.build/docs/python) | [Example](https://github.com/gepheum/skir-python-example) |
+| 💎 **Ruby** | [Documentation](https://skir.build/docs/ruby) | — |
 | 🦀 **Rust** | [Documentation](https://skir.build/docs/rust) | [Example](https://github.com/gepheum/skir-rust-example) |
 | 🔴 **Scala** | [Documentation](https://skir.build/docs/scala) | [Example](https://github.com/gepheum/skir-scala-example) |
 | 🐦 **Swift** | [Documentation](https://skir.build/docs/swift) | [Example](https://github.com/gepheum/skir-swift-example) |

@@ -1,0 +1,6 @@
+--dir
+.
+--dir
+../../client-libraries/ruby/lib
+--ignore
+../../client-libraries/ruby/test

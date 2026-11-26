@@ -180,6 +180,19 @@ generators:
   #   #   packagePrefix: my.project.
 
   # # --------------------------------------------------------------------------
+  # # Ruby code generator
+  # # Home: https://skir.build/docs/ruby
+  # # To install runtime dependencies: gem install skir-client
+  # # --------------------------------------------------------------------------
+  # - mod: skir-ruby-gen
+  #   outDir: ./lib/skirout
+  #   config: {}
+  #   # Alternatively:
+  #   # outDir: ./lib/my_app/skirout
+  #   # config:
+  #   #   modulePrefix: "MyApp::"
+
+  # # --------------------------------------------------------------------------
   # # Rust code generator
   # # Home: https://skir.build/docs/rust
   # # Complete these 3 steps:

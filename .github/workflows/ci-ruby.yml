@@ -1,0 +1,34 @@
+name: "CI: Ruby"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ci-ruby:
+    name: Verify Ruby Client & E2E Tests
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+      - name: Install Ruby gems
+        run: |
+          gem install sorbet sorbet-runtime minitest rake
+      - name: Install & build Skir compiler
+        run: |
+          npm ci --legacy-peer-deps
+          npm run build
+      - name: Verify Ruby client library (unit tests & Sorbet typecheck)
+        working-directory: client-libraries/ruby
+        run: |
+          ./pre_commit.sh
+      - name: Verify Ruby E2E & Golden test suite
+        run: |
+          ./e2e-tests/test.sh --lang=ruby

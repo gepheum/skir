@@ -1,6 +1,6 @@
 # Skir
 
-Skir is a declarative language for defining data types and APIs. Write your schema once in a .skir file and generate idiomatic, type-safe code in TypeScript, Python, Java, C#, Kotlin, Scala, C++, Dart, Swift, Go, Rust, Zig, Gleam, MoonBit, and Elixir.
+Skir is a declarative language for defining data types and APIs. Write your schema once in a .skir file and generate idiomatic, type-safe code in TypeScript, Python, Ruby, Java, C#, Kotlin, Scala, C++, Dart, Swift, Go, Rust, Zig, Gleam, MoonBit, and Elixir.
 
 For full documentation in one file, see: https://skir.build/llms-full.txt
 
