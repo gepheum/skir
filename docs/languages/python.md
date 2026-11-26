@@ -1,19 +1,15 @@
-[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
-[![build](https://github.com/gepheum/skir/actions/workflows/ci-python.yml/badge.svg)](https://github.com/gepheum/skir/actions)
+# Python
 
-# Skir's Python code generator
-
-Official plugin for generating Python code from [.skir](https://github.com/gepheum/skir) files.
-
-Targets Python 3.10 and higher.
+This guide explains how to use Skir in a Python project. Targets Python 3.10 and higher.
 
 ## Set up
 
 In your `skir.yml` file, add the following snippet under `generators`:
+
 ```yaml
-  - mod: skir-python-gen
-    outDir: ./src/skirout
-    config: {}
+- mod: skir-python-gen
+  outDir: ./src/skirout
+  config: {}
 ```
 
 The generated Python code has a runtime dependency on the `skir-client` library. Install it with:
@@ -22,24 +18,24 @@ The generated Python code has a runtime dependency on the `skir-client` library.
 pip install skir-client
 ```
 
-For more information, see this Python project [example](https://github.com/gepheum/skir-python-example).
+For more information, see this Python project [example](https://github.com/gepheum/skir-python-example) .
 
-## Python generated code guide
+## Generated code guide
 
 The examples below are for the code generated from [this](https://github.com/gepheum/skir-python-example/blob/main/skir_src/user.skir) .skir file.
 
-### Referring to generated symbols
+First, import the symbols from the generated module:
 
 ```python
 # Import the given symbols from the Python module generated from "user.skir"
 from skirout.user_skir import TARZAN, SubscriptionStatus, User, UserHistory, UserRegistry
 ```
 
-### Struct classes
+### Structs
 
-For every struct `S` in the .skir file, skir generates a frozen (deeply immutable) class `S` and a mutable class `S.Mutable`.
+For every struct `S` in the .skir file, Skir generates a frozen (deeply immutable) class `S` and a mutable class `S.Mutable`.
 
-#### Frozen struct classes
+#### Frozen structs
 
 ```python
 # To construct a frozen User, either call the User constructor or the
@@ -84,7 +80,7 @@ assert jane.quote == ""
 assert User.DEFAULT == User.partial()
 ```
 
-#### Mutable struct classes
+#### Mutable structs
 
 ```python
 # User.Mutable is a mutable version of User.
@@ -144,17 +140,17 @@ assert evil_jane.user_id == 43
 def greet(user: User.OrMutable):
     print(f"Hello, {user.name}")
 
-
 greet(jane)
 # Hello, Jane Doe
 greet(lyla_mut)
 # Hello, Lyla Doe
 ```
 
-### Enum classes
+### Enums
 
 The definition of the `SubscriptionStatus` enum in the .skir file is:
-```rust
+
+```skir
 enum SubscriptionStatus {
   free;
   trial: Trial;
@@ -162,7 +158,7 @@ enum SubscriptionStatus {
 }
 ```
 
-#### Making enum values
+#### Creating enum values
 
 ```python
 john_status = SubscriptionStatus.FREE
@@ -184,7 +180,7 @@ assert roni_status == SubscriptionStatus.create_trial(
 )
 ```
 
-#### Conditions on enums
+#### Pattern matching
 
 ```python
 # Use 'union.kind' to check which variant the enum value holds.
@@ -199,7 +195,6 @@ assert roni_status.union.kind == "trial"
 # If the enum holds a wrapper variant, you can access the wrapped value through
 # 'union.value'.
 assert isinstance(roni_status.union.value, SubscriptionStatus.Trial)
-
 
 def get_subscription_info_text(status: SubscriptionStatus) -> str:
     # Pattern matching on enum variants
@@ -252,7 +247,7 @@ print(serializer.to_json_code(john, readable=True))
 #       "picture": "🐘"
 #     }
 #   ],
-#   "subscription_status": "FREE"
+#   "subscription_status": "free"
 # }
 
 # The dense JSON flavor is the flavor you should pick if you intend to
@@ -262,14 +257,14 @@ print(serializer.to_json_code(john, readable=True))
 # You should pick the readable flavor mostly for debugging purposes.
 ```
 
-### Deserialization
+#### Deserialization
 
 ```python
 # Use from_json() and from_json_code() to deserialize.
 
-assert john == serializer.from_json(serializer.to_json(john))
+assert john == serializer.from_json(john_dense_json)
 
-assert john == serializer.from_json_code(serializer.to_json_code(john))
+assert john == serializer.from_json_code(john_dense_json_code)
 
 # Also works with readable JSON.
 assert john == serializer.from_json_code(  #
@@ -277,7 +272,7 @@ assert john == serializer.from_json_code(  #
 )
 ```
 
-### Primitive serializers
+#### Primitive serializers
 
 ```python
 assert skir.primitive_serializer("bool").to_json(True) == 1
@@ -302,7 +297,7 @@ assert skir.primitive_serializer("string").to_json("Foo") == "Foo"
 assert skir.primitive_serializer("bytes").to_json(bytes([1, 2, 3])) == "AQID"
 ```
 
-### Composite serializers
+#### Composite serializers
 
 ```python
 assert (
@@ -355,7 +350,7 @@ print(TARZAN)
 #     SubscriptionStatus.Trial(
 #       start_time=Timestamp(
 #         unix_millis=1743592409000,
-#         _formatted='2025-04-02T11:13:29Z',
+#         _formatted='2025-04-02T11:13:29.000Z',
 #       ),
 #     )
 #   ),
@@ -364,16 +359,15 @@ print(TARZAN)
 
 ### SkirRPC services
 
-#### Starting a SkirRPC service on an HTTP server
+**Starting a SkirRPC service on an HTTP server** - examples:
 
-Examples:
-- [Flask](https://github.com/gepheum/skir-python-example/blob/main/start_service_flask.py)
-- [FastAPI](https://github.com/gepheum/skir-python-example/blob/main/start_service_fastapi.py)
-- [Litestar](https://github.com/gepheum/skir-python-example/blob/main/start_service_starlite.py)
+• [Flask](https://github.com/gepheum/skir-python-example/blob/main/start_service_flask.py)
 
-#### Sending RPCs to a SkirRPC service
+• [FastAPI](https://github.com/gepheum/skir-python-example/blob/main/start_service_fastapi.py)
 
-Full example [here](https://github.com/gepheum/skir-python-example/blob/main/call_service.py).
+• [Litestar](https://github.com/gepheum/skir-python-example/blob/main/start_service_starlite.py)
+
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-python-example/blob/main/call_service.py) .
 
 ### Reflection
 
@@ -437,4 +431,3 @@ assert user_type_descriptor == skir.reflection.TypeDescriptor.from_json_code(
     user_type_descriptor.as_json_code()
 )
 ```
-

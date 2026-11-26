@@ -67,9 +67,8 @@ method AnalyzeWord(
 } = 2000;
 ```
 
-::: tip
-This habit pairs perfectly with the rules in [Schema evolution](/docs/schema-evolution). Wrapper structs make _adding fields later_ the default path.
-:::
+> [!TIP]
+> This habit pairs perfectly with the rules in [Schema evolution](./schema-evolution.md). Wrapper structs make _adding fields later_ the default path.
 
 ## Prefer wrapper structs for enriched views
 
@@ -232,6 +231,5 @@ method GetProduct(
 } = 1000;
 ```
 
-::: info
-It's still fine to use HTTP errors for _you can't do that_ situations (unauthorized, forbidden) or infrastructure failures. The rule is: don't use transport errors as a second return type.
-:::
+> [!NOTE]
+> It's still fine to use HTTP errors for _you can't do that_ situations (unauthorized, forbidden) or infrastructure failures. The rule is: don't use transport errors as a second return type.

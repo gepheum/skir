@@ -1,22 +1,18 @@
-[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
-[![build](https://github.com/gepheum/skir/actions/workflows/ci-zig.yml/badge.svg)](https://github.com/gepheum/skir/actions)
+# Zig
 
-# Skir's Zig code generator
-
-Official plugin for generating Zig code from
-[.skir](https://github.com/gepheum/skir) files.
+This guide explains how to use Skir in a Zig project.
 
 ## Set up
 
 In your `skir.yml` file, add the following snippet under `generators`:
+
 ```yaml
-  - mod: skir-zig-gen
-    outDir: ./src/skirout
-    config: {}
+- mod: skir-zig-gen
+  outDir: ./src/skirout
+  config: {}
 ```
 
-The generated Zig code has a runtime dependency on `skir_client`.
-Add it to your `build.zig.zon`:
+The generated Zig code has a runtime dependency on `skir_client`. Add it to your `build.zig.zon`:
 
 ```zig
 .dependencies = .{
@@ -29,18 +25,15 @@ Add it to your `build.zig.zon`:
 
 Then fetch the archive once to get the hash:
 
-```sh
+```bash
 zig fetch https://github.com/gepheum/skir-zig-client/archive/refs/heads/main.tar.gz
 ```
 
-For more information, see this Zig project
-[example](https://github.com/gepheum/skir-zig-example).
+For more information, see this Zig project [example](https://github.com/gepheum/skir-zig-example) .
 
 ## Zig generated code guide
 
-The examples below are for the code generated from
-[this](https://github.com/gepheum/skir-zig-example/blob/main/skir-src/user.skir)
-.skir file.
+The examples below are for the code generated from [this](https://github.com/gepheum/skir-zig-example/blob/main/skir-src/user.skir) .skir file.
 
 ### Referring to generated symbols
 
@@ -55,9 +48,7 @@ const skir = @import("skir_client.zig");
 
 ### Struct types
 
-Skir generates a plain Zig struct for every struct in the .skir file.
-All fields are value types; the struct is not heap-allocated by the
-generator.
+Skir generates a plain Zig struct for every struct in the .skir file. All fields are value types; the struct is not heap-allocated by the generator.
 
 ```zig
 // Skir generates a plain Zig struct for each struct in the .skir schema.
@@ -113,16 +104,17 @@ std.debug.print("{d}\n", .{evil_john.user_id});
 
 ### Enum types
 
-Skir generates a tagged union for every enum in the .skir file.
+The definition of the SubscriptionStatus enum in the .skir file is:
 
-The definition of the `SubscriptionStatus` enum in the .skir file is:
-```rust
+```skir [Skir]
 enum SubscriptionStatus {
   free;
   trial: Trial;
   premium;
 }
 ```
+
+Skir generates a tagged union for every enum in the .skir file.
 
 #### Making enum values
 
@@ -166,8 +158,7 @@ std.debug.print("{s}\n", .{subscriptionInfoText(.{ .Trial = &trial_payload })});
 
 ### Serialization
 
-`User.serializer()` returns a serializer which can serialize and
-deserialize instances of `User`.
+`User.serializer()` returns a serializer which can serialize and deserialize instances of `User`.
 
 ```zig
 const user_serializer = user_mod.User.serializer();
@@ -199,7 +190,7 @@ const john_binary = try user_serializer.serialize(
 );
 ```
 
-### Deserialization
+#### Deserialization
 
 ```zig
 // deserialize() auto-detects the format (dense JSON, readable JSON, or
@@ -362,13 +353,9 @@ std.debug.print("{d}\n", .{found_or_default.pets.len});
 
 ### SkirRPC services
 
-#### Starting a SkirRPC service on an HTTP server
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-zig-example/blob/main/src/start_service.zig) .
 
-Full example [here](https://github.com/gepheum/skir-zig-example/blob/main/src/start_service.zig).
-
-#### Sending RPCs to a SkirRPC service
-
-Full example [here](https://github.com/gepheum/skir-zig-example/blob/main/src/call_service.zig).
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-zig-example/blob/main/src/call_service.zig) .
 
 ### Reflection
 
@@ -402,4 +389,3 @@ switch (enum_type_descriptor) {
     else => {},
 }
 ```
-

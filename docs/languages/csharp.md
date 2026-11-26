@@ -1,19 +1,17 @@
-[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
-[![build](https://github.com/gepheum/skir/actions/workflows/ci-csharp.yml/badge.svg)](https://github.com/gepheum/skir/actions)
+# C#
 
-# Skir's C# code generator
-
-Official plugin for generating C# code from [.skir](https://github.com/gepheum/skir) files.
+Official plugin for generating C# code from .skir files.
 
 Targets C# 12 on .NET 10 and higher.
 
 ## Set up
 
 In your `skir.yml` file, add the following snippet under `generators`:
+
 ```yaml
-  - mod: skir-csharp-gen
-    outDir: ./skirout
-    config: {}
+- mod: skir-csharp-gen
+  outDir: ./skirout
+  config: {}
 ```
 
 The generated C# code has a runtime dependency on the `skir_client` NuGet package. Add it to your `.csproj` file with:
@@ -24,7 +22,7 @@ The generated C# code has a runtime dependency on the `skir_client` NuGet packag
 </ItemGroup>
 ```
 
-For more information, see this C# project [example](https://github.com/gepheum/skir-csharp-example).
+For more information, see this C# project [example](https://github.com/gepheum/skir-csharp-example) .
 
 ## C# generated code guide
 
@@ -43,7 +41,8 @@ using Skirout_User;
 ### Struct types
 
 Skir generates a readonly record struct for every struct in the .skir file.
-Every generated field is `required` and `init`-only.
+
+Every generated field is `required` and `init` -only.
 
 ```csharp
 var john = new User
@@ -90,6 +89,7 @@ Console.WriteLine(User.Default == (User.Default with { })); // True
 ### Enum types
 
 Skir generates a sealed C# class for every enum in the .skir file.
+
 The `Unknown` variant is added automatically and is the default value.
 
 ```csharp
@@ -130,8 +130,7 @@ Console.WriteLine(GetInfoText(john.SubscriptionStatus)); // Free user
 
 ### Serialization
 
-`User.Serializer` returns a `Serializer<User>` which can serialize and
-deserialize instances of `User`.
+`User.Serializer` returns a `Serializer<User>` which can serialize and deserialize instances of `User`.
 
 ```csharp
 var serializer = User.Serializer;
@@ -232,11 +231,11 @@ Console.WriteLine(notFoundOrDefault == User.Default); // True
 
 #### Starting a SkirRPC service on an HTTP server
 
-Full example [here](https://github.com/gepheum/skir-csharp-example/blob/main/StartService.cs).
+Full example [here](https://github.com/gepheum/skir-csharp-example/blob/main/StartService.cs) .
 
 #### Sending RPCs to a SkirRPC service
 
-Full example [here](https://github.com/gepheum/skir-csharp-example/blob/main/CallService.cs).
+Full example [here](https://github.com/gepheum/skir-csharp-example/blob/main/CallService.cs) .
 
 ### Reflection
 
@@ -261,8 +260,7 @@ if (descriptorFromJson is StructDescriptor sd2)
 
 ### RPC methods
 
-Skir generates a `Method<TRequest, TResponse>` descriptor for every `method`
-declaration in the .skir file.
+Skir generates a `Method<TRequest, TResponse>` descriptor for every `method` declaration in the .skir file.
 
 ```csharp
 var getUser = Methods.GetUser;
@@ -274,4 +272,3 @@ var addUser = Methods.AddUser;
 Console.WriteLine(addUser.Name);   // AddUser
 Console.WriteLine(addUser.Number); // 23456
 ```
-

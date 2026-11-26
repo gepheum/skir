@@ -53,9 +53,8 @@ Typically, you should place the skirout directory at the root of your sub-projec
 
 Multiple generators can write to the same output directory, which means this directory will contain source files in different languages.
 
-::: warning
-Do not manually edit any of the files inside a `skirout` directory. This directory is managed by Skir. Any manual change will be overwritten during the next generation.
-:::
+> [!WARNING]
+> Do not manually edit any of the files inside a `skirout` directory. This directory is managed by Skir. Any manual change will be overwritten during the next generation.
 
 ## Core workflow
 
@@ -75,9 +74,8 @@ npx skir gen --watch
 
 The compiler will monitor your source directory and automatically regenerate code whenever you modify a `.skir` file.
 
-::: tip
-If your project is a Node project, add `skir gen` to your `package.json` scripts. Using the `prebuild` hook is recommended so that code is regenerated automatically before every build.
-:::
+> [!TIP]
+> If your project is a Node project, add `skir gen` to your `package.json` scripts. Using the `prebuild` hook is recommended so that code is regenerated automatically before every build.
 
 ```json [package.json]
 {
@@ -113,7 +111,7 @@ Consider adding these optional steps for stricter validation:
   run: npx skir snapshot --ci
 ```
 
-The first step ensures `.skir` files are properly formatted. The second step verifies that you ran `npx skir snapshot` before committing. See the [Schema evolution & compatibility](/docs/schema-evolution) guide for more information about the snapshot command.
+The first step ensures `.skir` files are properly formatted. The second step verifies that you ran `npx skir snapshot` before committing. See the [Schema evolution & compatibility](./schema-evolution.md) guide for more information about the snapshot command.
 
 ## IDE support
 

@@ -135,13 +135,25 @@ export default defineConfig({
   titleTemplate: ':title - Skir Documentation',
   description:
     'Skir is a modern declarative schema language for data models and APIs. Write once in a .skir file - instantly generate clean, idiomatic, and fully type-safe code.',
-  srcDir: './docs',
+  srcDir: './src',
   outDir: './out',
   cleanUrls: true,
   ignoreDeadLinks: ['/converter.html'],
+  rewrites: {
+    'docs/README.md': 'docs/index.md',
+    'docs/languages/:lang.md': 'docs/:lang.md',
+  },
 
   vite: {
     publicDir: path.resolve(__dirname, '../public'),
+    resolve: {
+      preserveSymlinks: true,
+    },
+    server: {
+      fs: {
+        allow: [path.resolve(__dirname, '../../..')],
+      },
+    },
   },
 
   head: [
@@ -178,6 +190,12 @@ export default defineConfig({
       moonbit: 'rust',
     },
     config(md) {
+      const defaultCodeInline = md.renderer.rules.code_inline!
+      md.renderer.rules.code_inline = (tokens, idx, options, env, self) => {
+        tokens[idx].attrSet('v-pre', '')
+        return defaultCodeInline(tokens, idx, options, env, self)
+      }
+
       const defaultFence = md.renderer.rules.fence!
       md.renderer.rules.fence = (tokens, idx, options, env, self) => {
         const token = tokens[idx]

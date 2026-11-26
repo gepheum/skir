@@ -30,7 +30,7 @@ struct Point {
 }
 ```
 
-If you're not explicitly specifying the field numbers, you must be careful not to change the order of the fields or else you won't be able to deserialize old values. More information about changes you can make to your schema is available in [Schema evolution](/docs/schema-evolution).
+If you're not explicitly specifying the field numbers, you must be careful not to change the order of the fields or else you won't be able to deserialize old values. More information about changes you can make to your schema is available in [Schema evolution](./schema-evolution.md).
 
 ```skir
 // BAD: you can't reorder the fields and keep implicit numbering
@@ -103,7 +103,7 @@ enum ImplicitNumbering {
 }
 ```
 
-The variant numbers are used for identifying the variants in the serialization format (not the variant names). You must be careful not to change the number of a variant, or you won't be able to deserialize old values. For example, if you're using implicit numbering, you must not reorder the variants. More information about changes you can make to your schema is available in [Schema evolution](/docs/schema-evolution).
+The variant numbers are used for identifying the variants in the serialization format (not the variant names). You must be careful not to change the number of a variant, or you won't be able to deserialize old values. For example, if you're using implicit numbering, you must not reorder the variants. More information about changes you can make to your schema is available in [Schema evolution](./schema-evolution.md).
 
 It is always fine to rename an enum, rename the variants of an enum, or add new variants to an enum.
 
@@ -181,24 +181,22 @@ struct Notification {
 
 These two methods of definition are strictly equivalent. The generated code will be identical regardless of whether the record was defined explicitly or inline.
 
-::: info
-Inline records must be used directly as a field type. You can’t wrap an inline record in an array type or an optional type (for example `[struct { ... }]` or `struct { ... }?`). If you need an array or optional, define a nested record and reference it by name.
-
-```skir
-struct Product {
-  // SYNTAX NOT SUPPORTED
-  // tags: [struct {
-  //   tag_name: string;
-  // }];
-
-  struct Tag {
-    tag_name: string;
-  }
-  tags: [Tag];
-}
-```
-
-:::
+> [!NOTE]
+> Inline records must be used directly as a field type. You can’t wrap an inline record in an array type or an optional type (for example `[struct { ... }]` or `struct { ... }?`). If you need an array or optional, define a nested record and reference it by name.
+>
+> ```skir
+> struct Product {
+>   // SYNTAX NOT SUPPORTED
+>   // tags: [struct {
+>   //   tag_name: string;
+>   // }];
+>
+>   struct Tag {
+>     tag_name: string;
+>   }
+>   tags: [Tag];
+> }
+> ```
 
 ### Removed numbers
 
@@ -235,11 +233,10 @@ This identifier is used by the `npx skir snapshot` command to track record ident
 
 No two types in your Skir project can have the same stable identifier.
 
-::: tip
-You can use `?` as a placeholder for the identifier and run `npx skir format`. It will replace the question mark with a generated random number. This replacement happens automatically on save if you are using the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=gepheum.skir-lang) .
-
-<HoverVideo src="/record-stable-id-on-save.mp4" />
-:::
+> [!TIP]
+> You can use `?` as a placeholder for the identifier and run `npx skir format`. It will replace the question mark with a generated random number. This replacement happens automatically on save if you are using the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=gepheum.skir-lang) .
+>
+> <HoverVideo src="/record-stable-id-on-save.mp4" />
 
 ### Recursive records
 
@@ -404,11 +401,10 @@ Every method must have a unique integer identifier (e.g. `= 12345`) used for RPC
 
 No two methods in your Skir project can have the same stable identifier.
 
-::: tip
-You can use `?` as a placeholder for the identifier and run `npx skir format`. It will replace the question mark with a generated random number. This replacement happens automatically on save if you are using the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=gepheum.skir-lang) .
-
-<HoverVideo src="/method-stable-id-on-save.mp4" />
-:::
+> [!TIP]
+> You can use `?` as a placeholder for the identifier and run `npx skir format`. It will replace the question mark with a generated random number. This replacement happens automatically on save if you are using the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=gepheum.skir-lang) .
+>
+> <HoverVideo src="/method-stable-id-on-save.mp4" />
 
 ### Inline request/response records
 

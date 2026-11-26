@@ -1,6 +1,3 @@
-[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
-[![build](https://github.com/gepheum/skir/actions/workflows/ci-moonbit.yml/badge.svg)](https://github.com/gepheum/skir/actions)
-
 # Skir's MoonBit code generator
 
 Official plugin for generating MoonBit code from [.skir](https://github.com/gepheum/skir) files.
@@ -10,24 +7,22 @@ Official plugin for generating MoonBit code from [.skir](https://github.com/geph
 In your `skir.yml` file, add the following snippet under `generators`:
 
 ```yaml
-	- mod: skir-moonbit-gen
-		outDir: ./skirout
-		config: {}
+- mod: skir-moonbit-gen
+  outDir: ./skirout
+  config: {}
 ```
 
-The generated MoonBit code has a runtime dependency on `gepheum/skir-client`.
-Add it with:
+The generated MoonBit code has a runtime dependency on `gepheum/skir-client`. Add it with:
 
 ```bash
 moon add gepheum/skir-client
 ```
 
-For more information, see this MoonBit project [example](https://github.com/gepheum/skir-moonbit-example).
+For more information, see this MoonBit project [example](https://github.com/gepheum/skir-moonbit-example) .
 
 ## MoonBit generated code guide
 
-The examples below are for the code generated from [this](https://github.com/gepheum/skir-moonbit-example/blob/main/skir-src/user.skir) .skir file.
-Most code snippets are quoted from [moonbit-example/src/snippets.mbt](https://github.com/gepheum/skir-moonbit-example/blob/main/src/snippets.mbt).
+The examples below are for the code generated from [this](https://github.com/gepheum/skir-moonbit-example/blob/main/skir-src/user.skir) .skir file. Most code snippets are quoted from [moonbit-example/src/snippets.mbt](https://github.com/gepheum/skir-moonbit-example/blob/main/src/snippets.mbt) .
 
 ### Struct types
 
@@ -35,25 +30,25 @@ Skir generates a plain MoonBit struct for each struct in the .skir schema.
 
 ```moonbit
 let john = @skirout_user.User::new(
-	user_id=42,
-	name="John Doe",
-	quote="Coffee is just a socially acceptable form of rage.",
-	pets=@client.ImmutVector::from_array([
-		@skirout_user.User_Pet::new(
-			name="Dumbo",
-			height_in_meters=1.0,
-			picture="🐘",
-		),
-	]),
-	subscription_status=@skirout_user.SubscriptionStatus::free(),
+  user_id=42,
+  name="John Doe",
+  quote="Coffee is just a socially acceptable form of rage.",
+  pets=@client.ImmutVector::from_array([
+    @skirout_user.User_Pet::new(
+      name="Dumbo",
+      height_in_meters=1.0,
+      picture="🐘",
+    ),
+  ]),
+  subscription_status=@skirout_user.SubscriptionStatus::free(),
 )
 
 println(john.name)
 // John Doe
 
 let evil_john = john.copy(
-	name=@client.KeepOrSet::Set("Evil John"),
-	quote=@client.KeepOrSet::Set("I solemnly swear I am up to no good."),
+  name=@client.KeepOrSet::Set("Evil John"),
+  quote=@client.KeepOrSet::Set("I solemnly swear I am up to no good."),
 )
 
 println(evil_john.name)
@@ -62,8 +57,8 @@ println(evil_john.user_id.to_string())
 // 42
 
 let jane = @skirout_user.User::default().copy(
-	user_id=@client.KeepOrSet::Set(43),
-	name=@client.KeepOrSet::Set("Jane Doe"),
+  user_id=@client.KeepOrSet::Set(43),
+  name=@client.KeepOrSet::Set("Jane Doe"),
 )
 
 println(jane.name)
@@ -76,14 +71,14 @@ println(jane.quote)
 
 ```moonbit
 let trial_payload = @skirout_user.SubscriptionStatus_Trial::new(
-	start_time=@client.Timestamp::from_unix_millis(1744974198000L),
+  start_time=@client.Timestamp::from_unix_millis(1744974198000L),
 )
 
 let some_statuses = [
-	@skirout_user.SubscriptionStatus::unknown(),
-	@skirout_user.SubscriptionStatus::free(),
-	@skirout_user.SubscriptionStatus::premium(),
-	@skirout_user.SubscriptionStatus::trial(trial_payload),
+  @skirout_user.SubscriptionStatus::unknown(),
+  @skirout_user.SubscriptionStatus::free(),
+  @skirout_user.SubscriptionStatus::premium(),
+  @skirout_user.SubscriptionStatus::trial(trial_payload),
 ]
 
 println(some_statuses.length().to_string())
@@ -94,21 +89,21 @@ println(some_statuses.length().to_string())
 
 ```moonbit
 let subscription_info_text = fn(
-	status : @skirout_user.SubscriptionStatus,
+  status : @skirout_user.SubscriptionStatus,
 ) {
-	match status {
-		Unknown(_) => "Unknown subscription status"
-		Free => "Free user"
-		Trial(trial) => "On trial since " + trial.start_time.to_iso8601()
-		Premium => "Premium user"
-	}
+  match status {
+    Unknown(_) => "Unknown subscription status"
+    Free => "Free user"
+    Trial(trial) => "On trial since " + trial.start_time.to_iso8601()
+    Premium => "Premium user"
+  }
 }
 
 println(subscription_info_text(john.subscription_status))
 // Free user
 
 println(
-	subscription_info_text(@skirout_user.SubscriptionStatus::unknown()),
+  subscription_info_text(@skirout_user.SubscriptionStatus::unknown()),
 )
 // Unknown subscription status
 ```
@@ -125,8 +120,8 @@ println(john_dense_json)
 // [42,"John Doe",...]
 
 let john_readable_json = user_serializer
-	.to_readable_json(john)
-	.stringify(indent=2)
+  .to_readable_json(john)
+  .stringify(indent=2)
 println(john_readable_json)
 // {
 //   "user_id": 42,
@@ -140,26 +135,26 @@ let john_binary = user_serializer.to_bytes(john)
 
 ```moonbit
 let from_dense = match user_serializer.from_json_code(john_dense_json) {
-	Ok(value) => value
-	Err(_) => panic()
+  Ok(value) => value
+  Err(_) => panic()
 }
 
 let from_readable = match user_serializer.from_json_code(john_readable_json) {
-	Ok(value) => value
-	Err(_) => panic()
+  Ok(value) => value
+  Err(_) => panic()
 }
 
 let from_binary = match
-	user_serializer.from_bytes(
-		john_binary,
-		unrecognized_values=@client.UnrecognizedValues::Drop,
-	) {
-	Ok(value) => value
-	Err(_) => panic()
+  user_serializer.from_bytes(
+    john_binary,
+    unrecognized_values=@client.UnrecognizedValues::Drop,
+  ) {
+  Ok(value) => value
+  Err(_) => panic()
 }
 
 if from_dense != john || from_readable != john || from_binary != john {
-	panic()
+  panic()
 }
 ```
 
@@ -173,7 +168,7 @@ println(@client.int32_serializer().to_dense_json_code(3))
 println(@client.int64_serializer().to_dense_json_code(9223372036854775807L))
 // "9223372036854775807"
 println(
-	@client.hash64_serializer().to_dense_json_code(18446744073709551615UL),
+  @client.hash64_serializer().to_dense_json_code(18446744073709551615UL),
 )
 // "18446744073709551615"
 println(@client.float32_serializer().to_dense_json_code(3.14))
@@ -197,9 +192,9 @@ println(opt_string_ser.to_dense_json_code(Some("foo")))
 
 let bool_array_ser = @client.vector_serializer(@client.bool_serializer())
 println(
-	bool_array_ser.to_dense_json_code(
-		@client.ImmutVector::from_array([true, false]),
-	),
+  bool_array_ser.to_dense_json_code(
+    @client.ImmutVector::from_array([true, false]),
+  ),
 )
 // [1,0]
 ```
@@ -221,13 +216,13 @@ println(user_serializer.to_readable_json(tarzan).stringify(indent=2))
 
 ```moonbit
 let user_registry = @skirout_user.UserRegistry::new(
-	users=@skirout_user.User_byUserId::from_array([john, jane, evil_john]),
+  users=@skirout_user.User_byUserId::from_array([john, jane, evil_john]),
 )
 
 let found = user_registry.users.find_by_user_id(43)
 match found {
-	Some(user) => println(user.name)
-	None => panic()
+  Some(user) => println(user.name)
+  None => panic()
 }
 // Jane Doe
 
@@ -247,19 +242,19 @@ let user_td = user_serializer.type_descriptor()
 println(user_td.records.length().to_string())
 
 for record in user_td.records.iter() {
-	match record {
-		Struct(sd) =>
-			if sd.record_id == "user.skir:User" {
-				println(sd.record_id + " has " + sd.fields.length().to_string() + " fields")
-			}
-		Enum(_) => ()
-	}
+  match record {
+    Struct(sd) =>
+      if sd.record_id == "user.skir:User" {
+        println(sd.record_id + " has " + sd.fields.length().to_string() + " fields")
+      }
+    Enum(_) => ()
+  }
 }
 
 let user_td_json = user_td.as_json()
 let parsed_td = match @client.parse_from_json(user_td_json) {
-	Ok(v) => v
-	Err(_) => panic()
+  Ok(v) => v
+  Err(_) => panic()
 }
 println(parsed_td.records.length().to_string())
 ```
@@ -268,8 +263,8 @@ println(parsed_td.records.length().to_string())
 
 #### Starting a SkirRPC service on an HTTP server
 
-Full example [here](https://github.com/gepheum/skir-moonbit-example/blob/main/src/start_service.mbt).
+Full example [here](https://github.com/gepheum/skir-moonbit-example/blob/main/src/start_service.mbt) .
 
 #### Sending RPCs to a SkirRPC service
 
-Full example [here](https://github.com/gepheum/skir-moonbit-example/blob/main/src/call_service.mbt).
+Full example [here](https://github.com/gepheum/skir-moonbit-example/blob/main/src/call_service.mbt) .

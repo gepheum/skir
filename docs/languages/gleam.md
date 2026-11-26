@@ -1,35 +1,33 @@
-[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
-[![build](https://github.com/gepheum/skir/actions/workflows/ci-gleam.yml/badge.svg)](https://github.com/gepheum/skir/actions)
+# Gleam
 
-# Skir's Gleam code generator
-
-Official plugin for generating Gleam code from [.skir](https://github.com/gepheum/skir) files.
+This guide explains how to use Skir in a Gleam project.
 
 ## Set up
 
 In your `skir.yml` file, add the following snippet under `generators`:
+
 ```yaml
-  - mod: skir-gleam-gen
-    outDir: ./src/skirout
-    config: {}
+- mod: skir-gleam-gen
+  outDir: ./src/skirout
+  config: {}
 ```
 
 Or if you prefer not to place `skirout` directly under `src`:
-```yaml
-  - mod: skir-gleam-gen
-    outDir: ./src/generated/skirout
-    config:
-      importPathToSkirout: generated/skirout
-```
 
+```yaml
+- mod: skir-gleam-gen
+  outDir: ./src/generated/skirout
+  config:
+    importPathToSkirout: generated/skirout
+```
 
 The generated Gleam code has a runtime dependency on `skir_client`. Add it to your project with:
 
-```shell
+```bash
 gleam add skir_client
 ```
 
-For more information, see this Gleam project [example](https://github.com/gepheum/skir-gleam-example).
+For more information, see this Gleam project [example](https://github.com/gepheum/skir-gleam-example) .
 
 ## Gleam generated code guide
 
@@ -37,7 +35,7 @@ The examples below are for the code generated from [this](https://github.com/gep
 
 ### Referring to generated symbols
 
-```gleam
+```swift [Gleam]
 // Import the module generated from "user.skir"
 import skirout/user
 
@@ -48,7 +46,7 @@ import skirout/user
 
 Skir generates a plain Gleam record for every struct in the .skir file.
 
-```gleam
+```swift [Gleam]
 import skir_client
 import skir_client/timestamp
 import skirout/user
@@ -88,7 +86,7 @@ io.println(int.to_string(list.length(jane.pets)))
 
 #### Creating modified copies
 
-```gleam
+```swift [Gleam]
 // Gleam records are immutable.
 // To make a modified copy, use record update syntax on the original.
 let evil_john =
@@ -106,8 +104,9 @@ io.println(int.to_string(evil_john.user_id))
 
 ### Enum types
 
-The definition of the `SubscriptionStatus` enum in the .skir file is:
-```rust
+The definition of the SubscriptionStatus enum in the .skir file is:
+
+```rust [Skir]
 enum SubscriptionStatus {
   free;
   trial: Trial;
@@ -119,7 +118,7 @@ Skir generates a Gleam custom type for every enum in the .skir file.
 
 #### Constructing enum values
 
-```gleam
+```swift [Gleam]
 let _statuses = [
   // Unknown is the default and is present in all Skir enums.
   user.subscription_status_unknown,
@@ -136,7 +135,7 @@ let _statuses = [
 
 #### Pattern matching on enums
 
-```gleam
+```swift [Gleam]
 let get_info_text = fn(status: user.SubscriptionStatus) -> String {
   case status {
     user.SubscriptionStatusFree -> "Free user"
@@ -164,7 +163,7 @@ io.println(get_info_text(trial_status))
 
 The serializer for a type is returned by calling the generated `*_serializer()` function. Use functions from `skir_client` to serialize and deserialize values.
 
-```gleam
+```swift [Gleam]
 let serializer = user.user_serializer()
 
 // Serialize to dense JSON (field-number-based; the default mode).
@@ -182,7 +181,7 @@ io.println(skir_client.to_readable_json_code(serializer, john))
 //   "name": "John Doe",
 //   "quote": "Coffee is just a socially acceptable form of rage.",
 //   "pets": [ ... ],
-//   "subscription_status": "FREE"
+//   "subscription_status": "free"
 // }
 
 // Deserialize from JSON (both dense and readable formats are accepted).
@@ -199,7 +198,7 @@ let assert True = from_bytes == john
 
 ### Primitive serializers
 
-```gleam
+```swift [Gleam]
 io.println(skir_client.to_dense_json_code(skir_client.bool_serializer(), True))
 // 1
 io.println(skir_client.to_dense_json_code(skir_client.int32_serializer(), 3))
@@ -233,7 +232,7 @@ io.println(skir_client.to_dense_json_code(
 
 ### Composite serializers
 
-```gleam
+```swift [Gleam]
 // Optional serializer:
 io.println(skir_client.to_dense_json_code(
   skir_client.optional_serializer(skir_client.string_serializer()),
@@ -259,7 +258,7 @@ io.println(
 
 ### Constants
 
-```gleam
+```swift [Gleam]
 // Constants declared with 'const' in the .skir file are available as
 // top-level constants in the generated Gleam code.
 io.println(skir_client.to_readable_json_code(
@@ -291,19 +290,15 @@ io.println(skir_client.to_readable_json_code(
 
 ### SkirRPC services
 
-#### Starting a SkirRPC service on an HTTP server
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-gleam-example/blob/main/src/start_service.gleam) .
 
-Full example [here](https://github.com/gepheum/skir-gleam-example/blob/main/src/start_service.gleam).
-
-#### Sending RPCs to a SkirRPC service
-
-Full example [here](https://github.com/gepheum/skir-gleam-example/blob/main/src/call_service.gleam).
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-gleam-example/blob/main/src/call_service.gleam) .
 
 ### Reflection
 
 Reflection allows you to inspect a Skir type at runtime.
 
-```gleam
+```swift [Gleam]
 import gleam/dict
 import gleam/list
 import skir_client

@@ -11,11 +11,11 @@
   - `packages/converter` (`skir-converter`): Skir format converter web UI.
   - `packages/language-server` (`skir-language-server`): Standalone LSP server for Vim/Neovim/Emacs.
   - `packages/vscode` (`skir-lang`, private): VS Code extension.
-  - `packages/website` (`@skir/website`, private): Next.js documentation website (`skir.build`).
+  - `packages/website` (`@skir/website`, private): VitePress documentation website (`skir.build`).
 - **`client-libraries/`** — Non-TypeScript runtime client libraries (`cc`, `csharp`, `dart`, `gleam`, `go`, `kotlin`, `moonbit`, `moonbit-async`, `python`, `python-sqlalchemy`, `rust`, `swift`, `zig`).
 - **`e2e-tests/`** — Polyglot end-to-end tests for all language code generators, linked directly against local `client-libraries/<lang>`.
 - **`examples/`** — Single-language and multi-language example projects.
-- **`docs/languages/`** — Per-language generated code guides.
+- **`docs/`** — Documentation and per-language generated code guides (single source of truth for `skir.build`).
 
 ---
 

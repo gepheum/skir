@@ -30,28 +30,28 @@ npm i skir-internal zod
 Your package should export a single generator object named `GENERATOR` that implements the `CodeGenerator<Config>` interface:
 
 ```typescript
-import { type CodeGenerator } from 'skir-internal'
-import { z } from 'zod'
+import { type CodeGenerator } from "skir-internal";
+import { z } from "zod";
 
 const Config = z.strictObject({
   // generator-specific options
   myOption: z.boolean(),
-})
+});
 
-type Config = z.infer<typeof Config>
+type Config = z.infer<typeof Config>;
 
 class MyGenerator implements CodeGenerator<Config> {
-  readonly id = 'my-company-skir-gen'
-  readonly configType = Config
+  readonly id = "my-company-skir-gen";
+  readonly configType = Config;
 
   generateCode(input: CodeGenerator.Input<Config>): CodeGenerator.Output {
     return {
-      files: [{ path: 'example.txt', code: 'generated' }],
-    }
+      files: [{ path: "example.txt", code: "generated" }],
+    };
   }
 }
 
-export const GENERATOR = new MyGenerator()
+export const GENERATOR = new MyGenerator();
 ```
 
 ## Input contract
@@ -60,9 +60,9 @@ The compiler calls `generateCode(input)`, where `input` has this structure:
 
 ```typescript
 interface CodeGeneratorInput<Config> {
-  readonly modules: readonly Module[]
-  readonly recordMap: ReadonlyMap<RecordKey, RecordLocation>
-  readonly config: Config
+  readonly modules: readonly Module[];
+  readonly recordMap: ReadonlyMap<RecordKey, RecordLocation>;
+  readonly config: Config;
 }
 ```
 
@@ -95,9 +95,9 @@ Your generator returns a list of output files:
 ```typescript
 interface CodeGeneratorOutput {
   readonly files: readonly {
-    readonly path: string
-    readonly code: string
-  }[]
+    readonly path: string;
+    readonly code: string;
+  }[];
 }
 ```
 
@@ -109,6 +109,5 @@ Generators do not write files to disk directly. They only return the `(path, cod
 
 The compiler/generator contract defines data flow and types. How you map that input into language-specific APIs, classes, or style conventions is generator-specific and intentionally outside this contract.
 
-::: info
-A good first step is to inspect an existing generator (for example [skir-rust-gen](https://github.com/gepheum/skir/tree/main/packages/compiler/src/generators/rust) ) and focus on how it consumes `modules`, `recordMap`, and `config`.
-:::
+> [!NOTE]
+> A good first step is to inspect an existing generator (for example [skir-rust-gen](https://github.com/gepheum/skir/tree/main/packages/compiler/src/generators/rust) ) and focus on how it consumes `modules`, `recordMap`, and `config`.

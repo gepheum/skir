@@ -1,21 +1,19 @@
-[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
-[![build](https://github.com/gepheum/skir/actions/workflows/ci-java.yml/badge.svg)](https://github.com/gepheum/skir/actions)
+# Java
 
-# Skir's Java code generator
-
-Official plugin for generating Java code from [.skir](https://github.com/gepheum/skir) files.
+This guide explains how to use Skir in a Java project.
 
 ## Set up
 
 In your `skir.yml` file, add the following snippet under `generators`:
+
 ```yaml
-  - mod: skir-java-gen
-    outDir: ./src/main/java/skirout
-    config: {}
-    # Alternatively:
-    # outDir: ./src/main/kotlin/my/project/skirout
-    # config:
-    #   packagePrefix: my.project.
+- mod: skir-java-gen
+  outDir: ./src/main/java/skirout
+  config: {}
+  # Alternatively:
+  # outDir: ./src/main/kotlin/my/project/skirout
+  # config:
+  #   packagePrefix: my.project.
 ```
 
 The generated Java code has a runtime dependency on `build.skir:skir-client`. Add this line to your `build.gradle` file in the `dependencies` section:
@@ -24,9 +22,9 @@ The generated Java code has a runtime dependency on `build.skir:skir-client`. Ad
 implementation 'build.skir:skir-client:latest.release'
 ```
 
-For more information, see this Java project [example](https://github.com/gepheum/skir-java-example).
+For more information, see this Java project [example](https://github.com/gepheum/skir-java-example) .
 
-## Java generated code guide
+## Generated code guide
 
 The examples below are for the code generated from [this](https://github.com/gepheum/skir-java-example/blob/main/skir-src/user.skir) .skir file.
 
@@ -42,9 +40,9 @@ import skirout.user.Constants;
 // Now you can use: Constants.TARZAN, User, UserRegistry, SubscriptionStatus, etc.
 ```
 
-### Struct classes
+### Structs
 
-skir generates a deeply immutable Java class for every struct in the .skir file.
+Skir generates a deeply immutable Java class for every struct in the .skir file.
 
 ```java
 // To construct a User, use the builder pattern.
@@ -101,12 +99,13 @@ assert evilJohn.name().equals("Evil John");
 assert evilJohn.userId() == 42;
 ```
 
-### Enum classes
+### Enums
 
-skir generates a deeply immutable Java class for every enum in the .skir file. This class is *not* a Java enum, although the syntax for referring to constants is similar.
+Skir generates a deeply immutable Java class for every enum in the .skir file. This class is not a Java enum, although the syntax for referring to constants is similar.
 
 The definition of the `SubscriptionStatus` enum in the .skir file is:
-```rust
+
+```skir
 enum SubscriptionStatus {
   free;
   trial: Trial;
@@ -226,7 +225,7 @@ System.out.println(serializer.toJsonCode(john, JsonFlavor.READABLE));
 //       "picture": "🐘"
 //     }
 //   ],
-//   "subscription_status": "FREE"
+//   "subscription_status": "free"
 // }
 
 // The dense JSON flavor is the flavor you should pick if you intend to
@@ -245,7 +244,7 @@ System.out.println(johnBytes);
 // likely to matter, which should be rare.
 ```
 
-### Deserialization
+#### Deserialization
 
 ```java
 // Use fromJson(), fromJsonCode() and fromBytes() to deserialize.
@@ -267,10 +266,10 @@ assert serializer.fromBytes(johnBytes).equals(john);
 ```java
 assert Serializers.bool().toJsonCode(true).equals("1");
 assert Serializers.int32().toJsonCode(3).equals("3");
-assert Serializers.int64().toJsonCode(9223372036854775807L).equals("\"9223372036854775807\"");
+assert Serializers.int64().toJsonCode(9223372036854775807L).equals("\\"9223372036854775807\\"");
 assert Serializers.javaHash64()
     .toJsonCode(new BigInteger("18446744073709551615"))
-    .equals("\"18446744073709551615\"");
+    .equals("\\"18446744073709551615\\"");
 assert Serializers.timestamp()
     .toJsonCode(Instant.ofEpochMilli(1743682787000L))
     .equals("1743682787000");
@@ -282,7 +281,7 @@ assert Serializers.bytes()
     .equals("\"AQID\"");
 ```
 
-### Composite serializers
+#### Composite serializers
 
 ```java
 assert Serializers.javaOptional(Serializers.string())
@@ -292,7 +291,7 @@ assert Serializers.javaOptional(Serializers.string())
     .toJsonCode(java.util.Optional.empty())
     .equals("null");
 
-assert Serializers.list(Serializers.bool()) //
+assert Serializers.list(Serializers.bool())
     .toJsonCode(List.of(true, false))
     .equals("[1,0]");
 ```
@@ -384,13 +383,9 @@ System.out.println(Constants.TARZAN);
 
 ### SkirRPC services
 
-#### Starting a SkirRPC service on an HTTP server
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/StartService.java) .
 
-Full example [here](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/StartService.java).
-
-#### Sending RPCs to a SkirRPC service
-
-Full example [here](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/CallService.java).
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/CallService.java) .
 
 ### Reflection
 
@@ -415,42 +410,12 @@ final TypeDescriptor typeDescriptor =
 
 assert typeDescriptor instanceof StructDescriptor;
 assert ((StructDescriptor) typeDescriptor).getFields().size() == 5;
-
-// The 'allStringsToUpperCase' function uses reflection to convert all the
-// strings contained in a given skir value to upper case.
-// See the implementation at
-// https://github.com/gepheum/skir-java-example/blob/main/src/main/java/examples/AllStringsToUpperCase.java
-System.out.println(
-    AllStringsToUpperCase.allStringsToUpperCase(
-        Constants.TARZAN, User.TYPE_DESCRIPTOR));
-// {
-//   "user_id": 123,
-//   "name": "TARZAN",
-//   "quote": "AAAAAAAAAAYAAAAAAAAAAYAAAAAAAAAA",
-//   "pets": [
-//     {
-//       "name": "CHEETA",
-//       "height_in_meters": 1.67,
-//       "picture": "🐒"
-//     }
-//   ],
-//   "subscription_status": {
-//     "kind": "trial",
-//     "value": {
-//       "start_time": {
-//         "unix_millis": 1743592409000,
-//         "formatted": "2025-04-02T11:13:29Z"
-//       }
-//     }
-//   }
-// }
 ```
 
 ## Java codegen versus Kotlin codegen
 
-While Java and Kotlin code can interoperate seamlessly, skir provides separate code generators for each language to leverage their unique strengths and idioms. For instance, the Kotlin generator utilizes named parameters for struct construction, whereas the Java generator employs the builder pattern. 
+While Java and Kotlin code can interoperate seamlessly, skir provides separate code generators for each language to leverage their unique strengths and idioms. For instance, the Kotlin generator utilizes named parameters for struct construction, whereas the Java generator employs the builder pattern.
 
 Although it's technically feasible to use Kotlin-generated code in a Java project (or vice versa), doing so results in an API that feels unnatural and cumbersome in the calling language. For the best developer experience, use the code generator that matches your project's primary language.
 
 Note that both the Java and Kotlin generated code share the same runtime dependency: `build.skir:skir-client`.
-

@@ -1,19 +1,15 @@
-[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
-[![build](https://github.com/gepheum/skir/actions/workflows/ci-rust.yml/badge.svg)](https://github.com/gepheum/skir/actions)
+# Rust
 
-# Skir's Rust code generator
-
-Official plugin for generating Rust code from [.skir](https://github.com/gepheum/skir) files.
-
-Targets Rust edition 2021 and higher.
+This guide explains how to use Skir in a Rust project. Targets Rust edition 2021 and higher.
 
 ## Set up
 
 In your `skir.yml` file, add the following snippet under `generators`:
+
 ```yaml
-  - mod: skir-rust-gen
-    outDir: ./src/skirout
-    config: {}
+- mod: skir-rust-gen
+  outDir: ./src/skirout
+  config: {}
 ```
 
 The generated Rust code has a runtime dependency on the `skir-client` crate. Add it to your `Cargo.toml` with:
@@ -35,16 +31,16 @@ Then create `src/skirout.rs` with the following content (the generator will popu
 pub mod base;
 ```
 
-For more information, see this Rust project [example](https://github.com/gepheum/skir-rust-example).
+For more information, see this Rust project [example](https://github.com/gepheum/skir-rust-example) .
 
-## Rust generated code guide
+## Generated code guide
 
 The examples below are for the code generated from [this](https://github.com/gepheum/skir-rust-example/blob/main/skir-src/user.skir) .skir file.
 
 ### Referring to generated symbols
 
 ```rust
-// Import generated types from the Rust module generated from "user.skir".
+// Import generated types from the module generated from "user.skir".
 use crate::skirout::base::user::{
     tarzan_const, SubscriptionStatus, SubscriptionStatus_Trial, User, UserRegistry, User_Pet,
 };
@@ -54,9 +50,7 @@ use crate::skirout::base::user::{
 
 ### Struct types
 
-Skir generates a plain Rust struct for every struct in the .skir file. All
-fields are public. Every struct implements `Default`, `Clone`, `PartialEq`,
-and `Debug`.
+Skir generates a plain Rust struct for every struct in the .skir file. All fields are public. Every struct implements `Default`, `Clone`, `PartialEq`, and `Debug`.
 
 ```rust
 // Construct a User by filling in each field directly.
@@ -117,11 +111,11 @@ println!("{}", john.name);           // John Doe (john is unchanged)
 
 ### Enum types
 
-Skir generates a Rust enum for every enum in the .skir file. The `Unknown`
-variant is added automatically and is the default.
+Skir generates a Rust enum for every enum in the .skir file. The `Unknown` variant is added automatically and is the default.
 
 The definition of the `SubscriptionStatus` enum in the .skir file is:
-```rust
+
+```skir
 enum SubscriptionStatus {
   free;
   trial: Trial;
@@ -166,8 +160,7 @@ println!("{}", get_info_text(&john.subscription_status)); // Free user
 
 ### Serialization
 
-`User::serializer()` returns a `Serializer<User>` which can serialise and
-deserialise instances of `User`.
+`User::serializer()` returns a `Serializer<User>` which can serialise and deserialise instances of `User`.
 
 ```rust
 use skir_client::{JsonFlavor, Serializer, UnrecognizedValues};
@@ -195,7 +188,7 @@ println!("{}", serializer.to_json(&john, JsonFlavor::Readable));
 //       "picture": "🐘"
 //     }
 //   ],
-//   "subscription_status": "FREE"
+//   "subscription_status": "free"
 // }
 
 // The dense JSON flavor is the flavor you should pick if you intend to
@@ -269,9 +262,9 @@ println!(
 
 ### Constants
 
+Constants declared with `const` in the .skir file are available as functions in the generated Rust code.
+
 ```rust
-// Constants declared with 'const' in the .skir file are available as
-// functions in the generated Rust code.
 println!(
     "{}",
     User::serializer().to_json(tarzan_const(), JsonFlavor::Readable)
@@ -337,11 +330,11 @@ println!("{}", not_found_or_default.pets.len()); // 0
 
 #### Starting a SkirRPC service on an HTTP server
 
-Full example [here](https://github.com/gepheum/skir-rust-example/blob/main/src/bin/start_service.rs).
+Full example [here](https://github.com/gepheum/skir-rust-example/blob/main/src/bin/start_service.rs) .
 
 #### Sending RPCs to a SkirRPC service
 
-Full example [here](https://github.com/gepheum/skir-rust-example/blob/main/src/bin/call_service.rs).
+Full example [here](https://github.com/gepheum/skir-rust-example/blob/main/src/bin/call_service.rs) .
 
 ### Reflection
 

@@ -25,9 +25,8 @@ Old code encountering a new variant will treat it as the implicit `unknown` vari
 
 Skir uses numeric identifiers (field numbers) in its binary and compact JSON formats, not names. Therefore, renaming any element is safe. Renaming `.skir` files or moving symbols across files is also always safe.
 
-::: info
-Names _are_ used in the human-readable JSON format. This format is for debugging only and should not be used for storage or inter-service communication.
-:::
+> [!NOTE]
+> Names _are_ used in the human-readable JSON format. This format is for debugging only and should not be used for storage or inter-service communication.
 
 ### Removing a field or variant
 
@@ -158,16 +157,9 @@ This confirms that your changes are safe relative to the last release (snapshot)
 
 If you are using the official [VSCode extension](https://marketplace.visualstudio.com/items?itemName=gepheum.skir-lang) , breaking changes will be highlighted directly in your editor as you type.
 
-<div class="home-split-images">
-<div class="home-image-box">
-<div class="home-image-label">Before</div>
-<img src="/shapes-before.png" alt="Schema before evolution changes" />
-</div>
-<div class="home-image-box">
-<div class="home-image-label">After</div>
-<img src="/shapes-after.png" alt="Schema after evolution changes" />
-</div>
-</div>
+| Before | After |
+| :---: | :---: |
+| ![Schema before evolution changes](https://skir.build/shapes-before.png) | ![Schema after evolution changes](https://skir.build/shapes-after.png) |
 
 ### 2. Before release
 
@@ -221,15 +213,15 @@ By default, unrecognized data is lost during the round-trip.
 
 ```typescript
 // Old code reads and writes the data
-const oldUser = UserBefore.serializer.fromJson(originalJson)
-const roundTrippedJson = UserBefore.serializer.toJson(oldUser)
+const oldUser = UserBefore.serializer.fromJson(originalJson);
+const roundTrippedJson = UserBefore.serializer.toJson(oldUser);
 
 // New code reads the result
-const result = UserAfter.serializer.fromJson(roundTrippedJson)
+const result = UserAfter.serializer.fromJson(roundTrippedJson);
 
-assert(result.id === 123)
-assert(result.name === '') // Lost: reset to default
-assert(result.subscriptionStatus.union.kind === 'unknown') // Lost: became unknown
+assert(result.id === 123);
+assert(result.name === ""); // Lost: reset to default
+assert(result.subscriptionStatus.union.kind === "unknown"); // Lost: became unknown
 ```
 
 ### Preserve behavior
@@ -238,17 +230,19 @@ You can configure the deserializer to keep unrecognized values.
 
 ```typescript
 // Old code reads with "keep-unrecognized-values"
-const oldUser = UserBefore.serializer.fromJson(originalJson, 'keep-unrecognized-values')
-const roundTrippedJson = UserBefore.serializer.toJson(oldUser)
+const oldUser = UserBefore.serializer.fromJson(
+  originalJson,
+  "keep-unrecognized-values",
+);
+const roundTrippedJson = UserBefore.serializer.toJson(oldUser);
 
 // New code reads the result
-const result = UserAfter.serializer.fromJson(roundTrippedJson)
+const result = UserAfter.serializer.fromJson(roundTrippedJson);
 
-assert(result.id === 123)
-assert(result.name === 'Jane') // Preserved!
-assert(result.subscriptionStatus.union.kind === 'trial') // Preserved!
+assert(result.id === 123);
+assert(result.name === "Jane"); // Preserved!
+assert(result.subscriptionStatus.union.kind === "trial"); // Preserved!
 ```
 
-::: warning
-**Only preserve unrecognized data from trusted sources.** Malicious actors could inject fields with IDs that you haven't defined yet. If you preserve this data and later define those IDs in a future version of your schema, the injected data could be deserialized as valid fields, potentially leading to security vulnerabilities or data corruption.
-:::
+> [!WARNING]
+> **Only preserve unrecognized data from trusted sources.** Malicious actors could inject fields with IDs that you haven't defined yet. If you preserve this data and later define those IDs in a future version of your schema, the injected data could be deserialized as valid fields, potentially leading to security vulnerabilities or data corruption.

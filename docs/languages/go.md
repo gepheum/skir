@@ -1,31 +1,29 @@
-[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
-[![build](https://github.com/gepheum/skir/actions/workflows/ci-go.yml/badge.svg)](https://github.com/gepheum/skir/actions)
+# Go
 
-# Skir's Go code generator
-
-Official plugin for generating Go code from [.skir](https://github.com/gepheum/skir) files.
+This guide explains how to use Skir in a Go project.
 
 ## Set up
 
 In your `skir.yml` file, add the following snippet under `generators`:
+
 ```yaml
-  - mod: skir-go-gen
-    outDir: ./skirout
-    config:
-      goModuleName: "github.com/my-org/my-project"
+- mod: skir-go-gen
+  outDir: ./skirout
+  config:
+    goModuleName: "github.com/my-org/my-project"
 ```
 
 The `goModuleName` config option must match the module name declared in your `go.mod` file.
 
 The generated Go code has a runtime dependency on the `skir-go-client` module. Add it to your project with:
 
-```shell
+```bash
 go get github.com/gepheum/skir-go-client
 ```
 
-For more information, see this Go project [example](https://github.com/gepheum/skir-go-example).
+For more information, see this Go project [example](https://github.com/gepheum/skir-go-example) .
 
-## Go generated code guide
+## Generated code guide
 
 The examples below are for the code generated from [this](https://github.com/gepheum/skir-go-example/blob/main/skir-src/user.skir) .skir file.
 
@@ -95,7 +93,8 @@ fmt.Println(john.Name())       // John Doe (john is unchanged)
 Skir generates a Go struct type for every enum in the .skir file. Unlike the standard Go `iota` pattern, Skir enums can carry a value in wrapper variants.
 
 The definition of the `SubscriptionStatus` enum in the .skir file is:
-```rust
+
+```skir
 enum SubscriptionStatus {
   free;
   trial: Trial;
@@ -107,7 +106,7 @@ enum SubscriptionStatus {
 
 ```go
 _ = []user.SubscriptionStatus{
-    // The UNKNOWN constant is present in all Skir enums even if it is not
+    // The unknown constant is present in all Skir enums even if it is not
     // declared in the .skir file.
     user.SubscriptionStatus_unknown(),
     user.SubscriptionStatus_freeConst(),
@@ -207,20 +206,15 @@ fmt.Println(serializer.ToJson(john, skir.Readable{}))
 //       "picture": "🐘"
 //     }
 //   ],
-//   "subscription_status": "FREE"
+//   "subscription_status": "free"
 // }
-
-// The dense JSON flavor is the one you should pick if you intend to
-// deserialize the value later. Skir allows fields to be renamed, and because
-// field names are not part of the dense JSON, renaming a field does not
-// prevent you from deserializing the value.
-// Pick the readable flavor mostly for debugging.
 
 // Deserialize from JSON (both dense and readable formats are accepted).
 reserializedJohn, err := serializer.FromJson(johnDenseJson)
 if err != nil {
     panic(err)
 }
+_ = reserializedJohn
 
 // Serialize to binary format (more compact than JSON; useful when
 // performance matters, though the difference is rarely significant).
@@ -277,9 +271,9 @@ fmt.Println(
 
 ### Constants
 
+Constants declared with `const` in the .skir file are available as functions in the generated Go package.
+
 ```go
-// Constants declared with 'const' in the .skir file are available as
-// functions in the generated Go package.
 fmt.Println(user.Tarzan_const())
 // {
 //   "user_id": 123,
@@ -335,11 +329,11 @@ fmt.Println(notFound.IsPresent()) // false
 
 #### Starting a SkirRPC service on an HTTP server
 
-Full example [here](https://github.com/gepheum/skir-go-example/blob/main/cmd/start-service/main.go).
+Full example [here](https://github.com/gepheum/skir-go-example/blob/main/cmd/start-service/main.go) .
 
 #### Sending RPCs to a SkirRPC service
 
-Full example [here](https://github.com/gepheum/skir-go-example/blob/main/cmd/call-service/main.go).
+Full example [here](https://github.com/gepheum/skir-go-example/blob/main/cmd/call-service/main.go) .
 
 ### Reflection
 
@@ -365,4 +359,3 @@ if sd2, ok := td2.(*skir.StructDescriptor); ok {
     fmt.Println(len(sd2.Fields())) // 5
 }
 ```
-

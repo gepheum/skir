@@ -1,19 +1,15 @@
-[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
-[![build](https://github.com/gepheum/skir/actions/workflows/ci-typescript.yml/badge.svg)](https://github.com/gepheum/skir/actions)
+# TypeScript
 
-# Skir's TypeScript code generator
-
-Official plugin for generating TypeScript/JavaScript code from [.skir](https://github.com/gepheum/skir) files.
-
-Generated code can run Node, Deno or in the browser.
+This guide explains how to use Skir in a TypeScript/JavaScript project. Generated code can run on Node, Deno or in the browser.
 
 ## Set up
 
 In your `skir.yml` file, add the following snippet under `generators`:
+
 ```yaml
-  - mod: skir-typescript-gen
-    outDir: ./skirout
-    config: {}
+- mod: skir-typescript-gen
+  outDir: ./skirout
+  config: {}
 ```
 
 The generated TypeScript code has a runtime dependency on the `skir_client` library. Install it with:
@@ -22,23 +18,29 @@ The generated TypeScript code has a runtime dependency on the `skir_client` libr
 npm i skir-client
 ```
 
-For more information, see this TypeScript project [example](https://github.com/gepheum/skir-typescript-example).
+For more information, see this TypeScript project [example](https://github.com/gepheum/skir-typescript-example) .
 
-## TypeScript generated code guide
+## Generated code guide
 
 The examples below are for the code generated from [this](https://github.com/gepheum/skir-typescript-example/blob/main/skir_src/user.skir) .skir file.
 
 ### Referring to generated symbols
 
 ```typescript
-import { TARZAN, SubscriptionStatus, User, UserHistory, UserRegistry } from "../skirout/user";
+import {
+  TARZAN,
+  SubscriptionStatus,
+  User,
+  UserHistory,
+  UserRegistry,
+} from "../skirout/user";
 ```
 
-### Struct classes
+### Structs
 
-For every struct `S` in the .skir file, skir generates a frozen (deeply immutable) class `S` and a mutable class `S.Mutable`.
+For every struct `S` in the .skir file, Skir generates a frozen (deeply immutable) class `S` and a mutable class `S.Mutable`.
 
-#### Frozen struct classes
+#### Frozen structs
 
 ```typescript
 // Construct a frozen User with User.create({...})
@@ -90,7 +92,7 @@ assert(defaultUser.name === "");
 // User.DEFAULT is same as User.create<"partial">({});
 ```
 
-#### Mutable struct classes
+#### Mutable structs
 
 ```typescript
 // User.Mutable is a mutable version of User.
@@ -149,10 +151,11 @@ greet(lylaMut);
 // Hello, Lyla Doe
 ```
 
-### Enum classes
+### Enums
 
 The definition of the `SubscriptionStatus` enum in the .skir file is:
-```rust
+
+```skir
 enum SubscriptionStatus {
   free;
   trial: Trial;
@@ -160,7 +163,7 @@ enum SubscriptionStatus {
 }
 ```
 
-#### Making enum values
+#### Creating enum values
 
 ```typescript
 const johnStatus = SubscriptionStatus.FREE;
@@ -213,7 +216,6 @@ function getSubscriptionInfoText(status: SubscriptionStatus): string {
 Every frozen struct class and enum class has a static readonly `serializer` property which can be used for serializing and deserializing instances of the class.
 
 ```typescript
-
 const serializer = User.serializer;
 
 // Serialize 'john' to dense JSON.
@@ -240,7 +242,7 @@ console.log(serializer.toJsonCode(john, "readable"));
 //       "picture": "🐘"
 //     }
 //   ],
-//   "subscription_status": "FREE"
+//   "subscription_status": "free"
 // }
 
 // The dense JSON flavor is the flavor you should pick if you intend to
@@ -258,7 +260,7 @@ const johnBytes = serializer.toBytes(john);
 // should be rare.
 ```
 
-### Deserialization
+#### Deserialization
 
 ```typescript
 // Use fromJson(), fromJsonCode() and fromBytes() to deserialize.
@@ -275,7 +277,7 @@ assert(serializer.fromJson(johnDenseJson).name === "John Doe");
 assert(serializer.fromBytes(johnBytes.toBuffer()).name === "John Doe");
 ```
 
-### Primitive serializers
+#### Primitive serializers
 
 ```typescript
 assert(primitiveSerializer("bool").toJson(true) === 1);
@@ -303,7 +305,7 @@ assert(
 );
 ```
 
-### Composite serializers
+#### Composite serializers
 
 ```typescript
 assert(
@@ -376,15 +378,11 @@ console.log(TARZAN);
 // }
 ```
 
-### Skir services
+### SkirRPC services
 
-#### Starting a SkirRPC service on an HTTP server
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-typescript-example/blob/main/src/server.ts) .
 
-Full example [here](https://github.com/gepheum/skir-typescript-example/blob/main/src/server.ts).
-
-#### Sending RPCs to a SkirRPC service
-
-Full example [here](https://github.com/gepheum/skir-typescript-example/blob/main/src/client.ts).
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-typescript-example/blob/main/src/client.ts) .
 
 ### Reflection
 
@@ -407,7 +405,7 @@ const typeDescriptor = parseTypeDescriptorFromJson(
 
 ### Writing unit tests
 
-With mocha and [buckwheat](https://github.com/gepheum/buckwheat).
+With mocha and [buckwheat](https://github.com/gepheum/buckwheat) .
 
 ```typescript
 expect(tarzan).toMatch({
@@ -430,4 +428,3 @@ expect(tarzan).toMatch({
   // `userId` is not specified so it can be anything
 });
 ```
-

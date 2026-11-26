@@ -1,30 +1,27 @@
-[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
-[![build](https://github.com/gepheum/skir/actions/workflows/ci-swift.yml/badge.svg)](https://github.com/gepheum/skir/actions)
+# Swift
 
-# Skir's Swift code generator
-
-Official plugin for generating Swift code from [.skir](https://github.com/gepheum/skir) files.
-
-Targets Swift 5.9 and higher.
+This guide explains how to use Skir in a Swift project. Targets Swift 5.9 and higher.
 
 ## Set up
 
 In your `skir.yml` file, add the following snippet under `generators`:
+
 ```yaml
-  - mod: skir-swift-gen
-    outDir: ./Sources/skirout
-    config:
-      # Generated symbols will have internal visibility
-      public: false
+- mod: skir-swift-gen
+  outDir: ./Sources/skirout
+  config:
+    # Generated symbols will have internal visibility
+    public: false
 ```
 
 Or if you want multiple targets in your Swift project:
+
 ```yaml
-  - mod: skir-swift-gen
-    outDir: ./Sources/MyLib/skirout
-    config:
-      # Generated symbols will have public visibility
-      public: true
+- mod: skir-swift-gen
+  outDir: ./Sources/MyLib/skirout
+  config:
+    # Generated symbols will have public visibility
+    public: true
 ```
 
 The generated Swift code has a runtime dependency on the `skir-swift-client` package. Add it to your `Package.swift`:
@@ -47,21 +44,17 @@ Then make sure the existing target that contains `outDir` links against `SkirCli
 ),
 ```
 
-For more information, see this Swift project [example](https://github.com/gepheum/skir-swift-example).
+For more information, see this Swift project [example](https://github.com/gepheum/skir-swift-example) .
 
-## Swift generated code guide
+## Generated code guide
 
 The examples below use the generated code style from the Swift example project.
 
 ### Referring to generated symbols
 
-The Skir code generator places every generated symbol inside a caseless enum
-named after its .skir file — for example, all types from `path/to/module.skir` live
-in `Path_To_Module_skir`. This keeps symbols from different modules unambiguous even
-when their names collide.
+The Skir code generator places every generated symbol inside a caseless enum named after its .skir file. For example, all types from `path/to/module.skir` live in `Path_To_Module_skir`. This keeps symbols from different modules unambiguous even when their names collide.
 
-When a name is unique across all modules, a short alias is provided in the
-generated `Skir` caseless enum:
+When a name is unique across all modules, a short alias is provided in the generated `Skir` caseless enum:
 
 ```swift
 let a: Service_skir.User = ...         // fully qualified
@@ -70,8 +63,7 @@ let b: Skir.User = ...                 // via the Skir convenience alias
 
 ### Struct types
 
-Skir generates a Swift struct for every struct in the .skir file. Structs are
-immutable values — every field is a `let`.
+Skir generates a Swift struct for every struct in the .skir file. Structs are immutable values and every field is a `let`.
 
 ```swift
 // Construct a value using the generated initializer. Every field must be
@@ -94,17 +86,17 @@ print(john)
 //    ...
 // }
 
-// `defaultValue` gives you a value with every field set to its zero value
-// (0, "", empty array, …):
+// 'defaultValue' gives you a value with every field set to its zero value
+// (0, "", empty array, ...):
 print(Service_skir.User.defaultValue.name)    // (empty string)
 print(Service_skir.User.defaultValue.userId)  // 0
 
-// `partial` is an alternative constructor where omitted fields default to their
+// 'partial' is an alternative constructor where omitted fields default to their
 // zero values. Use it when you only care about a few fields, for example in
 // unit tests.
 let jane = Service_skir.User.partial(userId: 43, name: "Jane Doe")
-print(jane.quote)        // (empty string — defaulted)
-print(jane.pets.count)   // 0 — defaulted
+print(jane.quote)        // (empty string - defaulted)
+print(jane.pets.count)   // 0 - defaulted
 
 // Structs can be compared with ==
 print(Service_skir.User.defaultValue == Service_skir.User.partial())
@@ -114,8 +106,8 @@ print(Service_skir.User.defaultValue == Service_skir.User.partial())
 #### Creating modified copies
 
 ```swift
-// Create a modified copy without mutating the original using `copy`.
-// Only the fields wrapped in `.set(…)` change; the rest are kept as-is.
+// Create a modified copy without mutating the original using 'copy'.
+    // Only the fields wrapped in '.set(...)' change; the rest are kept as-is.
 let renamedJohn = john.copy(name: .set("John \"Coffee\" Doe"))
 print(renamedJohn.name)    // John "Coffee" Doe
 print(renamedJohn.userId)  // 42 (kept from john)
@@ -124,11 +116,11 @@ print(john.name)           // John Doe (john is unchanged)
 
 ### Enum types
 
-Skir generates a Swift enum for every enum in the .skir file. The `.unknown`
-case is added automatically and is the default.
+Skir generates a Swift enum for every enum in the .skir file. The `.unknown` case is added automatically and is the default.
 
 The definition of the `SubscriptionStatus` enum in the .skir file is:
-```
+
+```skir
 enum SubscriptionStatus {
   free;
   trial: Trial;
@@ -168,8 +160,7 @@ print(describe(john.subscriptionStatus))  // Free user
 
 ### Serialization
 
-`User.serializer` returns a `Serializer<User>` which can serialise and
-deserialise instances of `User`.
+`User.serializer` returns a `Serializer<User>` which can serialise and deserialise instances of `User`.
 
 ```swift
 let serializer = Skir.User.serializer
@@ -253,8 +244,8 @@ print(Serializers.array(Serializers.bool).toJson([true, false]))
 ### Constants
 
 ```swift
-// Skir generates a typed constant for every `const` in the .skir file.
-// Access it via the module namespace or the `Skir` alias:
+// Skir generates a typed constant for every 'const' in the .skir file.
+    // Access it via the module namespace or the 'Skir' alias:
 let tarzan = Service_skir.tarzan  // same as Skir.tarzan
 print(tarzan.name)   // Tarzan
 print(tarzan.quote)  // AAAAaAaAaAyAAAAaAaAaAyAAAAaAaAaA
@@ -288,11 +279,11 @@ print(notFoundOrDefault.pets.count)  // 0
 
 #### Starting a SkirRPC service on an HTTP server
 
-Full example [here](https://github.com/gepheum/skir-swift-example/blob/main/Sources/StartService/main.swift).
+Full example [here](https://github.com/gepheum/skir-swift-example/blob/main/Sources/StartService/main.swift) .
 
 #### Sending RPCs to a SkirRPC service
 
-Full example [here](https://github.com/gepheum/skir-swift-example/blob/main/Sources/CallService/main.swift).
+Full example [here](https://github.com/gepheum/skir-swift-example/blob/main/Sources/CallService/main.swift) .
 
 ### Reflection
 

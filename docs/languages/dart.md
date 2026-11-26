@@ -1,33 +1,26 @@
-[![npm](https://img.shields.io/npm/v/skir)](https://www.npmjs.com/package/skir)
-[![build](https://github.com/gepheum/skir/actions/workflows/ci-dart.yml/badge.svg)](https://github.com/gepheum/skir/actions)
+# Dart
 
-# Skir's Dart code generator
-
-Official plugin for generating Dart code from [.skir](https://github.com/gepheum/skir) files.
-
-Targets Dart 3.5 and higher.
+This guide explains how to use Skir in a Dart project. Targets Dart 3.5 and higher.
 
 ## Set up
 
 In your `skir.yml` file, add the following snippet under `generators`:
+
 ```yaml
-  - mod: skir-dart-gen
-    outDir: ./src/skirout
-    config: {}
-    # Companion plugins that reference the generated code need its import URI:
-    # config:
-    #   importUriPrefix: package:my_app/skirout/
+- mod: skir-dart-gen
+  outDir: ./src/skirout
+  config: {}
 ```
 
 The generated Dart code has a runtime dependency on the `skir_client` library. Add this line to your `pubspec.yaml` file under `dependencies`:
 
 ```yaml
-  skir_client: any
+skir_client: any
 ```
 
-For more information, see this Dart project [example](https://github.com/gepheum/skir-dart-example).
+For more information, see this Dart project [example](https://github.com/gepheum/skir-dart-example) .
 
-## Dart generated code guide
+## Generated code guide
 
 The examples below are for the code generated from [this](https://github.com/gepheum/skir-dart-example/blob/main/skir-src/user.skir) .skir file.
 
@@ -40,11 +33,11 @@ import 'package:skir_dart_example/skirout/user.dart';
 // Now you can use: tarzan, User, UserHistory, UserRegistry, etc.
 ```
 
-### Struct classes
+### Structs
 
-For every struct `S` in the .skir file, skir generates a frozen (deeply immutable) class `S` and a mutable class `S_mutable`.
+For every struct `S` in the .skir file, Skir generates a frozen (deeply immutable) class `S` and a mutable class `S_mutable`.
 
-#### Frozen struct classes
+#### Frozen structs
 
 ```dart
 // To construct a frozen User, call the User constructor.
@@ -61,7 +54,7 @@ final john = User(
       picture: "🐘",
     ),
   ],
-    subscriptionStatus: SubscriptionStatus.free,
+  subscriptionStatus: SubscriptionStatus.free,
   // foo: "bar",
   // ^ Does not compile: 'foo' is not a field of User
 );
@@ -95,7 +88,7 @@ assert(User.defaultInstance.name == "");
 assert(User.defaultInstance.pets.isEmpty);
 ```
 
-#### Mutable struct classes
+#### Mutable structs
 
 ```dart
 // 'User_mutable' is a dataclass similar to User except it is mutable.
@@ -162,10 +155,11 @@ greet(mutableLyla);
 // Hello, Lyla Doe
 ```
 
-### Enum classes
+### Enums
 
 The definition of the `SubscriptionStatus` enum in the .skir file is:
-```rust
+
+```skir
 enum SubscriptionStatus {
   free;
   trial: Trial;
@@ -246,7 +240,7 @@ print(serializer.toJsonCode(john, readableFlavor: true));
 //       "picture": "🐘"
 //     }
 //   ],
-//   "subscription_status": "FREE"
+//   "subscription_status": "free"
 // }
 
 // The dense JSON flavor is the flavor you should pick if you intend to
@@ -264,7 +258,7 @@ final Uint8List johnBytes = serializer.toBytes(john);
 // to matter, which should be rare.
 ```
 
-### Deserialization
+#### Deserialization
 
 ```dart
 // Use fromJson(), fromJsonCode() and fromBytes() to deserialize.
@@ -280,7 +274,7 @@ assert(reserializedJane.name == "Jane Doe");
 assert(serializer.fromBytes(johnBytes) == john);
 ```
 
-### Primitive serializers
+#### Primitive serializers
 
 ```dart
 assert(skir.Serializers.bool.toJson(true) == 1);
@@ -299,7 +293,7 @@ assert(
     skir.Serializers.bytes.toJson(skir.ByteString.copy([1, 2, 3])) == "AQID");
 ```
 
-### Composite serializers
+#### Composite serializers
 
 ```dart
 assert(skir.Serializers.optional(skir.Serializers.string).toJson("foo") ==
@@ -325,7 +319,7 @@ final jade = User(
   quote: "",
   pets: pets,
   // ^ makes a copy of 'pets' because 'pets' is mutable
-    subscriptionStatus: SubscriptionStatus.unknown,
+  subscriptionStatus: SubscriptionStatus.unknown,
 );
 
 // jade.pets.add(...)
@@ -390,15 +384,11 @@ print(tarzan);
 // )
 ```
 
-### Skir services
+### SkirRPC services
 
-#### Start a SkirRPC service on an HTTP server
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-dart-example/blob/main/bin/start_service.dart) .
 
-Full example [here](https://github.com/gepheum/skir-dart-example/blob/main/bin/start_service.dart).
-
-#### Sending RPCs to a SkirRPC service
-
-Full example [here](https://github.com/gepheum/skir-dart-example/blob/main/bin/call_service.dart).
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-dart-example/blob/main/bin/call_service.dart) .
 
 ### Reflection
 
@@ -419,30 +409,4 @@ final typeDescriptor = skir.TypeDescriptor.parseFromJson(
   User.serializer.typeDescriptor.asJson,
 );
 print("Type descriptor deserialized successfully");
-
-// The 'allStringsToUpperCase' function uses reflection to convert all the
-// strings contained in a given Skir value to upper case.
-// See the implementation at
-// https://github.com/gepheum/skir-dart-example/blob/main/lib/all_strings_to_upper_case.dart
-print(allStringsToUpperCase<User>(tarzan, User.serializer.typeDescriptor));
-// User(
-//   userId: 123,
-//   name: "TARZAN",
-//   quote: "AAAAAAAAAAYAAAAAAAAAAYAAAAAAAAAA",
-//   pets: [
-//     User_Pet(
-//       name: "CHEETA",
-//       heightInMeters: 1.67,
-//       picture: "🐒",
-//     ),
-//   ],
-//   subscriptionStatus: SubscriptionStatus.wrapTrial(
-//     SubscriptionStatus_Trial(
-//       startTime: DateTime.fromMillisecondsSinceEpoch(
-//         // 2025-04-02T11:13:29.000Z
-//         1743592409000
-//       ),
-//     )
-//   ),
-// )
 ```

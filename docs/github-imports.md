@@ -9,16 +9,15 @@ To add a dependency, open your `skir.yml` file and add an entry to the `dependen
 ```yaml [skir.yml]
 dependencies:
   # https://github.com/gepheum/skir-fantasy-game-example/tree/v1.0.0
-  '@gepheum/skir-fantasy-game-example': v1.0.0
+  "@gepheum/skir-fantasy-game-example": v1.0.0
 
-  '@my-org/user-service-skir': v3.5.0
+  "@my-org/user-service-skir": v3.5.0
 ```
 
 When you run `npx skir gen`, Skir will automatically fetch these dependencies and cache them in the `skir-external/` directory.
 
-::: info
-The `skir-external/` directory should be added to your `.gitignore`.
-:::
+> [!NOTE]
+> The `skir-external/` directory should be added to your `.gitignore`.
 
 ### Transitive dependencies
 
@@ -46,7 +45,7 @@ For languages which allow `@` symbols in directory names (like JavaScript), the 
 ```javascript
 // JavaScript
 
-import { Quest } from '../skirout/@gepheum/skir-fantasy-game-example/fantasy_game.js'
+import { Quest } from "../skirout/@gepheum/skir-fantasy-game-example/fantasy_game.js";
 ```
 
 For languages which require every directory name to be a valid identifier (like Python), the generated code is placed in `skirout/external/{owner}/{repo}`, with dashes replaced by underscores:
@@ -86,7 +85,7 @@ Skir will now read the token from `MY_GITHUB_TOKEN` to authenticate requests.
 
 ### 4. Set up GitHub Actions CI
 
-When running Skir in a Continuous Integration (CI) environment like GitHub Actions, you can use the built-in <code v-pre>${{ secrets.GITHUB_TOKEN }}</code> to access other repositories within the same organization, or use a repository secret if you need broader access.
+When running Skir in a Continuous Integration (CI) environment like GitHub Actions, you can use the built-in `${{ secrets.GITHUB_TOKEN }}` to access other repositories within the same organization, or use a repository secret if you need broader access.
 
 Here is an example workflow step:
 
@@ -101,6 +100,5 @@ steps:
       MY_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-::: warning
-If the dependency is in a different private repository that the default `GITHUB_TOKEN` cannot access, you will need to create a Personal Access Token (PAT), store it as a Repository Secret (e.g., `PAT_TOKEN`), and use that instead.
-:::
+> [!WARNING]
+> If the dependency is in a different private repository that the default `GITHUB_TOKEN` cannot access, you will need to create a Personal Access Token (PAT), store it as a Repository Secret (e.g., `PAT_TOKEN`), and use that instead.
