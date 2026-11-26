@@ -122,7 +122,7 @@
     "@types/vscode": "^1.60.0",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
-    "@vscode/vsce": "^3.9.2",
+    "@vscode/vsce": "^4.1.1",
     "buckwheat": "^1.1.2",
     "esbuild": "^0.28.2",
     "eslint": "^10.0.1",
