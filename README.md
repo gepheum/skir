@@ -101,18 +101,18 @@ npx skills add gepheum/skir
 
 | Language | Documentation | Example |
 | :--- | :--- | :--- |
-| 🟦 **TypeScript** | [Documentation](https://skir.build/docs/typescript) | [Example](https://github.com/gepheum/skir-typescript-example) |
-| 🐍 **Python** | [Documentation](https://skir.build/docs/python) | [Example](https://github.com/gepheum/skir-python-example) |
 | ⚡ **C++** | [Documentation](https://skir.build/docs/cpp) | [Example](https://github.com/gepheum/skir-cc-example) |
-| ☕ **Java** | [Documentation](https://skir.build/docs/java) | [Example](https://github.com/gepheum/skir-java-example) |
 | #️⃣ **C#** | [Documentation](https://skir.build/docs/csharp) | [Example](https://github.com/gepheum/skir-csharp-example) |
-| 💜 **Kotlin** | [Documentation](https://skir.build/docs/kotlin) | [Example](https://github.com/gepheum/skir-kotlin-example) |
-| 🔴 **Scala** | [Documentation](https://skir.build/docs/scala) | [Example](https://github.com/gepheum/skir-scala-example) |
-| 🦀 **Rust** | [Documentation](https://skir.build/docs/rust) | [Example](https://github.com/gepheum/skir-rust-example) |
-| 🐹 **Go** | [Documentation](https://skir.build/docs/go) | [Example](https://github.com/gepheum/skir-go-example) |
 | 🎯 **Dart** | [Documentation](https://skir.build/docs/dart) | [Example](https://github.com/gepheum/skir-dart-example) |
-| 🐦 **Swift** | [Documentation](https://skir.build/docs/swift) | [Example](https://github.com/gepheum/skir-swift-example) |
-| ✨ **Gleam** | [Documentation](https://skir.build/docs/gleam) | [Example](https://github.com/gepheum/skir-gleam-example) |
-| ⚡ **Zig** | [Documentation](https://skir.build/docs/zig) | [Example](https://github.com/gepheum/skir-zig-example) |
-| 🌙 **MoonBit** | [Documentation](https://skir.build/docs/moonbit) | [Example](https://github.com/gepheum/skir-moonbit-example) |
 | 💧 **Elixir** (Community) | [Documentation](https://github.com/mishmish-dev/skir-elixir-gen) | [Example](https://github.com/mishmish-dev/skir-elixir-example) |
+| ✨ **Gleam** | [Documentation](https://skir.build/docs/gleam) | [Example](https://github.com/gepheum/skir-gleam-example) |
+| 🐹 **Go** | [Documentation](https://skir.build/docs/go) | [Example](https://github.com/gepheum/skir-go-example) |
+| ☕ **Java** | [Documentation](https://skir.build/docs/java) | [Example](https://github.com/gepheum/skir-java-example) |
+| 💜 **Kotlin** | [Documentation](https://skir.build/docs/kotlin) | [Example](https://github.com/gepheum/skir-kotlin-example) |
+| 🌙 **MoonBit** | [Documentation](https://skir.build/docs/moonbit) | [Example](https://github.com/gepheum/skir-moonbit-example) |
+| 🐍 **Python** | [Documentation](https://skir.build/docs/python) | [Example](https://github.com/gepheum/skir-python-example) |
+| 🦀 **Rust** | [Documentation](https://skir.build/docs/rust) | [Example](https://github.com/gepheum/skir-rust-example) |
+| 🔴 **Scala** | [Documentation](https://skir.build/docs/scala) | [Example](https://github.com/gepheum/skir-scala-example) |
+| 🐦 **Swift** | [Documentation](https://skir.build/docs/swift) | [Example](https://github.com/gepheum/skir-swift-example) |
+| 🟦 **TypeScript** | [Documentation](https://skir.build/docs/typescript) | [Example](https://github.com/gepheum/skir-typescript-example) |
+| ⚡ **Zig** | [Documentation](https://skir.build/docs/zig) | [Example](https://github.com/gepheum/skir-zig-example) |
