@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace=skir-internal && npm run build --workspace=skir-client && npm run build --workspace=skir && npm run build --workspace=skir-codemirror-plugin && npm run build --workspace=skir-studio && npm run build --workspace=skir-converter && npm run build --workspace=skir-language-server && npm run compile --workspace=skir-language",
+    "build": "npm run build --workspace=skir-internal && npm run build --workspace=skir-client && npm run build --workspace=skir && npm run build --workspace=skir-codemirror-plugin && npm run build --workspace=skir-studio && npm run build --workspace=skir-converter && npm run build --workspace=skir-language-server && npm run compile --workspace=skir-lang",
     "website:dev": "npm run dev --workspace=@skir/website",
     "website:build": "npm run build --workspace=@skir/website",
     "skir": "node packages/compiler/dist/compiler.js",

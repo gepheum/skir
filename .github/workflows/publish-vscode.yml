@@ -27,7 +27,7 @@ jobs:
           npm run build --workspace=skir-internal
           npm run build --workspace=skir
           npm run build --workspace=skir-language-server
-          npm run bundle --workspace=skir-language
+          npm run bundle --workspace=skir-lang
 
       - name: Publish to Visual Studio Marketplace (Trusted Publishing / OIDC)
         working-directory: packages/vscode

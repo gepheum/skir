@@ -170,15 +170,24 @@ generators:
       <p>
         The official{' '}
         <a
-          href="https://marketplace.visualstudio.com/items?itemName=TylerFibonacci.skir-language"
+          href="https://marketplace.visualstudio.com/items?itemName=gepheum.skir-lang"
           target="_blank"
           rel="noopener noreferrer"
           className="underline decoration-muted-foreground/50 hover:text-foreground transition-colors"
         >
           VS Code extension
         </a>{' '}
-        for Skir provides syntax highlighting, auto-formatting, validation, jump-to-definition, and
-        other language features.
+        (also on{' '}
+        <a
+          href="https://open-vsx.org/extension/gepheum/skir-lang"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline decoration-muted-foreground/50 hover:text-foreground transition-colors"
+        >
+          Open VSX
+        </a>
+        ) for Skir provides syntax highlighting, auto-formatting, validation, jump-to-definition,
+        and other language features.
       </p>
 
       <div className="not-prose my-8 pt-[2px] w-[460px] max-w-full mx-auto">

@@ -4,7 +4,7 @@
     {
       "label": "Build Extension & LSP",
       "type": "shell",
-      "command": "npm run build --workspace=skir-internal && npm run build --workspace=skir && npm run build --workspace=skir-language-server && npm run compile --workspace=skir-language",
+      "command": "npm run build --workspace=skir-internal && npm run build --workspace=skir && npm run build --workspace=skir-language-server && npm run compile --workspace=skir-lang",
       "group": {
         "kind": "build",
         "isDefault": true

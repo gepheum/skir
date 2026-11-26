@@ -1,9 +1,9 @@
 {
-  "name": "skir-language",
-  "displayName": "Skir - Language Support",
+  "name": "skir-lang",
+  "displayName": "Skir",
   "description": "IDE support for Skir - define data types and APIs once, generate idiomatic code across 12 languages",
-  "version": "0.2.25",
-  "publisher": "TylerFibonacci",
+  "version": "0.2.26",
+  "publisher": "gepheum",
   "engines": {
     "vscode": "^1.60.0"
   },

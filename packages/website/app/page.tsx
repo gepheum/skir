@@ -295,7 +295,7 @@ export default function HomePage() {
                 <>
                   A powerful{' '}
                   <a
-                    href="https://marketplace.visualstudio.com/items?itemName=TylerFibonacci.skir-language"
+                    href="https://marketplace.visualstudio.com/items?itemName=gepheum.skir-lang"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline decoration-muted-foreground/50 hover:text-foreground transition-colors"

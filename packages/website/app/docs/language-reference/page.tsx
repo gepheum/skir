@@ -267,7 +267,7 @@ struct ImplicitNumbering {
           <code>npx skir format</code>. It will replace the question mark with a generated random
           number. This replacement happens automatically on save if you are using the{' '}
           <a
-            href="https://marketplace.visualstudio.com/items?itemName=TylerFibonacci.skir-language"
+            href="https://marketplace.visualstudio.com/items?itemName=gepheum.skir-lang"
             target="_blank"
             rel="noopener noreferrer"
             className="underline decoration-muted-foreground/50 hover:text-foreground transition-colors"
@@ -481,7 +481,7 @@ method GetUserProfile(
           <code>npx skir format</code>. It will replace the question mark with a generated random
           number. This replacement happens automatically on save if you are using the{' '}
           <a
-            href="https://marketplace.visualstudio.com/items?itemName=TylerFibonacci.skir-language"
+            href="https://marketplace.visualstudio.com/items?itemName=gepheum.skir-lang"
             target="_blank"
             rel="noopener noreferrer"
             className="underline decoration-muted-foreground/50 hover:text-foreground transition-colors"

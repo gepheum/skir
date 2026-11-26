@@ -132,7 +132,7 @@ The first step ensures `.skir` files are properly formatted. The second step ver
 
 ## IDE Support
 
-The official [VS Code extension](https://marketplace.visualstudio.com/items?itemName=TylerFibonacci.skir-language) for Skir provides syntax highlighting, auto-formatting, validation, jump-to-definition, and other language features.
+The official [VS Code extension](https://marketplace.visualstudio.com/items?itemName=gepheum.skir-lang) (also on [Open VSX](https://open-vsx.org/extension/gepheum/skir-lang)) for Skir provides syntax highlighting, auto-formatting, validation, jump-to-definition, and other language features.
 
 ---
 
@@ -371,7 +371,7 @@ struct Point(23456) { ... }
 
 Used by `npx skir snapshot` to track record identity across renames and detect breaking changes. No two types can share the same stable identifier.
 
-> **Tip:** Use `?` as a placeholder and run `npx skir format` to auto-generate a random number. This happens automatically on save with the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=TylerFibonacci.skir-language).
+> **Tip:** Use `?` as a placeholder and run `npx skir format` to auto-generate a random number. This happens automatically on save with the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=gepheum.skir-lang).
 
 ### Recursive Records
 
