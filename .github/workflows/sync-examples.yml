@@ -20,6 +20,7 @@ on:
           - moonbit
           - python
           - rust
+          - scala
           - swift
           - typescript
           - zig
@@ -51,6 +52,7 @@ jobs:
             "moonbit:gepheum/skir-moonbit-example"
             "python:gepheum/skir-python-example"
             "rust:gepheum/skir-rust-example"
+            "scala:gepheum/skir-scala-example"
             "swift:gepheum/skir-swift-example"
             "typescript:gepheum/skir-typescript-example"
             "zig:gepheum/skir-zig-example"

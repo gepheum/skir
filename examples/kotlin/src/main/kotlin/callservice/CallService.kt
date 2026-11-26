@@ -20,7 +20,11 @@ import java.time.Duration
  */
 fun main() =
     runBlocking {
-        val serviceClient = ServiceClient("http://localhost:8787/myapi")
+        val serviceClient =
+            ServiceClient(
+                "http://localhost:8787/myapi",
+                mapOf("Content-Type" to listOf("text/plain; charset=utf-8")),
+            )
 
         println()
         println("About to add 2 users: John Doe and Tarzan")
@@ -38,12 +42,14 @@ fun main() =
                         subscriptionStatus = SubscriptionStatus.UNKNOWN,
                     ),
             ),
-            emptyMap(),
-            Duration.ofSeconds(30),
         )
 
         // Add Tarzan with custom headers
-        val customHeaders = mapOf("X-Foo" to listOf("hi"))
+        val customHeaders =
+            mapOf(
+                "Content-Type" to listOf("text/plain; charset=utf-8"),
+                "X-Foo" to listOf("hi"),
+            )
         serviceClient.invokeRemote(
             AddUser,
             AddUserRequest(user = TARZAN),
@@ -58,8 +64,6 @@ fun main() =
             serviceClient.invokeRemote(
                 GetUser,
                 GetUserRequest(userId = 123),
-                emptyMap(),
-                Duration.ofSeconds(30),
             )
 
         println("Found user: ${foundUserResponse.user}")

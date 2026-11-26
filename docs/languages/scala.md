@@ -30,7 +30,7 @@ libraryDependencies += "build.skir" % "skir-client" % "latest.release"
 
 ## Generated code guide
 
-The examples below are for the code generated from [this](https://github.com/gepheum/skir-kotlin-example/blob/main/skir-src/user.skir) .skir file.
+The examples below are for the code generated from [this](https://github.com/gepheum/skir-scala-example/blob/main/skir-src/user.skir) .skir file.
 
 ### Referring to generated symbols
 
@@ -458,6 +458,12 @@ val jack = User.partial(
 assert(jack.pets eq jade.pets)
 ```
 
+### SkirRPC services
+
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-scala-example/blob/main/src/main/scala/examples/StartService.scala).
+
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-scala-example/blob/main/src/main/scala/examples/CallService.scala).
+
 ### Reflection
 
 Reflection allows you to inspect a Skir type at runtime.
@@ -481,3 +487,5 @@ val typeDescriptor =
 assert(typeDescriptor.isInstanceOf[StructDescriptor])
 assert(typeDescriptor.asInstanceOf[StructDescriptor].getFields.size() == 5)
 ```
+
+Full reflection example (`allStringsToUpperCase`) [here](https://github.com/gepheum/skir-scala-example/blob/main/src/main/scala/examples/AllStringsToUpperCase.scala).

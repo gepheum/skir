@@ -39,7 +39,9 @@ class ServiceClient
                 val requestJson = method.requestSerializer.toJsonCode(request)
                 val requestBody = listOf(method.name, method.number.toString(), "", requestJson).joinToString(":")
 
-                val httpRequestBuilder = HttpRequest.newBuilder()
+                val httpRequestBuilder =
+                    HttpRequest.newBuilder()
+                        .header("Content-Type", "text/plain; charset=utf-8")
 
                 // Add headers from metadata
                 for ((name, values) in requestHeaders) {

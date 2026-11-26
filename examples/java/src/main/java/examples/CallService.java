@@ -22,7 +22,10 @@ import skirout.user.User;
  */
 public class CallService {
   public static void main(String[] args) throws Exception {
-    final ServiceClient serviceClient = new ServiceClient("http://localhost:8787/myapi");
+    final ServiceClient serviceClient =
+        new ServiceClient(
+            "http://localhost:8787/myapi",
+            Map.of("Content-Type", List.of("text/plain; charset=utf-8")));
 
     System.out.println();
     System.out.println("About to add 2 users: John Doe and Tarzan");
@@ -39,12 +42,11 @@ public class CallService {
                     .setSubscriptionStatus(SubscriptionStatus.UNKNOWN)
                     .setUserId(42)
                     .build())
-            .build(),
-        Map.of(),
-        Duration.ofSeconds(30));
+            .build());
 
     // Add Tarzan with custom headers
     final Map<String, List<String>> customHeaders = new HashMap<>();
+    customHeaders.put("Content-Type", List.of("text/plain; charset=utf-8"));
     customHeaders.put("X-Foo", List.of("hi"));
     serviceClient.invokeRemoteBlocking(
         Methods.ADD_USER,
@@ -57,10 +59,7 @@ public class CallService {
     // Get user by ID
     final GetUserResponse foundUserResponse =
         serviceClient.invokeRemoteBlocking(
-            Methods.GET_USER,
-            GetUserRequest.builder().setUserId(123).build(),
-            Map.of(),
-            Duration.ofSeconds(30));
+            Methods.GET_USER, GetUserRequest.builder().setUserId(123).build());
 
     System.out.println("Found user: " + foundUserResponse.user());
   }

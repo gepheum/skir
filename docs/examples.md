@@ -25,6 +25,7 @@ Each starter focuses on the same core workflow, implemented in a different langu
 | **MoonBit** | moonbit/http | MoonBit package workflow with generated Skir RPC endpoints. | [GitHub](https://github.com/gepheum/skir-moonbit-example) |
 | **Python** | Flask / FastAPI / Litestar | Multiple server frameworks included. | [GitHub](https://github.com/gepheum/skir-python-example) |
 | **Rust** | Axum | Cargo workspace, async Axum server. | [GitHub](https://github.com/gepheum/skir-rust-example) |
+| **Scala** | jdk.httpserver | Gradle build with Scala 3. | [GitHub](https://github.com/gepheum/skir-scala-example) |
 | **Swift** | Vapor | SwiftPM package with generated sources under Sources/skirout. | [GitHub](https://github.com/gepheum/skir-swift-example) |
 | **TypeScript** | Express | Node server + browser client bundle. | [GitHub](https://github.com/gepheum/skir-typescript-example) |
 | **Zig** | std.http.Server | Zig build workflow with Skir client dependency in build.zig.zon. | [GitHub](https://github.com/gepheum/skir-zig-example) |

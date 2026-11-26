@@ -1,0 +1,8 @@
+generators:
+  - mod: skir-scala-gen
+    outDir: ./src/main/scala/skirout
+    config: {}
+    # Alternatively:
+    # outDir: ./src/main/scala/my/project/skirout
+    # config:
+    #   packagePrefix: my.project.
