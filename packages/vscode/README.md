@@ -1,6 +1,6 @@
 # Skir
 
-**Protobuf reimagined for today**
+**Types that travel**
 
 [skir.build](https://skir.build/)
 
