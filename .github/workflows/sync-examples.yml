@@ -19,6 +19,7 @@ on:
           - kotlin
           - moonbit
           - python
+          - ruby
           - rust
           - scala
           - swift
@@ -51,6 +52,7 @@ jobs:
             "kotlin:gepheum/skir-kotlin-example"
             "moonbit:gepheum/skir-moonbit-example"
             "python:gepheum/skir-python-example"
+            "ruby:gepheum/skir-ruby-example"
             "rust:gepheum/skir-rust-example"
             "scala:gepheum/skir-scala-example"
             "swift:gepheum/skir-swift-example"

@@ -104,27 +104,12 @@ const languages = [
 const footerLinks = {
   documentation: [
     { name: 'Quickstart', href: '/docs/setup' },
+    { name: 'Project Examples', href: '/docs/examples' },
     { name: 'Language Reference', href: '/docs/language-reference' },
     { name: 'Serialization', href: '/docs/serialization' },
     { name: 'Schema Evolution', href: '/docs/schema-evolution' },
-  ],
-  languages: [
-    { name: 'C++', href: '/docs/cpp' },
-    { name: 'C#', href: '/docs/csharp' },
-    { name: 'Dart', href: '/docs/dart' },
-    { name: 'Elixir', href: '/docs/elixir' },
-    { name: 'Gleam', href: '/docs/gleam' },
-    { name: 'Go', href: '/docs/go' },
-    { name: 'Java', href: '/docs/java' },
-    { name: 'Kotlin', href: '/docs/kotlin' },
-    { name: 'MoonBit', href: '/docs/moonbit' },
-    { name: 'Python', href: '/docs/python' },
-    { name: 'Ruby', href: '/docs/ruby' },
-    { name: 'Rust', href: '/docs/rust' },
-    { name: 'Scala', href: '/docs/scala' },
-    { name: 'Swift', href: '/docs/swift' },
-    { name: 'TypeScript', href: '/docs/typescript' },
-    { name: 'Zig', href: '/docs/zig' },
+    { name: 'SkirRPC', href: '/docs/skirrpc' },
+    { name: 'Skir vs Protobuf', href: '/docs/protobuf' },
   ],
   resources: [
     {
@@ -135,6 +120,7 @@ const footerLinks = {
     { name: 'Converter App', href: '/converter.html', external: true },
     { name: 'GitHub', href: 'https://github.com/gepheum/skir', external: true },
     { name: 'Discord', href: 'https://discord.gg/FsKrGwJ9AP', external: true },
+    { name: 'hello@skir.build', href: 'mailto:hello@skir.build' },
   ],
 }
 </script>
@@ -642,45 +628,55 @@ const footerLinks = {
               <span class="skir-footer-brand-name">Skir</span>
             </a>
             <p class="skir-footer-motto">Types that travel.</p>
-            <a
-              href="https://github.com/gepheum/skir"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="skir-footer-gh-link"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+            <div class="skir-footer-brand-links">
+              <a
+                href="https://github.com/gepheum/skir"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="skir-footer-gh-link"
               >
-                <path
-                  d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
-                />
-                <path d="M9 18c-4.51 2-5-2-7-2" />
-              </svg>
-              <span>gepheum/skir</span>
-            </a>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path
+                    d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
+                  />
+                  <path d="M9 18c-4.51 2-5-2-7-2" />
+                </svg>
+                <span>gepheum/skir</span>
+              </a>
+              <a href="mailto:hello@skir.build" class="skir-footer-gh-link">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect width="20" height="16" x="2" y="4" rx="2" />
+                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                </svg>
+                <span>hello@skir.build</span>
+              </a>
+            </div>
           </div>
 
           <div>
             <h3 class="skir-footer-heading">Documentation</h3>
             <ul class="skir-footer-list">
               <li v-for="link in footerLinks.documentation" :key="link.name">
-                <a :href="link.href" class="skir-footer-link">{{ link.name }}</a>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 class="skir-footer-heading">Languages</h3>
-            <ul class="skir-footer-list">
-              <li v-for="link in footerLinks.languages" :key="link.name">
                 <a :href="link.href" class="skir-footer-link">{{ link.name }}</a>
               </li>
             </ul>
@@ -1196,7 +1192,7 @@ const footerLinks = {
 
 @media (min-width: 768px) {
   .skir-footer-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -1208,6 +1204,13 @@ const footerLinks = {
   .skir-footer-brand {
     grid-column: span 1;
   }
+}
+
+.skir-footer-brand-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .skir-footer-logo-link {

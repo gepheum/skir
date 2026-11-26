@@ -24,6 +24,7 @@ Each starter focuses on the same core workflow, implemented in a different langu
 | **Kotlin** | Ktor | Gradle Kotlin DSL setup. | [GitHub](https://github.com/gepheum/skir-kotlin-example) |
 | **MoonBit** | moonbit/http | MoonBit package workflow with generated Skir RPC endpoints. | [GitHub](https://github.com/gepheum/skir-moonbit-example) |
 | **Python** | Flask / FastAPI / Litestar | Multiple server frameworks included. | [GitHub](https://github.com/gepheum/skir-python-example) |
+| **Ruby** | WEBrick | Bundler project with Sorbet static type checking. | [GitHub](https://github.com/gepheum/skir-ruby-example) |
 | **Rust** | Axum | Cargo workspace, async Axum server. | [GitHub](https://github.com/gepheum/skir-rust-example) |
 | **Scala** | jdk.httpserver | Gradle build with Scala 3. | [GitHub](https://github.com/gepheum/skir-scala-example) |
 | **Swift** | Vapor | SwiftPM package with generated sources under Sources/skirout. | [GitHub](https://github.com/gepheum/skir-swift-example) |

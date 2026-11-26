@@ -2,6 +2,10 @@
 
 This guide explains how to use Skir in a Ruby project. Targets Ruby 3.1 and higher, with full static type-checking support via [Sorbet](https://sorbet.org) (`# typed: strict`).
 
+::: info Complete example
+Clone **[skir-ruby-example](https://github.com/gepheum/skir-ruby-example)** to get a complete working project you can build and run right away.
+:::
+
 ## Set up
 
 In your `skir.yml` file, add the following snippet under `generators`:
@@ -274,7 +278,7 @@ raise unless john == serializer.from_bytes(john_bytes)
 raise unless Skir.primitive_serializer("bool").to_json(true) == 1
 raise unless Skir.primitive_serializer("int32").to_json(3) == 3
 raise unless Skir.primitive_serializer("int64").to_json(9_223_372_036_854_775_807) == "9223372036854775807"
-raise unless Skir.primitive_serializer("hash64").to_json(18_446_744_073_709_551_615) == "18446744073709551615"
+raise unless Skir.primitive_serializer("hash64").to_json((1 << 64) - 1) == "18446744073709551615"
 raise unless Skir.primitive_serializer("timestamp").to_json(Time.at(1_743_682_787).utc) == 1_743_682_787_000
 raise unless Skir.primitive_serializer("float32").to_json(3.14) == 3.14
 raise unless Skir.primitive_serializer("float64").to_json(3.14) == 3.14

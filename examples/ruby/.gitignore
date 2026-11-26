@@ -1,0 +1,5 @@
+.bundle/
+vendor/bundle/
+skirout/
+skir-external/
+.DS_Store

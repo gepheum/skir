@@ -1,0 +1,4 @@
+generators:
+  - mod: skir-ruby-gen
+    outDir: ./skirout
+    config: {}
