@@ -178,6 +178,15 @@ export default defineConfig({
           'Skir is a modern declarative schema language for data models and APIs. Write once in a .skir file - instantly generate clean, idiomatic, and fully type-safe code.',
       },
     ],
+    [
+      'script',
+      {
+        defer: '',
+        src: 'https://cloud.umami.is/script.js',
+        'data-website-id': '7ef7116d-938a-4cf3-bbfb-679c0f57c0c9',
+        'data-domains': 'skir.build',
+      },
+    ],
   ],
 
   markdown: {
