@@ -101,14 +101,15 @@
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run bundle",
     "compile": "tsc -p ./",
+    "bundle": "npm run compile && esbuild src/extension.ts --bundle --platform=node --target=node20 --external:vscode --external:skir-language-server --outfile=dist/extension.js && esbuild ../language-server/src/server.ts --bundle --platform=node --target=node20 --outfile=dist/server.js",
     "watch": "tsc -watch -p ./",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "package": "vsce package"
+    "package": "vsce package --no-dependencies"
   },
   "dependencies": {
     "skir-language-server": "^0.1.1",
@@ -121,8 +122,9 @@
     "@types/vscode": "^1.60.0",
     "@typescript-eslint/eslint-plugin": "^8.56.0",
     "@typescript-eslint/parser": "^8.56.0",
-    "@vscode/vsce": "^3.7.1",
+    "@vscode/vsce": "^3.9.2",
     "buckwheat": "^1.1.2",
+    "esbuild": "^0.28.2",
     "eslint": "^10.0.1",
     "mocha": "^11.7.5",
     "prettier": "^3.8.1",

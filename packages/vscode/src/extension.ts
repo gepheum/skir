@@ -1,3 +1,4 @@
+import * as fs from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 import {
@@ -110,8 +111,12 @@ export async function activate(
     onDidCloseTerminalDisposable,
   );
 
-  // Resolve the Skir Language Server entrypoint from the workspace/dependency package
-  const serverModule = require.resolve("skir-language-server");
+  // Resolve the Skir Language Server entrypoint (bundled dist/server.js in VSIX,
+  // or workspace package during development)
+  const bundledServer = path.join(__dirname, "server.js");
+  const serverModule = fs.existsSync(bundledServer)
+    ? bundledServer
+    : require.resolve("skir-language-server");
 
   const serverOptions: ServerOptions = {
     run: {

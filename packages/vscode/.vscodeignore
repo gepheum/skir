@@ -3,8 +3,14 @@
 out/test/**
 test/**
 src/**
+examples/**
+node_modules/**
 **/*.map
 .gitignore
+.prettierrc
+eslint.config.mjs
+README.dev.md
+setup.sh
 tsconfig.json
 vsc-extension-quickstart.md
 **/yarn.lock
