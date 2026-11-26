@@ -60,6 +60,11 @@ _build/
 .mooncakes/
 deps/
 
+# Ruby
+*.gem
+.bundle/
+vendor/bundle/
+
 # Skir generated output & external dependencies cache
 skirout/
 skir-external/

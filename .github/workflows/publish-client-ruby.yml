@@ -1,0 +1,32 @@
+name: "Publish Client: Ruby (RubyGems)"
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client-libraries/ruby
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          working-directory: client-libraries/ruby
+          bundler-cache: true
+      - name: Run tests and Sorbet typecheck
+        run: |
+          bundle exec rake test
+          bundle exec srb tc
+      - name: Build and publish gem to RubyGems
+        env:
+          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
+        run: |
+          gem build skir-client.gemspec
+          gem push skir-client-*.gem
