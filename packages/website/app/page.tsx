@@ -302,7 +302,16 @@ export default function HomePage() {
                   >
                     VS Code extension
                   </a>{' '}
-                  and{' '}
+                  (also on{' '}
+                  <a
+                    href="https://open-vsx.org/extension/gepheum/skir-lang"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline decoration-muted-foreground/50 hover:text-foreground transition-colors"
+                  >
+                    Open VSX
+                  </a>
+                  ) and{' '}
                   <a
                     href="https://github.com/gepheum/skir/tree/main/packages/language-server"
                     target="_blank"
