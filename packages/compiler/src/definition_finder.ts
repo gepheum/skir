@@ -230,19 +230,19 @@ function findDefinitionInValue(
       } else {
         // An enum. Look for a match with the "kind" field.
         const kindEntry = value.entries["kind"];
-        if (kindEntry && isStringLiteral(kindEntry.value)) {
-          if (tokenContains(kindEntry.value.token, position)) {
-            const variantName = unquoteAndUnescape(kindEntry.value.token.text);
-            const variantDeclaration =
-              value.record.nameToDeclaration[variantName];
-            if (variantDeclaration?.kind === "field") {
-              return declarationToMatch(
-                variantDeclaration,
-                kindEntry.value.token,
-              );
-            }
-          } else {
-            return null;
+        if (
+          kindEntry &&
+          isStringLiteral(kindEntry.value) &&
+          tokenContains(kindEntry.value.token, position)
+        ) {
+          const variantName = unquoteAndUnescape(kindEntry.value.token.text);
+          const variantDeclaration =
+            value.record.nameToDeclaration[variantName];
+          if (variantDeclaration?.kind === "field") {
+            return declarationToMatch(
+              variantDeclaration,
+              kindEntry.value.token,
+            );
           }
         }
       }
@@ -256,7 +256,11 @@ function findDefinitionInValue(
       return null;
     }
     case "literal": {
-      if (isStringLiteral(value) && value.type?.kind === "enum") {
+      if (
+        isStringLiteral(value) &&
+        value.type?.kind === "enum" &&
+        tokenContains(value.token, position)
+      ) {
         const { variant } = value.type;
         return declarationToMatch(variant, value.token);
       }
@@ -375,6 +379,11 @@ function findReferencesInDeclaration(
     }
     case "record": {
       findReferencesInDeclarations(definition, declaration.fields, references);
+      findReferencesInDeclarations(
+        definition,
+        declaration.nestedRecords,
+        references,
+      );
       break;
     }
     case "removed": {
@@ -443,9 +452,8 @@ function findReferencesInValue(
           findReferencesInValue(definition, entry.value, references);
         }
       } else {
-        // An enum. Only the "kind" token is a navigable reference — mirrors
-        // findDefinition's behavior of returning null when the position is
-        // not within the kind token.
+        // An enum. The "kind" token is a navigable reference, and the "value"
+        // entry may contain nested struct or enum values.
         const kindEntry = value.entries["kind"];
         if (kindEntry && kindEntry.value.kind === "literal") {
           const variantName = unquoteAndUnescape(kindEntry.value.token.text);
@@ -457,6 +465,10 @@ function findReferencesInValue(
           ) {
             references.push(kindEntry.value.token);
           }
+        }
+        const valueEntry = value.entries["value"];
+        if (valueEntry) {
+          findReferencesInValue(definition, valueEntry.value, references);
         }
       }
       break;

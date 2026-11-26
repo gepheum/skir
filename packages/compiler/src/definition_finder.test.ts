@@ -433,6 +433,12 @@ describe("definition finder", () => {
         ],
       );
     });
+
+    it("returns null on primitive types even when an enum literal constant exists in the module", () => {
+      // "int32" on line 3 col 9 of constant-value-module (which also has const K_CONSTANT = 'K')
+      const int32Pos = positionOf("path/to/constant-value-module", 3, 9);
+      expect(findDefinition(constantValueModule, int32Pos)).toBe(null);
+    });
   });
 
   describe("doc comments", () => {
