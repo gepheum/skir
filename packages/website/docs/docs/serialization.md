@@ -53,7 +53,7 @@ The dense JSON representation of `JOHN_DOE` is:
 
 Removed fields are replaced with zeros. Trailing fields with default values ( `nickname` in this example) are omitted.
 
-The output is compact but not human-friendly — if you query a column storing dense JSON directly with a `SELECT`, what comes back is a terse array of numbers and values with no field names in sight. If you ever need to inspect a value during debugging, a tool that can come in very handy is the [Converter](#skir-converter-web-app) web app, which can translate any dense JSON value into readable JSON instantly.
+The output is compact but not human-friendly — if you query a column storing dense JSON directly with a `SELECT`, what comes back is a terse array of numbers and values with no field names in sight. If you ever need to inspect a value during debugging, a tool that can come in very handy is the [Converter](#converter-web-app) web app, which can translate any dense JSON value into readable JSON instantly.
 
 #### Encoding rules
 
@@ -102,19 +102,19 @@ The readable JSON representation of `JOHN_DOE` is:
 
 #### Encoding rules
 
-| Type                                  | Encoded as                                                                                                                                                             | Examples                                                                  |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| bool                                  | `true` or `false`                                                                                                                                                      | <div>true</div>                                                           |
-| int32                                 | A JSON number                                                                                                                                                          | 1234                                                                      |
-| <div>int64</div> <div>hash64</div>    | If the value is within the safe integer range for JavaScript (±9,007,199,254,740,991), it is serialized as a JSON number. <br>Otherwise, it is serialized as a string. | <div>1234</div> <div>"9007199254740992"</div>                             |
-| <div>float32</div> <div>float64</div> | Finite numbers are serialized as JSON numbers.<br> `NaN`, `Infinity`, and `-Infinity` are serialized as strings.                                                       | <div>1.23</div> <div>"Infinity"</div>                                     |
-| timestamp                             | An object with `unix_millis` and `formatted` fields                                                                                                                    | {`{ "unix_millis": 1672531200000, "formatted": "2023-01-01T00:00:00Z" }`} |
-| string                                | A JSON string                                                                                                                                                          | "Hello"                                                                   |
-| bytes                                 | The string "hex:" followed by the hexadecimal representation                                                                                                           | "hex:48656c6c6f"                                                          |
-| T?                                    | `null` if the value is missing, otherwise the serialized value.                                                                                                        | <div>null</div> <div>123</div>                                            |
-| [T]                                   | A JSON array                                                                                                                                                           | [1, 2, 3]                                                                 |
-| struct                                | A JSON object containing field names and values. Default values are omitted.                                                                                           | {`{ "name": "John", "age": 30 }`}                                         |
-| enum                                  | Constant variants are serialized as strings.<br> Wrapper variants are serialized as objects with `kind` and `value` fields.                                            | <div>"red"</div> <div>{`{ "kind": "rgb", "value": "ff0000" }`}</div>      |
+| Type                                  | Encoded as                                                                                                                                                             | Examples                                                                |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| bool                                  | `true` or `false`                                                                                                                                                      | <div>true</div>                                                         |
+| int32                                 | A JSON number                                                                                                                                                          | 1234                                                                    |
+| <div>int64</div> <div>hash64</div>    | If the value is within the safe integer range for JavaScript (±9,007,199,254,740,991), it is serialized as a JSON number. <br>Otherwise, it is serialized as a string. | <div>1234</div> <div>"9007199254740992"</div>                           |
+| <div>float32</div> <div>float64</div> | Finite numbers are serialized as JSON numbers.<br> `NaN`, `Infinity`, and `-Infinity` are serialized as strings.                                                       | <div>1.23</div> <div>"Infinity"</div>                                   |
+| timestamp                             | An object with `unix_millis` and `formatted` fields                                                                                                                    | `{ "unix_millis": 1672531200000, "formatted": "2023-01-01T00:00:00Z" }` |
+| string                                | A JSON string                                                                                                                                                          | "Hello"                                                                 |
+| bytes                                 | The string "hex:" followed by the hexadecimal representation                                                                                                           | "hex:48656c6c6f"                                                        |
+| T?                                    | `null` if the value is missing, otherwise the serialized value.                                                                                                        | <div>null</div> <div>123</div>                                          |
+| [T]                                   | A JSON array                                                                                                                                                           | [1, 2, 3]                                                               |
+| struct                                | A JSON object containing field names and values. Default values are omitted.                                                                                           | `{ "name": "John", "age": 30 }`                                         |
+| enum                                  | Constant variants are serialized as strings.<br> Wrapper variants are serialized as objects with `kind` and `value` fields.                                            | <div>"red"</div> <div>`{ "kind": "rgb", "value": "ff0000" }`</div>      |
 
 ### Binary format
 
@@ -154,7 +154,7 @@ With the exception of optional types (`T?`), all types will decode a _zero_ valu
 
 ## Converter web app
 
-Skir provides a hosted converter at [skir.build/converter](/converter.html) to convert values across dense JSON, readable JSON, and binary. You can also reach it at any time by clicking the <img src="/converter-favicon.svg" alt="Converter" className="inline h-[1.1em] w-[1.1em] align-middle" /> button in the header of this website. All processing happens locally in your browser — no data ever leaves your machine.
+Skir provides a hosted converter at [skir.build/converter](/converter.html) to convert values across dense JSON, readable JSON, and binary. You can also reach it at any time by clicking **Converter** in the header of this website. All processing happens locally in your browser — no data ever leaves your machine.
 
 ### Provide a schema
 
