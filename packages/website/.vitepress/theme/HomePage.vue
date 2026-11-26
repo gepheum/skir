@@ -176,6 +176,9 @@ const footerLinks = {
             </a>
             <QuickstartPill />
           </div>
+          <div class="skir-hero-actions-sub">
+            <QuickstartPill command="npx skills add gepheum/skir" />
+          </div>
 
           <div class="skir-hero-video">
             <HoverVideo src="/greet.mp4" maxWidth="900px" />
@@ -201,38 +204,6 @@ const footerLinks = {
           </div>
 
           <slot name="code-example" />
-        </div>
-      </div>
-    </section>
-
-    <!-- LLMs Section -->
-    <section class="skir-section">
-      <div class="skir-container">
-        <div class="skir-max-3xl skir-text-center">
-          <h2 class="skir-section-title-md">LLMs make 10x fewer mistakes with strong types</h2>
-          <p class="skir-section-subtitle">
-            Skir gives your AI coding tools the type information they crave.
-            <br />
-            A 2025
-            <a
-              href="https://arxiv.org/pdf/2504.09246?"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="skir-underline-link"
-              >study</a
-            >
-            reports that nearly 94% of common LLM coding errors are type-related, which helps
-            explain why strong typing can drastically reduce mistakes.
-            <br />
-            Don't believe it?
-            <a
-              href="https://gemini.google.com/share/ea387c7e27e9"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="skir-underline-link"
-              >Ask AI</a
-            >.
-          </p>
         </div>
       </div>
     </section>
@@ -880,6 +851,16 @@ const footerLinks = {
   align-items: center;
   justify-content: center;
   gap: 16px;
+  margin-bottom: 48px;
+}
+
+.skir-hero-actions:has(+ .skir-hero-actions-sub) {
+  margin-bottom: 16px;
+}
+
+.skir-hero-actions-sub {
+  display: flex;
+  justify-content: center;
   margin-bottom: 48px;
 }
 

@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+const props = withDefaults(
+  defineProps<{
+    command?: string
+  }>(),
+  {
+    command: 'npx skir init',
+  },
+)
+
 const copied = ref(false)
-const command = 'npx skir init'
 
 function copy() {
   if (typeof navigator !== 'undefined' && navigator.clipboard) {
-    navigator.clipboard.writeText(command)
+    navigator.clipboard.writeText(props.command)
     copied.value = true
     setTimeout(() => {
       copied.value = false
@@ -24,11 +32,11 @@ function copy() {
     <button
       type="button"
       class="copy-cmd-button"
-      aria-label="Copy npx skir init command"
+      :aria-label="`Copy ${props.command} command`"
       @click="copy"
     >
       <span class="copy-cmd-prefix">$</span>
-      <span class="copy-cmd-text">{{ command }}</span>
+      <span class="copy-cmd-text">{{ props.command }}</span>
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="16"

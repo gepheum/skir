@@ -79,6 +79,12 @@ npx skir format --ci
 npx skir snapshot --ci
 ```
 
+5. Install the Skir skill for AI coding agents (Claude Code, Cursor, Codex, etc.):
+
+```bash
+npx skills add gepheum/skir
+```
+
 ## Language reference
 
 ### struct

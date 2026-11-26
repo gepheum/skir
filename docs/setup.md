@@ -120,3 +120,11 @@ The official [VS Code extension](https://marketplace.visualstudio.com/items?item
 <HoverVideo src="/auto-format.mp4" />
 
 Not using VS Code? Use the [Skir Language Server](https://github.com/gepheum/skir/tree/main/packages/language-server).
+
+## Using with AI coding agents
+
+If you use an AI coding agent (Claude Code, Cursor, Codex, etc.), install the Skir agent skill so it knows the `.skir` syntax, schema evolution rules, CLI commands, and generated code APIs:
+
+```bash
+npx skills add gepheum/skir
+```

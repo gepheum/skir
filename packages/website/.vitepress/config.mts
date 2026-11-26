@@ -1,8 +1,63 @@
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vitepress'
+import { defineConfig, type SiteConfig } from 'vitepress'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const SITE_URL = 'https://skir.build'
+
+const docsPagesForLlms = [
+  'setup.md',
+  'examples.md',
+  'language-reference.md',
+  'serialization.md',
+  'schema-evolution.md',
+  'skirrpc.md',
+  'github-imports.md',
+  'best-practices.md',
+  'code-generators.md',
+  'protobuf.md',
+  'languages/cpp.md',
+  'languages/csharp.md',
+  'languages/dart.md',
+  'languages/elixir.md',
+  'languages/gleam.md',
+  'languages/go.md',
+  'languages/java.md',
+  'languages/kotlin.md',
+  'languages/moonbit.md',
+  'languages/python.md',
+  'languages/rust.md',
+  'languages/swift.md',
+  'languages/typescript.md',
+  'languages/zig.md',
+]
+
+function generateLlmsFiles(siteConfig: SiteConfig): void {
+  const docsRoot = path.resolve(__dirname, '../../../docs')
+  const fullSections: string[] = ['# Skir Documentation', '', `Source: ${SITE_URL}`]
+
+  for (const relDocPath of docsPagesForLlms) {
+    const srcPath = path.join(docsRoot, relDocPath)
+    if (!fs.existsSync(srcPath)) continue
+    const raw = fs.readFileSync(srcPath, 'utf8').trim()
+    const outRelPath = relDocPath.startsWith('languages/')
+      ? `docs/${path.basename(relDocPath)}`
+      : `docs/${relDocPath}`
+    const outMdPath = path.join(siteConfig.outDir, outRelPath)
+    fs.mkdirSync(path.dirname(outMdPath), { recursive: true })
+    fs.writeFileSync(outMdPath, `${raw}\n`, 'utf8')
+
+    const url = `${SITE_URL}/${outRelPath}`
+    fullSections.push('', '---', '', `<!-- Source: ${url} -->`, '', raw)
+  }
+
+  fs.writeFileSync(
+    path.join(siteConfig.outDir, 'llms-full.txt'),
+    `${fullSections.join('\n')}\n`,
+    'utf8',
+  )
+}
 
 /**
  * Custom syntax highlighter for `skir` fenced code blocks.
@@ -139,6 +194,7 @@ export default defineConfig({
   outDir: './out',
   cleanUrls: true,
   ignoreDeadLinks: ['/converter.html'],
+  buildEnd: generateLlmsFiles,
   rewrites: {
     'docs/README.md': 'docs/index.md',
     'docs/languages/:lang.md': 'docs/:lang.md',

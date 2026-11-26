@@ -79,6 +79,14 @@ assert restored == say_hi
 assert move_origin.union.kind == "move"
 ```
 
+## Using with AI coding agents
+
+If you use an AI coding agent (Claude Code, Cursor, Codex, etc.), install the Skir skill so your agent knows the `.skir` syntax, CLI workflow, and generated code APIs:
+
+```bash
+npx skills add gepheum/skir
+```
+
 ## Documentation
 
 - [Getting started: setup & workflow](https://skir.build/docs/setup)
