@@ -1,0 +1,190 @@
+/* ==========================================================================
+   Brand Palette & VitePress Dark/Light Background Colors (matching TypePrompt's
+   lighter light mode #ffffff/#f6f6f7 and darker dark mode #1b1b1f/#161618,
+   with Skir's teal brand colors).
+   ========================================================================== */
+
+:root {
+  --vp-c-brand-1: #088f8f;
+  --vp-c-brand-2: #0baaaa;
+  --vp-c-brand-3: #015d67;
+  --vp-c-brand-soft: rgba(11, 170, 170, 0.12);
+
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-text: #ffffff;
+  --vp-button-brand-bg: #088f8f;
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-hover-text: #ffffff;
+  --vp-button-brand-hover-bg: #015d67;
+  --vp-button-brand-active-border: transparent;
+  --vp-button-brand-active-text: #ffffff;
+  --vp-button-brand-active-bg: #014951;
+}
+
+.dark {
+  --vp-c-brand-1: #0cc8c1;
+  --vp-c-brand-2: #10c0be;
+  --vp-c-brand-3: #0baaaa;
+  --vp-c-brand-soft: rgba(12, 200, 193, 0.14);
+
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-text: #041f22;
+  --vp-button-brand-bg: #0cc8c1;
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-hover-text: #041f22;
+  --vp-button-brand-hover-bg: #32dbd4;
+  --vp-button-brand-active-border: transparent;
+  --vp-button-brand-active-text: #041f22;
+  --vp-button-brand-active-bg: #0baaaa;
+}
+
+/* Pixel-crisp rendering for the pixelized-hacky octopus icon */
+.VPNavBarTitle .logo,
+.skir-footer-logo {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* Remove VitePress default home bottom padding so our full-width sections and footer sit flush */
+.VPHome {
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Shared Before/After image grid used on homepage and Schema Evolution doc page */
+.home-split-images {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  max-width: 980px;
+  margin: 1.5rem auto;
+}
+
+.home-image-box {
+  width: 48%;
+  background-color: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.home-image-label {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--vp-c-text-2);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.home-image-box img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  display: block;
+}
+
+/* Docs landing page (/docs) cards */
+.docs-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin: 2rem 0;
+}
+
+@media (min-width: 640px) {
+  .docs-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.docs-overview-card {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  border-radius: 12px;
+  background-color: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  text-decoration: none !important;
+  transition: border-color 0.2s;
+}
+
+.docs-overview-card:hover {
+  border-color: var(--vp-c-brand-1);
+}
+
+.docs-overview-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.docs-overview-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 8px;
+  background-color: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+}
+
+.docs-overview-card-title {
+  margin: 0 !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--vp-c-text-1);
+}
+
+.docs-overview-card-desc {
+  margin: 0 0 12px !important;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--vp-c-text-2);
+}
+
+.docs-overview-card-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--vp-c-brand-1);
+  margin-top: auto;
+}
+
+.docs-lang-box {
+  padding: 24px;
+  border-radius: 12px;
+  background-color: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  margin-top: 2rem;
+}
+
+.docs-lang-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.docs-lang-pill {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 14px;
+  border: 1px solid var(--vp-c-divider);
+  color: var(--vp-c-text-1) !important;
+  text-decoration: none !important;
+  transition:
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.docs-lang-pill:hover {
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1) !important;
+}
