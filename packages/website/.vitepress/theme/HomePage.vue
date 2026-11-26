@@ -653,7 +653,7 @@ const footerLinks = {
         <div class="skir-footer-grid">
           <div class="skir-footer-brand">
             <a href="/" class="skir-footer-logo-link">
-              <img src="/octopus.svg" alt="Skir" width="36" height="36" class="skir-footer-logo" />
+              <img src="/icon.svg" alt="Skir" width="36" height="36" class="skir-footer-logo" />
               <span class="skir-footer-brand-name">Skir</span>
             </a>
             <p class="skir-footer-motto">Types that travel.</p>

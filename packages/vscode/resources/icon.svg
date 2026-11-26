@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <defs>
+    <linearGradient id="skir-teal" x1="12" y1="4" x2="12" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0CC8C1" />
+      <stop offset="1" stop-color="#0BAAAA" />
+    </linearGradient>
+  </defs>
+  <path
+    d="M6 9V6h2V4h8v2h2v3h2v8h-2v3h-2v-2h-2v2h-4v-2H8v2H6v-3H4V9h2z"
+    fill="url(#skir-teal)"
+    stroke="#015D67"
+    stroke-width="1.75"
+    stroke-linejoin="round"
+  />
+  <circle cx="9.5" cy="11.5" r="1.2" fill="#012021" />
+  <circle cx="14.5" cy="11.5" r="1.2" fill="#012021" />
+</svg>

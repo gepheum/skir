@@ -130,8 +130,6 @@ function highlightSkirCode(code: string): string {
   return `<pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0" v-pre><code>${renderedLines.join('\n')}</code></pre>`
 }
 
-const converterSvg = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V6h2V4h8v2h2v3h2v8h-2v3h-2v-2h-2v2h-4v-2H8v2H6v-3H4V9h2z" fill="currentColor"/></svg>`
-
 export default defineConfig({
   title: 'Skir',
   titleTemplate: ':title - Skir Documentation',
@@ -140,15 +138,16 @@ export default defineConfig({
   srcDir: './docs',
   outDir: './out',
   cleanUrls: true,
+  ignoreDeadLinks: ['/converter.html'],
 
   vite: {
     publicDir: path.resolve(__dirname, '../public'),
   },
 
   head: [
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/octopus.svg' }],
-    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/octopus-32x32.png' }],
-    ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/octopus-180x180.png' }],
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/icon.svg' }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/icon-32x32.png' }],
+    ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: '/icon-180x180.png' }],
     ['meta', { name: 'theme-color', content: '#0baaaa' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:site_name', content: 'Skir' }],
@@ -196,7 +195,7 @@ export default defineConfig({
   },
 
   themeConfig: {
-    logo: '/octopus.svg',
+    logo: '/icon.svg',
     siteTitle: 'Skir',
 
     nav: [
@@ -222,6 +221,7 @@ export default defineConfig({
           { text: 'Zig', link: '/docs/zig' },
         ],
       },
+      { text: 'Converter', link: '/converter.html', target: '_blank' },
     ],
 
     sidebar: [
@@ -273,11 +273,6 @@ export default defineConfig({
     ],
 
     socialLinks: [
-      {
-        icon: { svg: converterSvg },
-        link: 'https://skir.build/converter.html',
-        ariaLabel: 'Converter',
-      },
       { icon: 'discord', link: 'https://discord.gg/FsKrGwJ9AP' },
       { icon: 'github', link: 'https://github.com/gepheum/skir' },
     ],

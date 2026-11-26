@@ -2,12 +2,12 @@
   "name": "skir-lang",
   "displayName": "Skir",
   "description": "IDE support for Skir - define data types and APIs once, generate idiomatic code across 12 languages",
-  "version": "0.2.26",
+  "version": "0.2.27",
   "publisher": "gepheum",
   "engines": {
     "vscode": "^1.60.0"
   },
-  "icon": "resources/octopus-icon.png",
+  "icon": "resources/icon.png",
   "homepage": "https://skir.build/",
   "private": true,
   "repository": {

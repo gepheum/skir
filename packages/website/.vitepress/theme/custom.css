@@ -38,13 +38,6 @@
   --vp-button-brand-active-bg: #0baaaa;
 }
 
-/* Pixel-crisp rendering for the pixelized-hacky octopus icon */
-.VPNavBarTitle .logo,
-.skir-footer-logo {
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-}
-
 /* Remove VitePress default home bottom padding so our full-width sections and footer sit flush */
 .VPHome {
   padding-bottom: 0 !important;
