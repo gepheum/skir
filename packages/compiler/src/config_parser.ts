@@ -12,6 +12,7 @@ import * as KotlinGen from "./generators/kotlin/index.js";
 import * as MoonbitGen from "./generators/moonbit/index.js";
 import * as PythonGen from "./generators/python/index.js";
 import * as RustGen from "./generators/rust/index.js";
+import * as ScalaGen from "./generators/scala/index.js";
 import * as SwiftGen from "./generators/swift/index.js";
 import * as TypescriptGen from "./generators/typescript/index.js";
 import * as ZigGen from "./generators/zig/index.js";
@@ -301,6 +302,7 @@ const STATIC_GENERATORS: Record<string, CodeGenerator<unknown>> = {
   "skir-moonbit-gen": MoonbitGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-python-gen": PythonGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-rust-gen": RustGen.GENERATOR as any as CodeGenerator<unknown>,
+  "skir-scala-gen": ScalaGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-swift-gen": SwiftGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-zig-gen": ZigGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-typescript-gen":

@@ -1,0 +1,11 @@
+generators:
+  - mod: skir-scala-gen
+    outDir: src/main/scala/skirout
+    config: {}
+  - mod: ../../../e2e-tests/scala/symbols_check.mjs
+    outDir: src/main/scala/symbols_check/skirout
+    config: {}
+
+dependencies:
+  "@gepheum/skir-fantasy-game-example": v1.0.0
+  "@gepheum/skir-golden-tests": v1.0.6

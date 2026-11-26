@@ -1,6 +1,6 @@
 # Skir Documentation
 
-Skir is a declarative language for representing data types, constants, and APIs. Define your schema once in a `.skir` file and generate idiomatic, type-safe code for TypeScript, Python, Java, C#, C++, Kotlin, Dart, Swift, Go, Rust, Zig, Gleam, MoonBit, and Elixir.
+Skir is a declarative language for representing data types, constants, and APIs. Define your schema once in a `.skir` file and generate idiomatic, type-safe code for TypeScript, Python, Java, C#, C++, Kotlin, Scala, Dart, Swift, Go, Rust, Zig, Gleam, MoonBit, and Elixir.
 
 ## Guides
 
@@ -30,6 +30,7 @@ Skir is a declarative language for representing data types, constants, and APIs.
 - **[MoonBit](./languages/moonbit.md)**
 - **[Python](./languages/python.md)**
 - **[Rust](./languages/rust.md)**
+- **[Scala](./languages/scala.md)**
 - **[Swift](./languages/swift.md)**
 - **[TypeScript](./languages/typescript.md)**
 - **[Zig](./languages/zig.md)**

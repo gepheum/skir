@@ -1,0 +1,8 @@
+/// A person's full name.
+struct FullName {
+  /// The person's first name.
+  first_name: string;
+  /// The person's
+  /// last name.
+  last_name: string;
+}

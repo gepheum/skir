@@ -3,10 +3,10 @@ set -e
 
 validate_lang() {
   case "$1" in
-    cc|csharp|dart|gleam|go|java|kotlin|moonbit|python|rust|swift|typescript|zig) ;;
+    cc|csharp|dart|gleam|go|java|kotlin|moonbit|python|rust|scala|swift|typescript|zig) ;;
     *)
       echo "Unknown language: $1" >&2
-      echo "Supported languages: cc, csharp, dart, gleam, go, java, kotlin, moonbit, python, rust, swift, typescript, zig" >&2
+      echo "Supported languages: cc, csharp, dart, gleam, go, java, kotlin, moonbit, python, rust, scala, swift, typescript, zig" >&2
       exit 1
       ;;
   esac
@@ -118,6 +118,16 @@ if should_run "java"; then
   node "$SKIR_CLI" gen -r java
   cd java
   ./gradlew build spotlessCheck
+  cd "$SCRIPT_DIR"
+fi
+
+# Scala E2E tests
+if should_run "scala"; then
+  echo "=== Running Scala E2E tests ==="
+  node "$SKIR_CLI" format --ci -r scala
+  node "$SKIR_CLI" gen -r scala
+  cd scala
+  ./gradlew test
   cd "$SCRIPT_DIR"
 fi
 

@@ -49,7 +49,7 @@ Every generator entry has the following properties:
 Typically, you should place the skirout directory at the root of your sub-project's source tree. However, placement varies by ecosystem to ensure idiomatic results:
 
 - **TypeScript**: It's often more convenient to place `skirout` adjacent to the `src` directory.
-- **Java / Kotlin / Python**: Place the directory inside your top-level package (e.g., `src/main/java/com/myproject/skirout`). This ensures generated package names (like `com.myproject.skirout.*`) follow standard naming conventions.
+- **Java / Kotlin / Scala / Python**: Place the directory inside your top-level package (e.g., `src/main/java/com/myproject/skirout`). This ensures generated package names (like `com.myproject.skirout.*`) follow standard naming conventions.
 
 Multiple generators can write to the same output directory, which means this directory will contain source files in different languages.
 

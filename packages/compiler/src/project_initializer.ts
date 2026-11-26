@@ -192,6 +192,20 @@ generators:
   #   config: {}
 
   # # --------------------------------------------------------------------------
+  # # Scala code generator
+  # # Home: https://skir.build/docs/scala
+  # # Add the following line to your build.gradle dependencies:
+  # #   implementation("build.skir:skir-client:latest.release")
+  # # --------------------------------------------------------------------------
+  # - mod: skir-scala-gen
+  #   outDir: ./src/main/scala/skirout
+  #   config: {}
+  #   # Alternatively:
+  #   # outDir: ./src/main/scala/my/project/skirout
+  #   # config:
+  #   #   packagePrefix: my.project.
+
+  # # --------------------------------------------------------------------------
   # # Swift code generator
   # # Home: https://skir.build/docs/swift
   # # To install runtime dependencies:

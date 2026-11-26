@@ -46,6 +46,12 @@ const languages = [
     svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M24 24H0V0h24L12 12Z"/></svg>',
   },
   {
+    name: 'Scala',
+    href: '/docs/scala',
+    colorClass: 'lang-icon-scala',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M4.589 24c4.537 0 13.81-1.516 14.822-3v-5.729c-1.012 1.484-10.285 3-14.822 3V24zm0-8.636c4.537 0 13.81-1.516 14.822-3V6.636c-1.012 1.484-10.285 3-14.822 3v5.728zm0-8.635c4.537 0 13.81-1.516 14.822-3V0C18.399 1.484 9.126 3 4.589 3v3.729z"/></svg>',
+  },
+  {
     name: 'Dart',
     href: '/docs/dart',
     colorClass: 'lang-icon-dart',
@@ -108,6 +114,7 @@ const footerLinks = {
     { name: 'MoonBit', href: '/docs/moonbit' },
     { name: 'Python', href: '/docs/python' },
     { name: 'Rust', href: '/docs/rust' },
+    { name: 'Scala', href: '/docs/scala' },
     { name: 'Swift', href: '/docs/swift' },
     { name: 'TypeScript', href: '/docs/typescript' },
     { name: 'Zig', href: '/docs/zig' },
@@ -1294,6 +1301,9 @@ const footerLinks = {
 }
 .lang-icon-kotlin {
   color: #7f52ff;
+}
+.lang-icon-scala {
+  color: #dc322f;
 }
 .lang-icon-dart {
   color: #0175c2;
