@@ -41,10 +41,12 @@ import {
   createConnection,
   DiagnosticSeverity,
   DidChangeWatchedFilesNotification,
+  ErrorCodes,
   FileChangeType,
   Location,
   MarkupKind,
   ProposedFeatures,
+  ResponseError,
   TextDocuments,
   TextDocumentSyncKind,
   TextEdit,
@@ -514,24 +516,30 @@ class Workspace {
 
   /**
    * Returns text edits that update import paths in all modules within this
-   * workspace after a .skir file is renamed from oldModulePath to newModulePath.
-   * The map is keyed by file URI; oldUri itself is excluded.
+   * workspace after one or more .skir files are renamed.
+   * The map is keyed by file URI; renamed files themselves are excluded.
    */
-  makeImportEditsForModulePathChange(
-    oldUri: string,
-    oldModulePath: string,
-    newModulePath: string,
+  makeImportEditsForModulePathChanges(
+    excludedUris: ReadonlySet<string>,
+    oldToNewModulePath: ReadonlyMap<string, string>,
   ): Map<string, TextEdit[]> {
     const result = new Map<string, TextEdit[]>();
+    if (oldToNewModulePath.size === 0) return result;
     for (const bundle of this.modules.values()) {
-      if (bundle.uri === oldUri) continue;
+      if (excludedUris.has(bundle.uri)) continue;
       const module = bundle.moduleWorkspace?.astTree;
       if (!module) continue;
-      if (!(oldModulePath in module.pathToImportedNames)) continue;
 
+      let changed = false;
       const newImports = { ...module.pathToImportedNames };
-      newImports[newModulePath] = newImports[oldModulePath]!;
-      delete newImports[oldModulePath];
+      for (const [oldModulePath, newModulePath] of oldToNewModulePath) {
+        if (oldModulePath in newImports) {
+          newImports[newModulePath] = newImports[oldModulePath]!;
+          delete newImports[oldModulePath];
+          changed = true;
+        }
+      }
+      if (!changed) continue;
 
       const newImportBlock = formatImportBlock(newImports);
       const { importBlockRange } = module;
@@ -841,10 +849,8 @@ class SkirEngine {
       }
       const { importBlockEdit } = item;
       if (importBlockEdit) {
-        const start = bundle.positionTracker.getPosition(
-          importBlockEdit.oldStart,
-        );
-        const end = bundle.positionTracker.getPosition(importBlockEdit.oldEnd);
+        const start = pt.getPosition(importBlockEdit.oldStart);
+        const end = pt.getPosition(importBlockEdit.oldEnd);
         ci.additionalTextEdits = [
           TextEdit.replace(
             makeRange(start.line, start.column, end.line, end.column),
@@ -931,19 +937,22 @@ class SkirEngine {
     return { changes };
   }
 
-  formatDocument(uri: string): TextEdit[] {
+  formatDocument(uri: string, liveContent?: string): TextEdit[] {
     const bundle = this.moduleBundles.get(uri);
     if (!bundle?.moduleWorkspace?.modulePath) return [];
     const { modulePath } = bundle.moduleWorkspace;
+    const sourceCode = liveContent ?? bundle.content.content;
+    const pt =
+      liveContent !== undefined
+        ? new PositionTracker(sourceCode)
+        : bundle.positionTracker;
     const { textEdits } = formatModule({
-      sourceCode: bundle.content.content,
+      sourceCode,
       modulePath,
     });
     return textEdits.map((e) =>
       TextEdit.replace(
-        makeRange(
-          ...startEndToLineChar(e.oldStart, e.oldEnd, bundle.positionTracker),
-        ),
+        makeRange(...startEndToLineChar(e.oldStart, e.oldEnd, pt)),
         e.newText,
       ),
     );
@@ -951,24 +960,53 @@ class SkirEngine {
 
   /**
    * Builds text edits that update import paths in sibling modules after
-   * oldUri is renamed to newUri.
+   * one or more .skir files are renamed.
    */
   buildImportUpdateEdits(
-    oldUri: string,
-    newUri: string,
+    renames: ReadonlyArray<{ oldUri: string; newUri: string }>,
   ): Map<string, TextEdit[]> {
-    const ws = this.moduleBundles.get(oldUri)?.moduleWorkspace?.workspace;
-    if (!ws) return new Map();
-    let oldPath: string, newPath: string;
-    try {
-      oldPath = ws.moduleUriToPath(oldUri);
-      newPath = ws.moduleUriToPath(newUri);
-    } catch {
-      return new Map();
+    const byWorkspace = new Map<
+      Workspace,
+      {
+        excludedUris: Set<string>;
+        oldToNewModulePath: Map<string, string>;
+      }
+    >();
+    for (const { oldUri, newUri } of renames) {
+      const ws = this.moduleBundles.get(oldUri)?.moduleWorkspace?.workspace;
+      if (!ws) continue;
+      let oldPath: string, newPath: string;
+      try {
+        oldPath = ws.moduleUriToPath(oldUri);
+        newPath = ws.moduleUriToPath(newUri);
+      } catch {
+        continue;
+      }
+      if (oldPath === newPath) continue;
+      let group = byWorkspace.get(ws);
+      if (!group) {
+        group = {
+          excludedUris: new Set(),
+          oldToNewModulePath: new Map(),
+        };
+        byWorkspace.set(ws, group);
+      }
+      group.excludedUris.add(oldUri);
+      group.oldToNewModulePath.set(oldPath, newPath);
     }
-    if (oldPath === newPath) return new Map();
-    ws.revolveNow();
-    return ws.makeImportEditsForModulePathChange(oldUri, oldPath, newPath);
+
+    const allEdits = new Map<string, TextEdit[]>();
+    for (const [ws, { excludedUris, oldToNewModulePath }] of byWorkspace) {
+      ws.revolveNow();
+      const wsEdits = ws.makeImportEditsForModulePathChanges(
+        excludedUris,
+        oldToNewModulePath,
+      );
+      for (const [uri, edits] of wsEdits) {
+        allEdits.set(uri, edits);
+      }
+    }
+    return allEdits;
   }
 
   /** Removes from memory any tracked files that no longer exist on disk. */
@@ -1277,6 +1315,7 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
       textDocumentSync: {
         openClose: true,
         change: TextDocumentSyncKind.Incremental,
+        willSaveWaitUntil: true,
         save: { includeText: false },
       },
       definitionProvider: true,
@@ -1342,8 +1381,8 @@ textDocuments.onDidOpen((event) => {
   const uri = event.document.uri;
   if (!getFileType(uri)) return;
   const content = event.document.getText();
-  // If the engine does not yet know about this file, add it immediately.
-  if (!engine.getFileContent(uri)) {
+  const existing = engine.getFileContent(uri);
+  if (!existing || existing.content !== content) {
     engine.setFileContent(uri, { content, lastModified: Date.now() });
   }
 });
@@ -1440,9 +1479,11 @@ connection.onPrepareRename((params) => {
   const offset = getOffset(uri, params.position);
   try {
     return engine.prepareRename(uri, offset);
-  } catch (_e) {
-    // LSP spec says return ResponseError or null to indicate not renameable.
-    return null;
+  } catch (e) {
+    return new ResponseError(
+      ErrorCodes.InvalidRequest,
+      e instanceof Error ? e.message : String(e),
+    );
   }
 });
 
@@ -1464,9 +1505,22 @@ connection.onRenameRequest((params) => {
 connection.onDocumentFormatting((params) => {
   const { uri } = params.textDocument;
   try {
-    return engine.formatDocument(uri);
+    const liveContent = textDocuments.get(uri)?.getText();
+    return engine.formatDocument(uri, liveContent);
   } catch (e) {
     console.error("onDocumentFormatting error:", e);
+    return [];
+  }
+});
+
+connection.onWillSaveTextDocumentWaitUntil((params) => {
+  const { uri } = params.textDocument;
+  if (!uri.endsWith(".skir")) return [];
+  try {
+    const liveContent = textDocuments.get(uri)?.getText();
+    return engine.formatDocument(uri, liveContent);
+  } catch (e) {
+    console.error("onWillSaveTextDocumentWaitUntil error:", e);
     return [];
   }
 });
@@ -1474,16 +1528,17 @@ connection.onDocumentFormatting((params) => {
 // ── file rename (willRenameFiles) ─────────────────────────────────────────────
 
 connection.workspace.onWillRenameFiles((params) => {
+  const skirRenames = params.files.filter(
+    ({ oldUri, newUri }) =>
+      oldUri.endsWith(".skir") && newUri.endsWith(".skir"),
+  );
+  if (skirRenames.length === 0) return null;
+  const edits = engine.buildImportUpdateEdits(skirRenames);
+  if (edits.size === 0) return null;
   const changes: Record<string, TextEdit[]> = {};
-  for (const { oldUri, newUri } of params.files) {
-    if (!oldUri.endsWith(".skir") || !newUri.endsWith(".skir")) continue;
-    const edits = engine.buildImportUpdateEdits(oldUri, newUri);
-    for (const [fileUri, fileEdits] of edits) {
-      const existing = (changes[fileUri] ??= []);
-      existing.push(...fileEdits);
-    }
+  for (const [fileUri, fileEdits] of edits) {
+    changes[fileUri] = fileEdits;
   }
-  if (Object.keys(changes).length === 0) return null;
   return { changes };
 });
 

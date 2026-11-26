@@ -2,7 +2,7 @@
   "name": "skir-language",
   "displayName": "Skir - Language Support",
   "description": "IDE support for Skir - define data types and APIs once, generate idiomatic code across 12 languages",
-  "version": "0.2.23",
+  "version": "0.2.24",
   "publisher": "TylerFibonacci",
   "engines": {
     "vscode": "^1.60.0"
@@ -111,8 +111,8 @@
     "package": "vsce package"
   },
   "dependencies": {
-    "skir": "^1.2.26",
-    "skir-internal": "^0.2.22"
+    "skir-language-server": "^0.1.1",
+    "vscode-languageclient": "^9.0.1"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "glob": "^11.0.0",
-    "skir": "^1.2.26",
+    "skir": "^1.2.27",
     "skir-internal": "^0.2.22",
     "vscode-languageserver": "^9.0.1",
     "vscode-languageserver-textdocument": "^1.0.11"
