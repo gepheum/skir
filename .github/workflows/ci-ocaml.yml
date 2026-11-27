@@ -1,0 +1,42 @@
+name: "CI: OCaml"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/internal/**"
+      - "packages/compiler/**"
+      - "client-libraries/ocaml/**"
+      - "e2e-tests/ocaml/**"
+      - "e2e-tests/test.sh"
+      - ".github/workflows/ci-ocaml.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/internal/**"
+      - "packages/compiler/**"
+      - "client-libraries/ocaml/**"
+      - "e2e-tests/ocaml/**"
+      - "e2e-tests/test.sh"
+      - ".github/workflows/ci-ocaml.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 5.2.x
+      - name: Install NPM dependencies
+        run: npm ci
+      - name: Run OCaml client unit tests
+        run: ./client-libraries/ocaml/pre_commit.sh
+      - name: Run OCaml E2E tests
+        run: ./e2e-tests/test.sh --lang=ocaml

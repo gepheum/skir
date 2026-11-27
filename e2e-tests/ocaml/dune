@@ -1,0 +1,5 @@
+(include_subdirs unqualified)
+
+(tests
+ (names test_goldens test_skirout)
+ (libraries unix))

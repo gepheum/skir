@@ -1,0 +1,4 @@
+(library
+ (name skir)
+ (public_name skir_client)
+ (libraries unix))

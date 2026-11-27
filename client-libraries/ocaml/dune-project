@@ -1,0 +1,17 @@
+(lang dune 3.0)
+(name skir_client)
+(generate_opam_files true)
+
+(authors "Gepheum")
+(maintainers "hello@skir.build")
+(license MIT)
+(homepage "https://skir.build")
+(source (github gepheum/skir))
+
+(package
+ (name skir_client)
+ (synopsis "Official OCaml runtime and serialization library for Skir")
+ (description "Runtime types, JSON/binary serialization, reflection, and SkirRPC service support for Skir-generated OCaml code.")
+ (depends
+  (ocaml (>= 4.14))
+  (dune (>= 3.0))))

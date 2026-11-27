@@ -1,0 +1,2 @@
+(lang dune 3.0)
+(name skir_ocaml_e2e)

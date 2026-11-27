@@ -10,6 +10,7 @@ import * as GoGen from "./generators/go/index.js";
 import * as JavaGen from "./generators/java/index.js";
 import * as KotlinGen from "./generators/kotlin/index.js";
 import * as MoonbitGen from "./generators/moonbit/index.js";
+import * as OcamlGen from "./generators/ocaml/index.js";
 import * as PythonGen from "./generators/python/index.js";
 import * as RubyGen from "./generators/ruby/index.js";
 import * as RustGen from "./generators/rust/index.js";
@@ -301,6 +302,7 @@ const STATIC_GENERATORS: Record<string, CodeGenerator<unknown>> = {
   "skir-java-gen": JavaGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-kotlin-gen": KotlinGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-moonbit-gen": MoonbitGen.GENERATOR as any as CodeGenerator<unknown>,
+  "skir-ocaml-gen": OcamlGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-python-gen": PythonGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-ruby-gen": RubyGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-rust-gen": RustGen.GENERATOR as any as CodeGenerator<unknown>,

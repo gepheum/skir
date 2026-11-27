@@ -55,8 +55,10 @@ _deps/
 compile_commands.json
 .cache/
 
-# MoonBit
+# MoonBit / OCaml (Dune)
 _build/
+*.install
+.merlin
 .mooncakes/
 deps/
 

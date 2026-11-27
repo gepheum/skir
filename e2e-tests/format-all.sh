@@ -3,10 +3,10 @@ set -e
 
 validate_lang() {
   case "$1" in
-    cc|csharp|dart|gleam|go|java|kotlin|moonbit|python|ruby|rust|scala|swift|typescript|zig) ;;
+    cc|csharp|dart|gleam|go|java|kotlin|moonbit|ocaml|python|ruby|rust|scala|swift|typescript|zig) ;;
     *)
       echo "Unknown language: $1" >&2
-      echo "Supported languages: cc, csharp, dart, gleam, go, java, kotlin, moonbit, python, ruby, rust, scala, swift, typescript, zig" >&2
+      echo "Supported languages: cc, csharp, dart, gleam, go, java, kotlin, moonbit, ocaml, python, ruby, rust, scala, swift, typescript, zig" >&2
       exit 1
       ;;
   esac
@@ -146,6 +146,11 @@ if should_run "moonbit"; then
   (cd "$ROOT_DIR/client-libraries/moonbit" && moon fmt)
   (cd "$ROOT_DIR/client-libraries/moonbit-async" && moon fmt)
   (cd "$ROOT_DIR/examples/moonbit" && MOON_WORK=off moon fmt)
+fi
+
+if should_run "ocaml"; then
+  echo "=== Formatting OCaml E2E tests ==="
+  node "$SKIR_CLI" format -r ocaml
 fi
 
 if should_run "cc"; then

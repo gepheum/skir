@@ -1,11 +1,11 @@
 ---
 name: skir
-description: Author, format, evolve, and compile Skir (.skir) data schemas, constants, and SkirRPC methods, configure skir.yml, and integrate generated code across TypeScript, Python, Ruby, Java, Kotlin, Scala, C++, C#, Go, Rust, Dart, Swift, Zig, Gleam, MoonBit, and Elixir. Use whenever working with .skir files, skir.yml, skir-snapshot.json, skirout directories, npx skir, or SkirRPC services.
+description: Author, format, evolve, and compile Skir (.skir) data schemas, constants, and SkirRPC methods, configure skir.yml, and integrate generated code across TypeScript, Python, Ruby, Java, Kotlin, Scala, C++, C#, Go, Rust, Dart, Swift, Zig, Gleam, MoonBit, OCaml, and Elixir. Use whenever working with .skir files, skir.yml, skir-snapshot.json, skirout directories, npx skir, or SkirRPC services.
 ---
 
 # Skir
 
-Skir is a declarative schema language for data types, constants, and RPC methods. You write `.skir` files in `skir-src/` and compile them with `npx skir gen` into deeply immutable, type-safe native code (`skirout/`) for 16 languages.
+Skir is a declarative schema language for data types, constants, and RPC methods. You write `.skir` files in `skir-src/` and compile them with `npx skir gen` into deeply immutable, type-safe native code (`skirout/`) for 17 languages.
 
 Full documentation for LLMs: `https://skir.build/llms.txt` (single-file bundle: `https://skir.build/llms-full.txt`).
 
@@ -73,6 +73,7 @@ Note: `outDir` can be a single string or an array of strings (all ending with `/
 | Zig | `skir-zig-gen` | `{}` | `zig fetch` `https://github.com/gepheum/skir-zig-client` (`skir_client`) | `https://skir.build/docs/zig.md` |
 | Gleam | `skir-gleam-gen` | `importPathToSkirout?: string` (default `"skirout"`) | `gleam add skir_client` | `https://skir.build/docs/gleam.md` |
 | MoonBit | `skir-moonbit-gen` | `{}` | `moon add gepheum/skir-client` | `https://skir.build/docs/moonbit.md` |
+| OCaml | `skir-ocaml-gen` | `{}` | `skir_client` (`Skir` module via Dune `(include_subdirs unqualified)`) | `https://skir.build/docs/ocaml.md` |
 | Elixir | `skir-elixir-gen` | `namespace?: string` (default `"Skir.Generated"`) | `{:skir_elixir_client, "~> 0.2.1"}` + `npm i -D skir-elixir-gen` | `https://skir.build/docs/elixir.md` |
 
 ## `.skir` schema language syntax

@@ -58,6 +58,12 @@ const languages = [
     svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
   },
   {
+    name: 'OCaml',
+    href: '/docs/ocaml',
+    colorClass: 'lang-icon-ocaml',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19.86 5.06c-.76-.05-1.5.41-1.92 1.07-.34.54-.52 1.18-.85 1.72-.34.55-.84.99-1.48 1.09-.81.12-1.57-.39-2.09-.98-.52-.59-.96-1.29-1.64-1.69-.82-.48-1.9-.47-2.71.03-.8.5-1.33 1.38-1.52 2.31-.12.57-.14 1.17-.36 1.71-.34.81-1.15 1.34-2 1.54-.85.2-1.74.15-2.59.35C1.35 12.53.26 13.7.04 15.07c-.15.96.16 1.98.81 2.71.65.72 1.63 1.13 2.6 1.09.52-.02 1.04-.16 1.56-.13.84.05 1.57.64 1.97 1.38.4.74.55 1.59.8 2.39h2.15c-.21-1.2-.22-2.46.15-3.62.37-1.16 1.19-2.21 2.34-2.61 1.01-.35 2.16-.17 3.12.31.95.48 1.78 1.21 2.77 1.63 1.14.48 2.51.48 3.58-.14 1.07-.62 1.81-1.83 1.78-3.07-.02-.95-.5-1.85-.68-2.79-.25-1.29.17-2.62.78-3.79.61-1.17 1.37-2.41 1.14-3.71-.23-1.32-1.74-1.58-2.97-1.66z"/></svg>',
+  },
+  {
     name: 'Python',
     href: '/docs/python',
     colorClass: 'lang-icon-py',
@@ -1341,6 +1347,9 @@ const footerLinks = {
 }
 .lang-icon-moonbit {
   color: #f5c84b;
+}
+.lang-icon-ocaml {
+  color: #ec6813;
 }
 .lang-icon-ruby {
   color: #cc342d;

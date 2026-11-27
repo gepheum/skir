@@ -167,6 +167,15 @@ generators:
   #   config: {}
 
   # # --------------------------------------------------------------------------
+  # # OCaml code generator
+  # # Home: https://skir.build/docs/ocaml
+  # # Add skir_client to your dune libraries stanza
+  # # --------------------------------------------------------------------------
+  # - mod: skir-ocaml-gen
+  #   outDir: ./skirout
+  #   config: {}
+
+  # # --------------------------------------------------------------------------
   # # Python code generator
   # # Home: https://skir.build/docs/python
   # # To install runtime dependencies: pip install skir-client
