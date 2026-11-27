@@ -24,9 +24,9 @@ jobs:
           bundle install
           bundle exec rake test
           bundle exec srb tc
+      - name: Configure RubyGems Credentials (Trusted Publishing)
+        uses: rubygems/configure-rubygems-credentials@v2.2.0
       - name: Build and publish gem to RubyGems
-        env:
-          GEM_HOST_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
         run: |
           gem build skir-client.gemspec
           gem push skir-client-*.gem
