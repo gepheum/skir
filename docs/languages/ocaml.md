@@ -12,7 +12,13 @@ In your `skir.yml` file, add the following snippet under `generators`:
   config: {}
 ```
 
-The generated OCaml code depends on the `skir_client` library (`Skir` module). Add `skir_client` to your `dune` file's `libraries` stanza and include the `skirout` subdirectory:
+The generated OCaml code depends on the `skir_client` library (`Skir` module). Install it with `opam`:
+
+```bash
+opam pin add skir_client https://github.com/gepheum/skir-ocaml-client.git -y
+```
+
+Then add `skir_client` to your `dune` file's `libraries` stanza and include the `skirout` subdirectory:
 
 ```lisp
 (include_subdirs unqualified)

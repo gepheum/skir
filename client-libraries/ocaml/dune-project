@@ -6,7 +6,7 @@
 (maintainers "hello@skir.build")
 (license MIT)
 (homepage "https://skir.build")
-(source (github gepheum/skir))
+(source (github gepheum/skir-ocaml-client))
 
 (package
  (name skir_client)

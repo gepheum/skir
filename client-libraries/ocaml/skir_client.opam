@@ -7,7 +7,7 @@ maintainer: ["hello@skir.build"]
 authors: ["Gepheum"]
 license: "MIT"
 homepage: "https://skir.build"
-bug-reports: "https://github.com/gepheum/skir/issues"
+bug-reports: "https://github.com/gepheum/skir-ocaml-client/issues"
 depends: [
   "ocaml" {>= "4.14"}
   "dune" {>= "3.0" & >= "3.0"}
@@ -27,4 +27,4 @@ build: [
     "@doc" {with-doc}
   ]
 ]
-dev-repo: "git+https://github.com/gepheum/skir.git"
+dev-repo: "git+https://github.com/gepheum/skir-ocaml-client.git"
