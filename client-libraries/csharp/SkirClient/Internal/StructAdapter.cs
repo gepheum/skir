@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace SkirClient.Internal;
 
-public sealed class StructAdapter<T, TBuilder> : ITypeAdapter<T> where T : struct
+public sealed class StructAdapter<T, TBuilder> : ITypeAdapter<T>
 {
     // ---- per-field type-erased interface ------------------------------------
 

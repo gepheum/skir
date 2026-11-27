@@ -53,6 +53,15 @@ public static class Serializers
     public static Serializer<T?> OptionalValue<T>(Serializer<T> inner) where T : struct
         => new(new OptionalValueAdapter_<T>(inner));
 
+    /// <summary>Serializer for an optional value using custom option wrapper callbacks (e.g. F# <c>'T option</c>).</summary>
+    public static Serializer<TOptional> OptionalCustom<T, TOptional>(
+        Serializer<T> inner,
+        TOptional noneValue,
+        Func<T, TOptional> wrapSome,
+        Func<TOptional, bool> isNone,
+        Func<TOptional, T> unwrapSome)
+        => new(new OptionalCustomAdapter_<T, TOptional>(inner, noneValue, wrapSome, isNone, unwrapSome));
+
     /// <summary>Serializer for a read-only array of values.</summary>
     /// <typeparam name="T">Element type.</typeparam>
     /// <param name="inner">Serializer for array items.</param>
@@ -66,7 +75,7 @@ public static class Serializers
     /// <summary>Serializer for a recursive struct field (<see cref="SkirClient.Recursive{T}"/>).</summary>
     /// <typeparam name="T">Wrapped struct type.</typeparam>
     /// <param name="inner">Serializer for wrapped values.</param>
-    public static Serializer<SkirClient.Recursive<T>> Recursive<T>(Serializer<T> inner) where T : struct
+    public static Serializer<SkirClient.Recursive<T>> Recursive<T>(Serializer<T> inner)
         => new(new RecursiveAdapter_<T>(inner));
 
     // ---- Internal forwarders for generated code ----
@@ -721,15 +730,72 @@ file sealed class OptionalRefAdapter_<T>(Serializer<T> inner) : ITypeAdapter<T?>
     public TypeDescriptor TypeDescriptor { get; } = new OptionalDescriptor(inner.TypeDescriptor);
 }
 
-file sealed class RecursiveAdapter_<T>(Serializer<T> inner) : ITypeAdapter<Recursive<T>> where T : struct
+file sealed class OptionalCustomAdapter_<T, TOptional>(
+    Serializer<T> inner,
+    TOptional noneValue,
+    Func<T, TOptional> wrapSome,
+    Func<TOptional, bool> isNone,
+    Func<TOptional, T> unwrapSome) : ITypeAdapter<TOptional>
+{
+    private readonly ITypeAdapter<T> _inner = inner.Adapter;
+
+    public bool IsDefault(TOptional v) => isNone(v);
+
+    public void ToJson(TOptional v, string? eolIndent, StringBuilder sb)
+    {
+        if (isNone(v)) sb.Append("null");
+        else _inner.ToJson(unwrapSome(v), eolIndent, sb);
+    }
+
+    public TOptional FromJson(JsonElement json, bool keep)
+    {
+        if (json.ValueKind == JsonValueKind.Null) return noneValue;
+        var result = _inner.FromJson(json, keep);
+        return _inner.IsDefault(result) ? noneValue : wrapSome(result);
+    }
+
+    public void Encode(TOptional v, List<byte> output)
+    {
+        if (isNone(v)) output.Add(255);
+        else _inner.Encode(unwrapSome(v), output);
+    }
+
+    public TOptional Decode(byte[] data, ref int offset, bool keep)
+    {
+        if (offset < data.Length && data[offset] == 255)
+        {
+            offset++;
+            return noneValue;
+        }
+        var result = _inner.Decode(data, ref offset, keep);
+        return _inner.IsDefault(result) ? noneValue : wrapSome(result);
+    }
+
+    public TypeDescriptor TypeDescriptor { get; } = new OptionalDescriptor(inner.TypeDescriptor);
+}
+
+file sealed class RecursiveAdapter_<T>(Serializer<T> inner) : ITypeAdapter<Recursive<T>>
 {
     private readonly ITypeAdapter<T> _inner = inner.Adapter;
 
     public bool IsDefault(Recursive<T> r) =>
         !r.HasValue || _inner.IsDefault(r.Value);
 
-    public void ToJson(Recursive<T> r, string? eolIndent, StringBuilder sb) =>
-        _inner.ToJson(!r.HasValue ? default : r.Value!, eolIndent, sb);
+    public void ToJson(Recursive<T> r, string? eolIndent, StringBuilder sb)
+    {
+        if (r.HasValue)
+        {
+            _inner.ToJson(r.Value!, eolIndent, sb);
+        }
+        else if (default(T) is T defVal)
+        {
+            _inner.ToJson(defVal, eolIndent, sb);
+        }
+        else
+        {
+            sb.Append(eolIndent != null ? "{}" : "[]");
+        }
+    }
 
     public Recursive<T> FromJson(JsonElement json, bool keep)
     {
@@ -737,8 +803,21 @@ file sealed class RecursiveAdapter_<T>(Serializer<T> inner) : ITypeAdapter<Recur
         return _inner.IsDefault(value) ? SkirClient.Recursive<T>.Default : SkirClient.Recursive<T>.FromValue(value);
     }
 
-    public void Encode(Recursive<T> r, List<byte> output) =>
-        _inner.Encode(!r.HasValue ? default : r.Value!, output);
+    public void Encode(Recursive<T> r, List<byte> output)
+    {
+        if (r.HasValue)
+        {
+            _inner.Encode(r.Value!, output);
+        }
+        else if (default(T) is T defVal)
+        {
+            _inner.Encode(defVal, output);
+        }
+        else
+        {
+            output.Add(246);
+        }
+    }
 
     public Recursive<T> Decode(byte[] data, ref int offset, bool keep)
     {

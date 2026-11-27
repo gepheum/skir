@@ -11,7 +11,7 @@
     <IsPackable>true</IsPackable>
 
     <PackageId>skir_client</PackageId>
-    <Version>0.1.3</Version>
+    <Version>0.1.4</Version>
     <Authors>Tyler Fibonacci</Authors>
     <Company>Gepheum</Company>
     <Description>Runtime library for Skir-generated C# clients.</Description>
