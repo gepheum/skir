@@ -19,7 +19,6 @@ jobs:
         with:
           ruby-version: "3.4"
           working-directory: client-libraries/ruby
-          bundler-cache: true
       - name: Install dependencies, run tests, and Sorbet typecheck
         run: |
           bundle install

@@ -3,6 +3,10 @@ name: "Publish Client: C# (NuGet)"
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -22,5 +26,10 @@ jobs:
         run: dotnet test SkirClientTest/SkirClientTest.csproj -c Release --no-build
       - name: Pack
         run: dotnet pack SkirClient.csproj -c Release --no-build -o artifacts
+      - name: NuGet login (Trusted Publishing)
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: gepheum
       - name: Publish to NuGet
-        run: dotnet nuget push artifacts/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: dotnet nuget push artifacts/*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
