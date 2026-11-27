@@ -51,7 +51,7 @@ module Skir
 
           built =
             if @key_fn.nil?
-              [].freeze
+              freeze_unkeyed_array([])
             else
               KeyedItems.new(EMPTY_FROZEN_ARRAY, @key_fn, @item_adapter.default_value)
             end
@@ -67,7 +67,9 @@ module Skir
         sig { override.params(arg: T.untyped).returns(T.untyped) }
         def to_frozen(arg)
           if @key_fn.nil?
-            return arg if arg.is_a?(Array) && arg.equal?(empty_instance)
+            if arg.is_a?(Array) && arg.frozen? && arg.instance_variable_get(:@_skir_adapter).equal?(self)
+              return arg
+            end
 
             unless arg.is_a?(Enumerable)
               raise TypeError, "Expected Enumerable for array field, got #{arg.class}"
@@ -76,7 +78,7 @@ module Skir
             mapped = arg.map { |e| @item_adapter.to_frozen(e) }
             return empty_instance if mapped.empty?
 
-            mapped.freeze
+            freeze_unkeyed_array(mapped)
           else
             if arg.is_a?(KeyedItems)
               return arg if arg._key_fn.equal?(@key_fn)
@@ -94,7 +96,7 @@ module Skir
             mapped = arg.map { |e| @item_adapter.to_frozen(e) }
             return empty_instance if mapped.empty?
 
-            KeyedItems.new(mapped, @key_fn, @item_adapter.default_value)
+            KeyedItems.new(mapped.freeze, @key_fn, @item_adapter.default_value)
           end
         end
 
@@ -116,9 +118,9 @@ module Skir
 
           mapped = json.map { |e| @item_adapter.from_json(e, keep_unrecognized) }
           if @key_fn.nil?
-            mapped.freeze
+            freeze_unkeyed_array(mapped)
           else
-            KeyedItems.new(mapped, @key_fn, @item_adapter.default_value)
+            KeyedItems.new(mapped.freeze, @key_fn, @item_adapter.default_value)
           end
         end
 
@@ -149,11 +151,21 @@ module Skir
 
           mapped = Array.new(len) { @item_adapter.decode(stream) }
           if @key_fn.nil?
-            mapped.freeze
+            freeze_unkeyed_array(mapped)
           else
-            KeyedItems.new(mapped, @key_fn, @item_adapter.default_value)
+            KeyedItems.new(mapped.freeze, @key_fn, @item_adapter.default_value)
           end
         end
+
+        private
+
+        sig { params(arr: T::Array[T.untyped]).returns(T::Array[T.untyped]) }
+        def freeze_unkeyed_array(arr)
+          arr.instance_variable_set(:@_skir_adapter, self)
+          arr.freeze
+        end
+
+        public
 
         sig { override.params(resolve_type_fn: T.proc.params(arg0: T.untyped).returns(TypeAdapter)).void }
         def finalize(resolve_type_fn)

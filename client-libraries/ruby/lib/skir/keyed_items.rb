@@ -22,7 +22,7 @@ module Skir
 
     sig { params(items: T::Array[Elem], key_fn: T.proc.params(arg0: Elem).returns(Key), default_item: T.nilable(Elem)).void }
     def initialize(items, key_fn, default_item = nil)
-      @items = T.let(items.dup.freeze, T::Array[Elem])
+      @items = T.let(items.frozen? ? items : items.dup.freeze, T::Array[Elem])
       @key_fn = T.let(key_fn, T.proc.params(arg0: Elem).returns(Key))
       @_key_fn = T.let(key_fn, T.proc.params(arg0: Elem).returns(Key))
       @default_item = T.let(default_item, T.nilable(Elem))

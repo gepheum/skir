@@ -363,7 +363,11 @@ class ModuleInitializerTest < Minitest::Test
     assert_same a, seg.mutable_a
 
     shape_cls = mod["Shape"]
-    shape = shape_cls.new(points: [point_cls.new(x: 1.0, y: 2.0)]).to_mutable
+    orig_shape = shape_cls.new(points: [point_cls.new(x: 1.0, y: 2.0)])
+    # Untouched unkeyed array is not copied on to_mutable.to_frozen
+    assert_same orig_shape.points, orig_shape.to_mutable.to_frozen.points
+
+    shape = orig_shape.to_mutable
     pts = shape.mutable_points
     assert_instance_of Array, pts
     refute_predicate pts, :frozen?
