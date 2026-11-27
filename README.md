@@ -105,6 +105,7 @@ npx skills add gepheum/skir
 | #️⃣ **C#** | [Documentation](https://skir.build/docs/csharp) | [Example](https://github.com/gepheum/skir-csharp-example) |
 | 🎯 **Dart** | [Documentation](https://skir.build/docs/dart) | [Example](https://github.com/gepheum/skir-dart-example) |
 | 💧 **Elixir** (Community) | [Documentation](https://github.com/mishmish-dev/skir-elixir-gen) | [Example](https://github.com/mishmish-dev/skir-elixir-example) |
+| 🔷 **F#** | [Documentation](https://skir.build/docs/fsharp) | [Example](https://github.com/gepheum/skir-fsharp-example) |
 | ✨ **Gleam** | [Documentation](https://skir.build/docs/gleam) | [Example](https://github.com/gepheum/skir-gleam-example) |
 | 🐹 **Go** | [Documentation](https://skir.build/docs/go) | [Example](https://github.com/gepheum/skir-go-example) |
 | ☕ **Java** | [Documentation](https://skir.build/docs/java) | [Example](https://github.com/gepheum/skir-java-example) |

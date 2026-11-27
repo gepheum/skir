@@ -3,10 +3,10 @@ set -e
 
 validate_lang() {
   case "$1" in
-    cc|csharp|dart|gleam|go|java|kotlin|moonbit|ocaml|python|ruby|rust|scala|swift|typescript|zig) ;;
+    cc|csharp|dart|fsharp|gleam|go|java|kotlin|moonbit|ocaml|python|ruby|rust|scala|swift|typescript|zig) ;;
     *)
       echo "Unknown language: $1" >&2
-      echo "Supported languages: cc, csharp, dart, gleam, go, java, kotlin, moonbit, ocaml, python, ruby, rust, scala, swift, typescript, zig" >&2
+      echo "Supported languages: cc, csharp, dart, fsharp, gleam, go, java, kotlin, moonbit, ocaml, python, ruby, rust, scala, swift, typescript, zig" >&2
       exit 1
       ;;
   esac
@@ -110,6 +110,11 @@ if should_run "csharp"; then
   node "$SKIR_CLI" format -r csharp
   (cd csharp && dotnet format CsharpE2eTest.csproj --include Program.cs && dotnet format SkirClientTest/SkirClientTest.csproj --include SkirClientTest)
   (cd "$ROOT_DIR/client-libraries/csharp" && dotnet format SkirClient.csproj && dotnet format SkirClientTest/SkirClientTest.csproj)
+fi
+
+if should_run "fsharp"; then
+  echo "=== Formatting F# E2E tests ==="
+  node "$SKIR_CLI" format -r fsharp
 fi
 
 if should_run "dart"; then

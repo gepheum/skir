@@ -18,6 +18,7 @@ Each starter focuses on the same core workflow, implemented in a different langu
 | **C#** | ASP.NET Core | NET 10 project with skir_client NuGet runtime dependency. | [GitHub](https://github.com/gepheum/skir-csharp-example) |
 | **Dart** | Shelf | Dart 3 project with pub dependencies. | [GitHub](https://github.com/gepheum/skir-dart-example) |
 | **Elixir** | Plug + Bandit | Mix project with Elixir and TypeScript RPC clients. | [GitHub](https://github.com/mishmish-dev/skir-elixir-example) |
+| **F#** | ASP.NET Core | .NET 10 F# project with native records/DUs and `skir_client` NuGet dependency. | [GitHub](https://github.com/gepheum/skir-fsharp-example) |
 | **Gleam** | Wisp | Gleam project with generated Skir types and RPC wiring. | [GitHub](https://github.com/gepheum/skir-gleam-example) |
 | **Go** | net/http | Standard library HTTP server, no external framework. | [GitHub](https://github.com/gepheum/skir-go-example) |
 | **Java** | Spring Boot | Gradle build and run workflow. | [GitHub](https://github.com/gepheum/skir-java-example) |

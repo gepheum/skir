@@ -1,11 +1,11 @@
 ---
 name: skir
-description: Author, format, evolve, and compile Skir (.skir) data schemas, constants, and SkirRPC methods, configure skir.yml, and integrate generated code across TypeScript, Python, Ruby, Java, Kotlin, Scala, C++, C#, Go, Rust, Dart, Swift, Zig, Gleam, MoonBit, OCaml, and Elixir. Use whenever working with .skir files, skir.yml, skir-snapshot.json, skirout directories, npx skir, or SkirRPC services.
+description: Author, format, evolve, and compile Skir (.skir) data schemas, constants, and SkirRPC methods, configure skir.yml, and integrate generated code across TypeScript, Python, Ruby, Java, Kotlin, Scala, C++, C#, F#, Go, Rust, Dart, Swift, Zig, Gleam, MoonBit, OCaml, and Elixir. Use whenever working with .skir files, skir.yml, skir-snapshot.json, skirout directories, npx skir, or SkirRPC services.
 ---
 
 # Skir
 
-Skir is a declarative schema language for data types, constants, and RPC methods. You write `.skir` files in `skir-src/` and compile them with `npx skir gen` into deeply immutable, type-safe native code (`skirout/`) for 17 languages.
+Skir is a declarative schema language for data types, constants, and RPC methods. You write `.skir` files in `skir-src/` and compile them with `npx skir gen` into deeply immutable, type-safe native code (`skirout/`) for 18 languages.
 
 Full documentation for LLMs: `https://skir.build/llms.txt` (single-file bundle: `https://skir.build/llms-full.txt`).
 
@@ -66,6 +66,7 @@ Note: `outDir` can be a single string or an array of strings (all ending with `/
 | Scala | `skir-scala-gen` | `packagePrefix?: string` (e.g. `"com.myproject."`) | `build.skir:skir-client:latest.release` | `https://skir.build/docs/scala.md` |
 | C++ | `skir-cc-gen` | `writeGoogleTestHeaders?: boolean` | CMake `FetchContent` from `gepheum/skir-cc-gen` (`client` subdir) + `absl` | `https://skir.build/docs/cpp.md` |
 | C# | `skir-csharp-gen` | `{}` | `dotnet add package skir_client` | `https://skir.build/docs/csharp.md` |
+| F# | `skir-fsharp-gen` | `{}` | `dotnet add package skir_client` (plus `<Compile Include="skirout/Skirout.fs" />` in `.fsproj`) | `https://skir.build/docs/fsharp.md` |
 | Go | `skir-go-gen` | `goModuleName: string` (**required**, must match `go.mod`) | `go get github.com/gepheum/skir-go-client` | `https://skir.build/docs/go.md` |
 | Rust | `skir-rust-gen` | `{}` | `cargo add skir-client` (plus `src/skirout.rs` with `pub mod base;`) | `https://skir.build/docs/rust.md` |
 | Dart | `skir-dart-gen` | `importUriPrefix?: string` | `dart pub add skir_client` | `https://skir.build/docs/dart.md` |

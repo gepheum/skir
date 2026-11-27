@@ -5,6 +5,7 @@ import { SkirConfig } from "./config.js";
 import * as CcGen from "./generators/cc/index.js";
 import * as CSharpGen from "./generators/csharp/index.js";
 import * as DartGen from "./generators/dart/index.js";
+import * as FSharpGen from "./generators/fsharp/index.js";
 import * as GleamGen from "./generators/gleam/index.js";
 import * as GoGen from "./generators/go/index.js";
 import * as JavaGen from "./generators/java/index.js";
@@ -297,6 +298,7 @@ const STATIC_GENERATORS: Record<string, CodeGenerator<unknown>> = {
   "skir-csharp-gen": CSharpGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-dart-gen": DartGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-elixir-gen": ElixirGen.GENERATOR as any as CodeGenerator<unknown>,
+  "skir-fsharp-gen": FSharpGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-gleam-gen": GleamGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-go-gen": GoGen.GENERATOR as any as CodeGenerator<unknown>,
   "skir-java-gen": JavaGen.GENERATOR as any as CodeGenerator<unknown>,

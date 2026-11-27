@@ -1,0 +1,36 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Check Skir code formatting
+        run: npx skir format --ci
+
+      - name: Run Skir-to-FSharp codegen
+        run: npx skir gen
+
+      - name: Restore
+        run: dotnet restore FsharpExample.fsproj
+
+      - name: Build
+        run: dotnet build FsharpExample.fsproj -warnaserror
+
+      - name: Run
+        run: dotnet run --project FsharpExample.fsproj

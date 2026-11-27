@@ -106,6 +106,17 @@ generators:
   #     namespace: MyApp.Protocol
 
   # # --------------------------------------------------------------------------
+  # # F# code generator
+  # # Home: https://skir.build/docs/fsharp
+  # # Complete these 2 steps:
+  # # (1) Install runtime dependencies: dotnet add package skir_client
+  # # (2) Add <Compile Include="skirout/Skirout.fs" /> to your .fsproj file
+  # # --------------------------------------------------------------------------
+  # - mod: skir-fsharp-gen
+  #   outDir: ./skirout
+  #   config: {}
+
+  # # --------------------------------------------------------------------------
   # # Gleam code generator
   # # Home: https://skir.build/docs/gleam
   # # To install runtime dependencies: gleam add skir_client

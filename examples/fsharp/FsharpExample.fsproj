@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);FS0040;FS0346;FS3391</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="skir_client" Version="0.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="skirout/Skirout.fs" />
+    <Compile Include="Snippets.fs" />
+    <Compile Include="StartService.fs" />
+    <Compile Include="CallService.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+</Project>

@@ -32,9 +32,11 @@ build/
 # IDE
 .idea/
 
-# C# / .NET
+# C# / F# / .NET
 **/csharp/**/bin/
 **/csharp/**/obj/
+**/fsharp/**/bin/
+**/fsharp/**/obj/
 artifacts/
 
 # Dart / Flutter

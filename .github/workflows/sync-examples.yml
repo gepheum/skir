@@ -13,6 +13,7 @@ on:
           - cc
           - csharp
           - dart
+          - fsharp
           - gleam
           - go
           - java
@@ -47,6 +48,7 @@ jobs:
             "cc:gepheum/skir-cc-example"
             "csharp:gepheum/skir-csharp-example"
             "dart:gepheum/skir-dart-example"
+            "fsharp:gepheum/skir-fsharp-example"
             "gleam:gepheum/skir-gleam-example"
             "go:gepheum/skir-go-example"
             "java:gepheum/skir-java-example"

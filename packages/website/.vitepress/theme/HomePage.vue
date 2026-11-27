@@ -28,6 +28,12 @@ const languages = [
     svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19.793 16.575c0 3.752-2.927 7.426-7.743 7.426-5.249 0-7.843-3.71-7.843-8.29 0-5.21 3.892-12.952 8-15.647a.397.397 0 0 1 .61.371 9.716 9.716 0 0 0 1.694 6.518c.522.795 1.092 1.478 1.763 2.352.94 1.227 1.637 1.906 2.644 3.842l.015.028a7.107 7.107 0 0 1 .86 3.4z"/></svg>',
   },
   {
+    name: 'F#',
+    href: '/docs/fsharp',
+    colorClass: 'lang-icon-fsharp',
+    svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M0 12 11.39.61v5.695L5.695 12l5.695 5.695v5.695L0 12zm7.322 0 4.068-4.068v8.136L7.322 12zM24 12 12.203.61v5.695L17.898 12l-5.695 5.695v5.695L24 12z"/></svg>',
+  },
+  {
     name: 'Gleam',
     href: '/docs/gleam',
     colorClass: 'lang-icon-gleam',
@@ -1344,6 +1350,9 @@ const footerLinks = {
 }
 .dark .lang-icon-elixir {
   color: #b99acd;
+}
+.lang-icon-fsharp {
+  color: #378bba;
 }
 .lang-icon-moonbit {
   color: #f5c84b;

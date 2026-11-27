@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);FS0040;FS0346;FS3391</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\client-libraries\csharp\SkirClient.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="skirout/Skirout.fs" />
+    <Compile Include="GoldensTests.fs" />
+    <Compile Include="SkiroutTests.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+</Project>

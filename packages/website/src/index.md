@@ -160,6 +160,39 @@ client = Skir.RPC.ServiceClient.new!("http://localhost:8080/api")
 IO.puts(area)
 ```
 
+```fsharp [F#]
+open System.Collections.Immutable
+open SkirClient
+open Skirout_Shapes
+
+// Construct a polygon Shape
+let triangle =
+    Shape.Polygon(
+        ImmutableArray.Create(
+            Point.Create(x = 0.0f, y = 0.0f),
+            Point.Create(x = 10.0f, y = 0.0f),
+            Point.Create(x = 0.0f, y = 10.0f)
+        )
+    )
+
+// Demonstrate round-trip serialization
+let restored =
+    Shape.Serializer.FromJson(Shape.Serializer.ToJson(triangle))
+
+match restored with
+| Shape.Polygon _ -> printfn "Polygon"
+| _ -> ()
+
+// Send RPC
+let client = new ServiceClient("http://localhost:8080/api")
+let area =
+    (client.InvokeRemote(Methods.GetArea, triangle))
+        .GetAwaiter()
+        .GetResult()
+
+printfn "%g" area // 50
+```
+
 ```swift [Gleam]
 import gleam/float
 import gleam/httpc
