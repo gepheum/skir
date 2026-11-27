@@ -17,6 +17,8 @@ Gem::Specification.new do |spec|
   spec.files         = Dir["lib/**/*.rb", "README.md", "LICENSE"]
   spec.require_paths = ["lib"]
 
+  spec.add_dependency "base64"
+  spec.add_dependency "logger"
   spec.add_dependency "sorbet-runtime", ">= 0.5"
   spec.add_development_dependency "minitest", ">= 5.0"
   spec.add_development_dependency "rubocop", ">= 1.0"

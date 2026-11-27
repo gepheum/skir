@@ -17,7 +17,8 @@ jobs:
         with:
           ruby-version: "3.4"
           bundler-cache: true
+      - run: bundle install
       - run: npx skir format --ci
       - run: npx skir gen
-      - run: bundle exec srb tc
+      - run: bundle exec srb tc "$(bundle info --path skir-client)/lib"
       - run: bundle exec ruby snippets.rb
