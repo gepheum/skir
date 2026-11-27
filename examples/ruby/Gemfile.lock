@@ -3,7 +3,7 @@ GEM
   specs:
     base64 (0.3.0)
     logger (1.6.4)
-    skir-client (0.1.8)
+    skir-client (0.1.10)
       sorbet-runtime (>= 0.5)
     sorbet (0.6.13729)
       sorbet-static (= 0.6.13729)
@@ -17,7 +17,7 @@ PLATFORMS
 DEPENDENCIES
   base64
   logger
-  skir-client (>= 0.1.8)
+  skir-client (>= 0.1.10)
   sorbet
   sorbet-runtime
   webrick
@@ -25,7 +25,7 @@ DEPENDENCIES
 CHECKSUMS
   base64 (0.3.0)
   logger (1.6.4)
-  skir-client (0.1.8)
+  skir-client (0.1.10)
   sorbet (0.6.13729)
   sorbet-runtime (0.6.13729)
   sorbet-static (0.6.13729-universal-darwin)
