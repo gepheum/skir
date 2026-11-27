@@ -18,7 +18,7 @@ jobs:
       - name: Install OCaml and Dune
         run: |
           sudo apt-get update
-          sudo apt-get install -y ocaml-nox dune
+          sudo apt-get install -y ocaml dune
       - name: Install & build Skir compiler
         run: |
           npm ci --legacy-peer-deps

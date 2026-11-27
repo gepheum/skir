@@ -15,9 +15,10 @@ jobs:
       - name: Install OCaml, Dune, and skir_client
         run: |
           sudo apt-get update
-          sudo apt-get install -y ocaml-nox dune git
+          sudo apt-get install -y ocaml dune git
           git clone https://github.com/gepheum/skir-ocaml-client.git /tmp/skir-ocaml-client
-          (cd /tmp/skir-ocaml-client && dune build && sudo dune install --prefix=/usr)
+          (cd /tmp/skir-ocaml-client && dune build)
+          echo "OCAMLPATH=/tmp/skir-ocaml-client/_build/install/default/lib" >> "$GITHUB_ENV"
       - run: npx skir format --ci
       - run: npx skir gen
       - run: dune build
