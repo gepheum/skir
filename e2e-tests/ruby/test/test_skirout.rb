@@ -153,6 +153,18 @@ class SkiroutTest < Minitest::Test
   end
 
   sig { void }
+  def test_timestamp_normalization_in_struct
+    # Time with sub-millisecond (nanosecond) precision and non-UTC offset
+    raw_time = Time.at(1_700_000_000, 123_456_789, :nsec).localtime("+02:00")
+    item = Item.partial(timestamp: raw_time)
+    assert item.timestamp.utc?
+    assert item.timestamp.frozen?
+    assert_equal 123_000_000, item.timestamp.nsec
+    assert_equal item, Item.serializer.from_bytes(Item.serializer.to_bytes(item))
+    assert_equal item, Item.serializer.from_json(Item.serializer.to_json(item))
+  end
+
+  sig { void }
   def test_external
     refute_nil Skirout::QuestCollectionSkir::QuestCollection::DEFAULT
     refute_nil Skirout::External::Gepheum::SkirFantasyGameExample::FantasyGameSkir::Quest::DEFAULT

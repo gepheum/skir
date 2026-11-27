@@ -118,9 +118,6 @@ export class TypeSpeller {
           flavor,
           allRecordsFrozen,
         );
-        if (flavor === "mutable") {
-          return otherType;
-        }
         return RubyType.nilable(otherType);
       }
       case "primitive": {

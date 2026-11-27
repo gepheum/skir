@@ -129,6 +129,15 @@ module Skir
         end
       end
 
+      sig { params(stream: ByteStream).returns(Integer) }
+      def self.decode_uint32(stream)
+        wire = stream.buffer.getbyte(stream.position)
+        raise EOFError, "Unexpected end of Skir byte stream at #{stream.position}" if wire.nil?
+        raise ArgumentError, "Invalid unsigned length or variant tag: #{wire}" if wire > 233
+
+        T.cast(decode_raw_number(stream), Integer)
+      end
+
       sig { params(stream: ByteStream).returns(T::Boolean) }
       def self.decode_bool(stream)
         raw = decode_raw_number(stream)
@@ -160,34 +169,37 @@ module Skir
 
       sig { params(stream: ByteStream).void }
       def self.decode_unused(stream)
-        wire_offset = stream.read_wire - 232
-        return if wire_offset < 0
+        wire = stream.read_wire
+        return if wire < 232
 
-        if wire_offset <= 9
-          if wire_offset == 0 || wire_offset == 4
-            stream.position += 2
-          elsif wire_offset == 1 || wire_offset == 5 || wire_offset == 8
-            stream.position += 4
-          elsif wire_offset == 3
-            stream.position += 1
-          else
-            stream.position += 8
-          end
-        elsif wire_offset == 11 || wire_offset == 13
-          length = decode_int64(stream)
-          stream.position += length
-        elsif wire_offset == 15 || (wire_offset >= 19 && wire_offset <= 22)
+        case wire - 232
+        when 0, 4 # uint16, uint16 - 65536
+          stream.read(2)
+        when 1, 5, 8 # uint32, int32, float32
+          stream.read(4)
+        when 2, 6, 7, 9 # hash64, int64, timestamp, float64
+          stream.read(8)
+        when 3 # uint8 - 256
+          stream.read(1)
+        when 11, 13 # string, bytes
+          length = decode_uint32(stream)
+          stream.read(length)
+        when 15, 19, 20, 21, 22 # array length==1, enum value kind 1..4
           decode_unused(stream)
-        elsif wire_offset == 16
-          decode_unused(stream)
-          decode_unused(stream)
-        elsif wire_offset == 17
+        when 16 # array length==2
           decode_unused(stream)
           decode_unused(stream)
+        when 17 # array length==3
           decode_unused(stream)
-        elsif wire_offset == 18
-          length = decode_int64(stream)
+          decode_unused(stream)
+          decode_unused(stream)
+        when 18 # array length==N
+          length = decode_uint32(stream)
           length.times { decode_unused(stream) }
+        when 10, 12, 14, 23 # empty string, empty bytes, empty array, nil optional
+          nil
+        else
+          raise ArgumentError, "Unsupported wire tag in decode_unused: #{wire}"
         end
       end
     end

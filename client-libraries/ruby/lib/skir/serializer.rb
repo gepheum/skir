@@ -58,7 +58,12 @@ module Skir
       b = bytes.b
       if b.start_with?("skir".b)
         stream = Internal::ByteStream.new(b, position: 4, keep_unrecognized_values: keep_unrecognized_values)
-        @_adapter.decode(stream)
+        result = @_adapter.decode(stream)
+        if stream.position != b.bytesize
+          raise ArgumentError, "Trailing bytes in Skir binary stream (#{b.bytesize - stream.position} remaining)"
+        end
+
+        result
       else
         from_json_code(bytes.dup.force_encoding(Encoding::UTF_8), keep_unrecognized_values: keep_unrecognized_values)
       end

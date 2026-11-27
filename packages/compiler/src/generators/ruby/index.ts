@@ -301,14 +301,8 @@ class RubyModuleCodeGenerator {
     }
 
     for (const field of fields) {
-      const fieldType = field.type!;
-      const { isRecursive } = field;
-      const mutableType = typeSpeller.getRubyType(fieldType, "mutable");
-      const hasMutableGetter =
-        typeSpeller
-          .getRubyType(fieldType, "maybe-mutable", !!isRecursive)
-          .toString() !== mutableType.toString();
-      if (!hasMutableGetter) continue;
+      if (!this.hasMutableGetter(field)) continue;
+      const mutableType = typeSpeller.getRubyType(field.type!, "mutable");
       this.pushLine();
       this.pushLine(`sig { returns(${mutableType}).checked(:never) }`);
       this.pushLine(`def mutable_${field.name.text}; T.unsafe(nil); end`);
@@ -579,14 +573,8 @@ class RubyModuleCodeGenerator {
         for (const field of fields) {
           const fieldName = field.name.text;
           const fieldType = field.type!;
-          const { doc: fieldDoc, isRecursive } = field;
-          const hasMutableGetter =
-            typeSpeller
-              .getRubyType(fieldType, "mutable", !!isRecursive)
-              .toString() !==
-            typeSpeller
-              .getRubyType(fieldType, "maybe-mutable", !!isRecursive)
-              .toString();
+          const { doc: fieldDoc } = field;
+          const hasMutableGetter = this.hasMutableGetter(field);
           this.pushLine("Skir::Spec::Field.new(");
           this.indent += INDENT_UNIT;
           this.pushLine(`name: ${JSON.stringify(fieldName)},`);
@@ -771,6 +759,21 @@ class RubyModuleCodeGenerator {
     );
   }
 
+  private hasMutableGetter(field: Field): boolean {
+    if (field.isRecursive) {
+      return false;
+    }
+    const fieldType = field.type!;
+    if (fieldType.kind === "array") {
+      return true;
+    }
+    if (fieldType.kind === "record") {
+      const { record } = this.typeSpeller.recordMap.get(fieldType.key)!;
+      return record.recordType === "struct";
+    }
+    return false;
+  }
+
   private getClassName(record: RecordLocation): ClassName {
     return getClassName(record, this.inModule, this.config);
   }
@@ -857,7 +860,9 @@ const RUBY_LOWER_CASE_KEYWORDS: ReadonlySet<string> = new Set<string>([
   "allocate",
   "class",
   "clone",
+  "display",
   "dup",
+  "enum_for",
   "eql",
   "equal",
   "extend",
@@ -866,24 +871,42 @@ const RUBY_LOWER_CASE_KEYWORDS: ReadonlySet<string> = new Set<string>([
   "hash",
   "initialize",
   "inspect",
+  "instance_eval",
+  "instance_exec",
   "instance_of",
   "instance_variable_defined",
   "instance_variable_get",
   "instance_variable_set",
   "instance_variables",
   "is_a",
+  "itself",
   "kind_of",
   "method",
   "methods",
   "nil",
   "object_id",
+  "private_methods",
+  "protected_methods",
+  "public_method",
+  "public_methods",
   "public_send",
+  "remove_instance_variable",
   "respond_to",
   "send",
   "singleton_class",
+  "singleton_method",
+  "singleton_methods",
   "tap",
   "then",
+  "to_a",
+  "to_ary",
+  "to_enum",
+  "to_h",
+  "to_hash",
+  "to_int",
+  "to_proc",
   "to_s",
+  "to_str",
   "yield_self",
 ]);
 

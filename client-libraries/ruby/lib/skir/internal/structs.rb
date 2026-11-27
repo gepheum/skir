@@ -391,20 +391,18 @@ module Skir
                 UnrecognizedFields.from_json(json: tail, adjusted_json_array_len: array_len)
               )
             end
-            ret.instance_variable_set(:@_array_len, adjust_array_len(array_len))
+            ret.instance_variable_set(:@_array_len, compute_array_len(ret))
           elsif json.is_a?(Hash)
-            array_len = 0
             @fields.each do |rf|
               fname = rf.field.name
               if json.key?(fname)
-                array_len = rf.field.number + 1
                 ret.instance_variable_set(rf.ivar_sym, rf.type.from_json(json[fname], keep_unrecognized))
               else
                 ret.instance_variable_set(rf.ivar_sym, rf.type.default_value)
               end
             end
             ret.instance_variable_set(:@_unrecognized, nil)
-            ret.instance_variable_set(:@_array_len, array_len)
+            ret.instance_variable_set(:@_array_len, compute_array_len(ret))
           else
             raise TypeError, "Expected Array or Hash for struct JSON, got #{json.class}"
           end
@@ -461,7 +459,7 @@ module Skir
             ret.instance_variable_set(:@_unrecognized, nil)
           end
 
-          ret.instance_variable_set(:@_array_len, adjust_array_len(array_len))
+          ret.instance_variable_set(:@_array_len, compute_array_len(ret))
           ret.freeze
         end
 

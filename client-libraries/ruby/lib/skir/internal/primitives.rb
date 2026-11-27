@@ -71,6 +71,9 @@ module Skir
         extend T::Helpers
         abstract!
 
+        sig { abstract.params(val: Integer).returns(Integer) }
+        def clamp_int(val); end
+
         sig { override.returns(Integer) }
         def default_value
           0
@@ -78,13 +81,19 @@ module Skir
 
         sig { override.params(arg: T.untyped).returns(Integer) }
         def to_frozen(arg)
-          if arg.is_a?(Integer)
-            arg
-          elsif arg.is_a?(Float)
-            arg.to_i
-          else
-            raise TypeError, "Expected Integer or Float, got #{arg.class}"
-          end
+          i =
+            if arg.is_a?(Integer)
+              arg
+            elsif arg.is_a?(Float)
+              arg.finite? ? arg.to_i : 0
+            elsif arg == true
+              1
+            elsif arg == false
+              0
+            else
+              raise TypeError, "Expected Integer or Float, got #{arg.class}"
+            end
+          clamp_int(i)
         end
 
         sig { override.params(val: T.untyped).returns(T::Boolean) }
@@ -95,27 +104,44 @@ module Skir
         sig { override.params(json: T.untyped, keep_unrecognized: T::Boolean).returns(Integer) }
         def from_json(json, keep_unrecognized)
           _ = keep_unrecognized
-          case json
-          when Integer
-            json
-          when Float
-            json.to_i
-          when String
-            Integer(json)
-          else
-            raise TypeError, "Cannot parse Integer from #{json.class}"
-          end
+          i =
+            case json
+            when Integer
+              json
+            when Float
+              json.finite? ? json.to_i : 0
+            when true
+              1
+            when false
+              0
+            when "NaN", "Infinity", "-Infinity"
+              0
+            when String
+              begin
+                Integer(json)
+              rescue ArgumentError
+                f = Float(json)
+                f.finite? ? f.to_i : 0
+              end
+            else
+              raise TypeError, "Cannot parse Integer from #{json.class}"
+            end
+          clamp_int(i)
         end
       end
 
       class Int32Adapter < AbstractIntAdapter
         extend T::Sig
 
+        sig { override.params(val: Integer).returns(Integer) }
+        def clamp_int(val)
+          val.clamp(Binary::MIN_INT32, Binary::MAX_INT32)
+        end
+
         sig { override.params(val: T.untyped, readable: T::Boolean).returns(Integer) }
         def to_json(val, readable)
           _ = readable
-          i = to_frozen(val)
-          i.clamp(Binary::MIN_INT32, Binary::MAX_INT32)
+          to_frozen(val)
         end
 
         sig { override.params(val: T.untyped, buffer: String).void }
@@ -137,18 +163,21 @@ module Skir
       class Int64Adapter < AbstractIntAdapter
         extend T::Sig
 
+        sig { override.params(val: Integer).returns(Integer) }
+        def clamp_int(val)
+          val.clamp(Binary::MIN_INT64, Binary::MAX_INT64)
+        end
+
         sig { override.params(val: T.untyped, readable: T::Boolean).returns(T.any(Integer, String)) }
         def to_json(val, readable)
           _ = readable
           i = to_frozen(val)
           if i < MIN_SAFE_JS_INT
-            i <= Binary::MIN_INT64 ? "-9223372036854775808" : i.to_s
+            i.to_s
           elsif i <= MAX_SAFE_JS_INT
             i
-          elsif i < Binary::MAX_INT64
-            i.to_s
           else
-            "9223372036854775807"
+            i.to_s
           end
         end
 
@@ -171,18 +200,19 @@ module Skir
       class Hash64Adapter < AbstractIntAdapter
         extend T::Sig
 
+        sig { override.params(val: Integer).returns(Integer) }
+        def clamp_int(val)
+          val.clamp(0, Binary::MAX_HASH64)
+        end
+
         sig { override.params(val: T.untyped, readable: T::Boolean).returns(T.any(Integer, String)) }
         def to_json(val, readable)
           _ = readable
           i = to_frozen(val)
-          if i <= 0
-            0
-          elsif i <= MAX_SAFE_JS_INT
+          if i <= MAX_SAFE_JS_INT
             i
-          elsif i < Binary::MAX_HASH64
-            i.to_s
           else
-            "18446744073709551615"
+            i.to_s
           end
         end
 
@@ -253,6 +283,8 @@ module Skir
             Float::INFINITY
           when "-Infinity"
             -Float::INFINITY
+          when String
+            Float(json)
           when Numeric
             json.to_f
           else
@@ -323,7 +355,7 @@ module Skir
         def to_frozen(arg)
           raise TypeError, "Expected Time, got #{arg.class}" unless arg.is_a?(Time)
 
-          arg.frozen? ? arg : arg.dup.freeze
+          TimestampAdapter.unix_millis_to_time(TimestampAdapter.time_to_unix_millis(arg))
         end
 
         sig { override.params(val: T.untyped).returns(T::Boolean) }
@@ -351,10 +383,18 @@ module Skir
           case json
           when Integer
             TimestampAdapter.unix_millis_to_time(json)
-          when Float, String
+          when Float
             TimestampAdapter.unix_millis_to_time(json.to_i)
+          when String
+            ms =
+              begin
+                Integer(json)
+              rescue ArgumentError
+                Float(json).to_i
+              end
+            TimestampAdapter.unix_millis_to_time(ms)
           when Hash
-            TimestampAdapter.unix_millis_to_time(json.fetch("unix_millis"))
+            TimestampAdapter.unix_millis_to_time(json["unix_millis"] || 0)
           else
             raise TypeError, "Cannot parse Time from #{json.class}"
           end
@@ -385,6 +425,17 @@ module Skir
       class StringAdapter < TypeAdapter
         extend T::Sig
 
+        sig { params(str: String).returns(String) }
+        def self.sanitize_utf8(str)
+          if str.encoding == Encoding::UTF_8 && str.valid_encoding?
+            str.frozen? ? str : str.dup.freeze
+          elsif str.encoding == Encoding::UTF_8
+            str.scrub("\uFFFD").freeze
+          else
+            str.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "\uFFFD").freeze
+          end
+        end
+
         sig { override.returns(String) }
         def default_value
           ""
@@ -393,9 +444,8 @@ module Skir
         sig { override.params(arg: T.untyped).returns(String) }
         def to_frozen(arg)
           raise TypeError, "Expected String, got #{arg.class}" unless arg.is_a?(String)
-          return arg if arg.frozen? && arg.encoding == Encoding::UTF_8
 
-          arg.encode(Encoding::UTF_8).freeze
+          StringAdapter.sanitize_utf8(arg)
         end
 
         sig { override.params(val: T.untyped).returns(T::Boolean) }
@@ -412,10 +462,10 @@ module Skir
         sig { override.params(json: T.untyped, keep_unrecognized: T::Boolean).returns(String) }
         def from_json(json, keep_unrecognized)
           _ = keep_unrecognized
-          return "" if json == 0 || json.nil?
+          return "" if json == 0
           raise TypeError, "Expected String, got #{json.class}" unless json.is_a?(String)
 
-          json.frozen? ? json : json.dup.freeze
+          StringAdapter.sanitize_utf8(json)
         end
 
         sig { override.params(val: T.untyped, buffer: String).void }
@@ -426,12 +476,7 @@ module Skir
             buffer << 242
           else
             buffer << 243
-            utf8 =
-              if val.encoding == Encoding::UTF_8 && val.valid_encoding?
-                val
-              else
-                val.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "?")
-              end
+            utf8 = StringAdapter.sanitize_utf8(val)
             bytes_data = utf8.b
             Binary.encode_length_prefix(bytes_data.bytesize, buffer)
             buffer << bytes_data
@@ -442,8 +487,9 @@ module Skir
         def decode(stream)
           wire = stream.read_wire
           return "" if wire == 0 || wire == 242
+          raise ArgumentError, "Invalid string wire tag: #{wire}" if wire != 243
 
-          length = Binary.decode_int64(stream)
+          length = Binary.decode_uint32(stream)
           raw = stream.read(length)
           raw.force_encoding(Encoding::UTF_8).scrub("\uFFFD").freeze
         end
@@ -491,7 +537,7 @@ module Skir
         sig { override.params(json: T.untyped, keep_unrecognized: T::Boolean).returns(String) }
         def from_json(json, keep_unrecognized)
           _ = keep_unrecognized
-          return EMPTY_BYTES if json == 0 || json.nil? || json == ""
+          return EMPTY_BYTES if json == 0 || json == ""
           raise TypeError, "Expected String for bytes JSON, got #{json.class}" unless json.is_a?(String)
 
           if json.start_with?("hex:")
@@ -517,8 +563,9 @@ module Skir
         def decode(stream)
           wire = stream.read_wire
           return EMPTY_BYTES if wire == 0 || wire == 244
+          raise ArgumentError, "Invalid bytes wire tag: #{wire}" if wire != 245
 
-          length = Binary.decode_int64(stream)
+          length = Binary.decode_uint32(stream)
           stream.read(length).b.freeze
         end
 

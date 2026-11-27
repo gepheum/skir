@@ -1,0 +1,94 @@
+PATH
+  remote: .
+  specs:
+    skir-client (0.1.9)
+      base64
+      logger
+      sorbet-runtime (>= 0.5)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    ast (2.4.3)
+    base64 (0.3.0)
+    drb (2.2.1)
+    json (2.9.1)
+    language_server-protocol (3.17.0.6)
+    lint_roller (1.1.0)
+    logger (1.6.4)
+    minitest (6.1.0)
+      drb (~> 2.0)
+      prism (>= 1.5, < 3)
+    parallel (2.3.0)
+    parser (3.3.14.0)
+      ast (~> 2.4.1)
+      racc
+    prism (2.1.0-arm64-darwin)
+    racc (1.8.1)
+    rainbow (3.1.1)
+    rake (13.4.2)
+    regexp_parser (2.13.4)
+    rubocop (1.93.0)
+      json (>= 2.3)
+      language_server-protocol (~> 3.17.0.2)
+      lint_roller (~> 1.1.0)
+      parallel (>= 1.10)
+      parser (>= 3.3.0.2)
+      rainbow (>= 2.2.2, < 4.0)
+      regexp_parser (>= 2.11.3, < 3.0)
+      rubocop-ast (>= 1.54.0, < 2.0)
+      ruby-progressbar (~> 1.7)
+      unicode-display_width (>= 2.4.0, < 4.0)
+    rubocop-ast (1.54.0)
+      ast (~> 2.4)
+      parser (>= 3.3.7.2)
+      prism (>= 1.7)
+      racc
+    ruby-progressbar (1.13.0)
+    sorbet (0.6.13729)
+      sorbet-static (= 0.6.13729)
+    sorbet-runtime (0.6.13729)
+    sorbet-static (0.6.13729-universal-darwin)
+    unicode-display_width (3.3.0)
+      unicode-emoji (~> 4.3)
+    unicode-emoji (4.3.0)
+
+PLATFORMS
+  arm64-darwin
+  universal-darwin
+
+DEPENDENCIES
+  minitest (>= 5.0)
+  rake (>= 13.0)
+  rubocop (>= 1.0)
+  skir-client!
+  sorbet (>= 0.5)
+
+CHECKSUMS
+  ast (2.4.3)
+  base64 (0.3.0)
+  drb (2.2.1)
+  json (2.9.1)
+  language_server-protocol (3.17.0.6)
+  lint_roller (1.1.0)
+  logger (1.6.4)
+  minitest (6.1.0)
+  parallel (2.3.0)
+  parser (3.3.14.0)
+  prism (2.1.0-arm64-darwin)
+  racc (1.8.1)
+  rainbow (3.1.1)
+  rake (13.4.2)
+  regexp_parser (2.13.4)
+  rubocop (1.93.0)
+  rubocop-ast (1.54.0)
+  ruby-progressbar (1.13.0)
+  skir-client (0.1.9)
+  sorbet (0.6.13729)
+  sorbet-runtime (0.6.13729)
+  sorbet-static (0.6.13729-universal-darwin)
+  unicode-display_width (3.3.0)
+  unicode-emoji (4.3.0)
+
+BUNDLED WITH
+  4.1.0

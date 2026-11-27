@@ -86,4 +86,86 @@ generators:
     expect(file.code.includes("GetStatus = T.let")).toBe(true);
     expect(file.code.includes("ORIGIN = T.let")).toBe(true);
   });
+
+  it("only generates mutable_<field> getters for non-recursive struct and array fields", () => {
+    const moduleSet = ModuleSet.compile(
+      new Map([
+        [
+          "mutable_getters.skir",
+          `
+        struct Child {
+          x: float32;
+          y: float64;
+          opt_str: string?;
+        }
+        struct Parent {
+          child: Child;
+          opt_child: Child?;
+          items: [int32];
+          opt_items: [int32]?;
+          parent: Parent?;
+          score: float64;
+        }
+      `,
+        ],
+      ]),
+      "no-cache",
+      "strict",
+    );
+    expect(moduleSet.errors).toMatch([]);
+
+    const modules = Array.from(moduleSet.modules.values()).map((r) => r.result);
+    const output = GENERATOR.generateCode({
+      modules,
+      recordMap: moduleSet.recordMap,
+      config: {},
+    });
+    const code = output.files[0]!.code;
+    expect(code.includes("def mutable_child")).toBe(true);
+    expect(code.includes("def mutable_items")).toBe(true);
+    expect(code.includes("def mutable_x")).toBe(false);
+    expect(code.includes("def mutable_y")).toBe(false);
+    expect(code.includes("def mutable_opt_str")).toBe(false);
+    expect(code.includes("def mutable_opt_child")).toBe(false);
+    expect(code.includes("def mutable_opt_items")).toBe(false);
+    expect(code.includes("def mutable_parent")).toBe(false);
+    expect(code.includes("def mutable_score")).toBe(false);
+  });
+
+  it("escapes Ruby conversion methods and mutable_ prefix in struct field names", () => {
+    const moduleSet = ModuleSet.compile(
+      new Map([
+        [
+          "escaped_fields.skir",
+          `
+        struct Escaped {
+          to_a: string;
+          to_ary: string;
+          to_h: string;
+          to_str: string;
+          mutable_foo: int32;
+          foo: [int32];
+        }
+      `,
+        ],
+      ]),
+      "no-cache",
+      "strict",
+    );
+    expect(moduleSet.errors).toMatch([]);
+
+    const modules = Array.from(moduleSet.modules.values()).map((r) => r.result);
+    const output = GENERATOR.generateCode({
+      modules,
+      recordMap: moduleSet.recordMap,
+      config: {},
+    });
+    const code = output.files[0]!.code;
+    expect(code.includes("def to_a_;")).toBe(true);
+    expect(code.includes("def to_ary_;")).toBe(true);
+    expect(code.includes("def to_h_;")).toBe(true);
+    expect(code.includes("def to_str_;")).toBe(true);
+    expect(code.includes("def mutable_foo_;")).toBe(true);
+    expect(code.includes("def mutable_foo;")).toBe(true);
+  });
 });
