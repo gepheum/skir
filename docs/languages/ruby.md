@@ -307,7 +307,36 @@ raise unless user_registry.users.find_or_default(100).name == ""
 # The first lookup runs in O(N) time, and following lookups run in O(1) time.
 ```
 
+### Constants
+
+Each `const` declared in a `.skir` file (e.g. `const TARZAN: User = ...`) is generated as a Ruby constant on the generated module (`Skirout::UserSkir::TARZAN`):
+
+```ruby
+TARZAN = Skirout::UserSkir::TARZAN
+
+puts TARZAN
+# Skirout::UserSkir::User.new(
+#   user_id: 123,
+#   name: "Tarzan",
+#   quote: "AAAAaAaAaAyAAAAaAaAaAyAAAAaAaAaA",
+#   pets: [
+#     Skirout::UserSkir::User::Pet.new(
+#       name: "Cheeta",
+#       height_in_meters: 1.67,
+#       picture: "🐒",
+#     ),
+#   ],
+#   subscription_status: Skirout::UserSkir::SubscriptionStatus.wrap_trial(
+#     Skirout::UserSkir::SubscriptionStatus::Trial.new(start_time: Time.iso8601("2025-04-02T11:13:29Z"))
+#   ),
+# )
+```
+
 ### SkirRPC services
+
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-ruby-example/blob/main/start_service.rb).
+
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-ruby-example/blob/main/call_service.rb).
 
 #### Starting a SkirRPC service
 

@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "sorbet-runtime"
+require "time"
 require_relative "../keyed_items"
 
 module Skir
@@ -55,6 +56,10 @@ module Skir
           else
             ReprResult.new(input.inspect, complex: false)
           end
+        elsif input.is_a?(Time)
+          utc_time = input.utc
+          iso = utc_time.subsec.zero? ? utc_time.iso8601 : utc_time.iso8601(3)
+          ReprResult.new("Time.iso8601(#{iso.inspect})", complex: false)
         else
           r = input.inspect
           ReprResult.new(r, complex: !r.match(/[\[\(\n]/).nil?)
