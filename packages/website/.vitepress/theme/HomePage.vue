@@ -158,7 +158,7 @@ const footerLinks = {
             Skir is a modern declarative schema language for data models and APIs.
             <br />
             Write once in a <code class="skir-inline-code">.skir</code> file - instantly generate
-            clean, idiomatic, and fully type-safe code in TypeScript, Python, Java, Go, C++, and
+            clean, idiomatic, and fully type-safe code in TypeScript, Python, Java, Go, Rust, and
             more languages.
           </p>
 
