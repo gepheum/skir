@@ -682,7 +682,26 @@ module Skir
           mutable_class.define_method(:inspect) { repr_proc.call(self, true) }
           mutable_class.define_method(:to_s) { inspect }
 
-          _ = field_map
+          deconstruct_keys_proc = lambda do |obj, keys|
+            if keys.nil?
+              h = {}
+              fields.each { |rf| h[rf.attr_sym] = obj.instance_variable_get(rf.ivar_sym) }
+              h
+            else
+              h = {}
+              keys.each do |k|
+                rf = field_map[k]
+                h[k] = obj.instance_variable_get(rf.ivar_sym) if rf
+              end
+              h
+            end
+          end
+
+          Structs.safe_remove_method(frozen_class, :deconstruct_keys)
+          frozen_class.define_method(:deconstruct_keys) { |keys| deconstruct_keys_proc.call(self, keys) }
+
+          Structs.safe_remove_method(mutable_class, :deconstruct_keys)
+          mutable_class.define_method(:deconstruct_keys) { |keys| deconstruct_keys_proc.call(self, keys) }
         end
       end
     end

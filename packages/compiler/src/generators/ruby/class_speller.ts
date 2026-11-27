@@ -37,8 +37,7 @@ export function getClassName(
     if (
       RUBY_UPPER_CAMEL_KEYWORDS.has(name) ||
       (parentType === "struct" && STRUCT_NESTED_TYPE_NAMES.has(name)) ||
-      (parentType === "enum" && ENUM_NESTED_TYPE_NAMES.has(name)) ||
-      name.startsWith("V_")
+      (parentType === "enum" && ENUM_NESTED_TYPE_NAMES.has(name))
     ) {
       name += "_";
     }
@@ -91,7 +90,6 @@ const STRUCT_NESTED_TYPE_NAMES: ReadonlySet<string> = new Set([
 /** Generated types/constants nested within an enum class. */
 const ENUM_NESTED_TYPE_NAMES: ReadonlySet<string> = new Set([
   "Kind",
-  "Union",
   "UNKNOWN",
 ]);
 

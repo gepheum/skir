@@ -280,23 +280,25 @@ class ModuleInitializerTest < Minitest::Test
     mod = init_test_module
     primary_color_cls = mod["PrimaryColor"]
     unknown = primary_color_cls::UNKNOWN
-    assert_equal "UNKNOWN", unknown.kind
+    assert_equal primary_color_cls::Kind::UNKNOWN, unknown.kind
     assert_nil unknown.value
-    assert_same unknown, unknown.union
     assert_predicate unknown, :unknown?
     refute_predicate unknown, :present?
     assert_equal 0, primary_color_cls.serializer.to_json(unknown)
     assert_equal "unknown", primary_color_cls.serializer.to_json(unknown, readable: true)
 
     red = primary_color_cls::RED
-    assert_equal "RED", red.kind
+    assert_equal primary_color_cls::Kind::RED, red.kind
     assert_predicate red, :present?
     assert_equal 10, primary_color_cls.serializer.to_json(red)
     assert_equal "red", primary_color_cls.serializer.to_json(red, readable: true)
 
     status_cls = mod["Status"]
     err = status_cls.wrap_error("An error occurred")
-    assert_equal "error", err.kind
+    assert_equal status_cls::Kind::ERROR, err.kind
+    assert_predicate err, :is_error?
+    refute_predicate status_cls::OK, :is_error?
+    assert_equal "An error occurred", err.as_error
     assert_equal "An error occurred", err.value
     assert_equal [2, "An error occurred"], status_cls.serializer.to_json(err)
     assert_equal({ "kind" => "error", "value" => "An error occurred" }, status_cls.serializer.to_json(err, readable: true))
@@ -306,7 +308,7 @@ class ModuleInitializerTest < Minitest::Test
     obj = json_value_cls.create_object(
       entries: [entry_cls.new(name: "a", value: json_value_cls.wrap_string("b"))]
     )
-    assert_equal "object", obj.kind
+    assert_equal json_value_cls::Kind::OBJECT, obj.kind
     assert_equal "b", obj.value.entries.find("a").value.value
 
     # Unrecognized enum variants
@@ -339,9 +341,9 @@ class ModuleInitializerTest < Minitest::Test
     )
     wrappers = stuff.enum_wrappers
     assert_instance_of Skir::KeyedItems, wrappers
-    assert_same wrappers[2], wrappers.find("OK")
-    assert_same wrappers[1], wrappers.find("error")
-    assert_same ew_cls::DEFAULT, wrappers.find_or_default("UNKNOWN")
+    assert_same wrappers[2], wrappers.find(status_cls::Kind::OK)
+    assert_same wrappers[1], wrappers.find(status_cls::Kind::ERROR)
+    assert_same ew_cls::DEFAULT, wrappers.find_or_default(status_cls::Kind::UNKNOWN)
 
     # Passing a KeyedItems with the SAME key_fn reuses the instance
     stuff_same_key = stuff_cls.new(enum_wrappers: wrappers)
@@ -351,7 +353,7 @@ class ModuleInitializerTest < Minitest::Test
     different_keyed = Skir::KeyedItems.create(wrappers.to_a, ->(item) { item.status })
     stuff_rekeyed = stuff_cls.new(enum_wrappers: different_keyed)
     refute_same different_keyed, stuff_rekeyed.enum_wrappers
-    assert_same wrappers[2], stuff_rekeyed.enum_wrappers.find("OK")
+    assert_same wrappers[2], stuff_rekeyed.enum_wrappers.find(status_cls::Kind::OK)
 
     segment_cls = mod["Segment"]
     point_cls = mod["Point"]

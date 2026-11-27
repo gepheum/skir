@@ -28,21 +28,20 @@ module Snippets
   sig { params(status: SubscriptionStatus).returns(String) }
   def self.get_subscription_info_text(status)
     # Pattern matching on enum variants with Sorbet exhaustiveness checking
-    u = status.union
-    case u
-    when SubscriptionStatus::V_UNKNOWN
+    kind = status.kind
+    case kind
+    when SubscriptionStatus::Kind::UNKNOWN
       "Unknown subscription status"
-    when SubscriptionStatus::V_FREE
+    when SubscriptionStatus::Kind::FREE
       "Free user"
-    when SubscriptionStatus::V_PREMIUM
+    when SubscriptionStatus::Kind::PREMIUM
       "Premium user"
-    when SubscriptionStatus::V_trial
-      # Here Sorbet statically knows that 'u.value' is 'SubscriptionStatus::Trial'
-      trial = u.value
+    when SubscriptionStatus::Kind::TRIAL
+      trial = status.as_trial
       "On trial since #{trial.start_time}"
     else
       # Sorbet will report a static type error if any case is missed.
-      T.absurd(u)
+      T.absurd(kind)
     end
   end
 
@@ -160,14 +159,18 @@ module Snippets
 
     # CONDITIONS ON ENUMS
 
-    # Use 'union.kind' to check which variant the enum value holds.
-    raise unless john_status.union.kind == "FREE"
-    raise unless joly_status.union.kind == "UNKNOWN"
-    raise unless roni_status.union.kind == "trial"
+    # For constant variants, compare directly with '==':
+    raise unless john_status == SubscriptionStatus::FREE
+    raise unless joly_status == SubscriptionStatus::UNKNOWN
 
-    # If the enum holds a wrapper variant, you can access the wrapped value through
-    # 'union.value'.
-    raise unless roni_status.union.value.is_a?(SubscriptionStatus::Trial)
+    # For wrapper variants, use 'is_<variant>?' and 'as_<variant>':
+    raise unless roni_status.is_trial?
+    raise unless roni_status.as_trial.start_time == Time.at(1_744_974_198).utc
+
+    # Or inspect 'kind' (a Sorbet T::Enum):
+    raise unless john_status.kind == SubscriptionStatus::Kind::FREE
+    raise unless joly_status.kind == SubscriptionStatus::Kind::UNKNOWN
+    raise unless roni_status.kind == SubscriptionStatus::Kind::TRIAL
 
     raise unless get_subscription_info_text(john_status) == "Free user"
     raise unless get_subscription_info_text(roni_status).start_with?("On trial since ")

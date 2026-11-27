@@ -23,17 +23,17 @@ module Skir
         sig { returns(TypeAdapter) }
         attr_reader :value_type
 
-        sig { returns(T.untyped) }
-        attr_reader :variant_class
+        sig { returns(T::Enum) }
+        attr_reader :kind_val
 
         sig { returns(String) }
         attr_reader :bytes_prefix
 
-        sig { params(spec: Spec::WrapperVariant, value_type: TypeAdapter, variant_class: T.untyped).void }
-        def initialize(spec, value_type, variant_class)
+        sig { params(spec: Spec::WrapperVariant, value_type: TypeAdapter, kind_val: T::Enum).void }
+        def initialize(spec, value_type, kind_val)
           @spec = T.let(spec, Spec::WrapperVariant)
           @value_type = T.let(value_type, TypeAdapter)
-          @variant_class = T.let(variant_class, T.untyped)
+          @kind_val = T.let(kind_val, T::Enum)
           prefix = +"".b
           num = spec.number
           if num >= 1 && num <= 4
@@ -75,6 +75,7 @@ module Skir
           base_class = existing_class || Class.new
           @gen_class = T.let(base_class, T.untyped)
 
+          setup_kind_enum
           setup_base_class
           setup_constants
         end
@@ -94,12 +95,10 @@ module Skir
           return if @finalization_state != 0
 
           @finalization_state = 1
-          base_class = @gen_class
 
           resolved_wrappers = @spec.wrapper_variants.map do |wv|
             v_type = resolve_type_fn.call(wv.type)
-            v_class = ensure_wrapper_variant_class(base_class, wv, v_type)
-            ResolvedWrapperVariant.new(wv, v_type, v_class)
+            ResolvedWrapperVariant.new(wv, v_type, kind_for(wv.name))
           end
           @wrapper_variants = resolved_wrappers.freeze
 
@@ -135,7 +134,18 @@ module Skir
 
         sig { override.params(val: T.untyped, readable: T::Boolean).returns(T.untyped) }
         def to_json(val, readable)
-          readable ? val._rj : val._dj
+          rwv = val.instance_variable_get(:@_rwv)
+          if rwv
+            if readable
+              { "kind" => rwv.spec.name, "value" => rwv.value_type.to_json(val.instance_variable_get(:@value), true) }
+            else
+              [rwv.spec.number, rwv.value_type.to_json(val.instance_variable_get(:@value), false)]
+            end
+          elsif readable
+            val.instance_variable_get(:@_rj)
+          else
+            val.instance_variable_get(:@_dj)
+          end
         end
 
         sig { override.params(json: T.untyped, keep_unrecognized: T::Boolean).returns(T.untyped) }
@@ -149,7 +159,9 @@ module Skir
           if b
             buffer << b
           else
-            val._enc(buffer)
+            rwv = T.let(val.instance_variable_get(:@_rwv), ResolvedWrapperVariant)
+            buffer << rwv.bytes_prefix
+            rwv.value_type.encode(val.instance_variable_get(:@value), buffer)
           end
         end
 
@@ -300,31 +312,67 @@ module Skir
 
         sig { params(rwv: ResolvedWrapperVariant, frozen_val: T.untyped).returns(T.untyped) }
         def instantiate_wrapper(rwv, frozen_val)
-          inst = rwv.variant_class.allocate
-          inst.instance_variable_set(:@kind, rwv.spec.name)
+          inst = @gen_class.allocate
+          inst.instance_variable_set(:@kind, rwv.kind_val)
           inst.instance_variable_set(:@value, frozen_val)
           inst.instance_variable_set(:@_number, rwv.spec.number)
+          inst.instance_variable_set(:@_rwv, rwv)
           inst.instance_variable_set(:@_bytes, nil)
           inst.freeze
         end
 
         sig { params(dj: T.untyped, raw_bytes: String).returns(T.untyped) }
         def instantiate_unrecognized(dj, raw_bytes)
-          unknown_v_class = @gen_class.const_get(:V_UNKNOWN, false)
-          inst = unknown_v_class.allocate
-          inst.instance_variable_set(:@kind, "UNKNOWN")
+          inst = @gen_class.allocate
+          inst.instance_variable_set(:@kind, kind_for("UNKNOWN"))
           inst.instance_variable_set(:@value, nil)
           inst.instance_variable_set(:@_number, 0)
+          inst.instance_variable_set(:@_rwv, nil)
           inst.instance_variable_set(:@_dj, dj)
           inst.instance_variable_set(:@_rj, "unknown")
           inst.instance_variable_set(:@_bytes, raw_bytes.b.freeze)
+          inst.instance_variable_set(:@_inspect, "#{@spec.class_qualname}::UNKNOWN")
           inst.freeze
+        end
+
+        sig { params(serialized_name: String).returns(T::Enum) }
+        def kind_for(serialized_name)
+          kind_class = @gen_class.const_get(:Kind, false)
+          kind_class.deserialize(serialized_name)
+        end
+
+        sig { void }
+        def setup_kind_enum
+          base_class = @gen_class
+          return if base_class.const_defined?(:Kind, false) && base_class.const_get(:Kind, false).is_a?(Class) &&
+                    base_class.const_get(:Kind, false) < T::Enum
+
+          const_variants = @spec.constant_variants
+          wrap_variants = @spec.wrapper_variants
+          kind_class = Class.new(T::Enum) do
+            enums do
+              const_set(:UNKNOWN, new("UNKNOWN"))
+              const_variants.each do |cv|
+                upper = cv.name.upcase
+                cname = upper == "UNKNOWN" ? :"#{upper}_" : upper.to_sym
+                const_set(cname, new(cv.name))
+              end
+              wrap_variants.each do |wv|
+                upper = wv.name.upcase
+                cname = upper == "UNKNOWN" ? :"#{upper}_" : upper.to_sym
+                const_set(cname, new(wv.name))
+              end
+            end
+          end
+          Structs.safe_const_set(base_class, :Kind, kind_class)
         end
 
         sig { void }
         def setup_base_class
           base_class = @gen_class
           record_hash = @record_hash
+          qualname = @spec.class_qualname
+          unknown_kind = kind_for("UNKNOWN")
 
           Structs.safe_remove_method(base_class, :kind)
           Structs.safe_remove_method(base_class, :value)
@@ -335,21 +383,18 @@ module Skir
             raise TypeError, "Cannot call the constructor of a skir enum"
           end
 
-          Structs.safe_remove_method(base_class, :union)
-          base_class.define_method(:union) { self }
-
           Structs.safe_remove_method(base_class, :unknown?)
-          base_class.define_method(:unknown?) { instance_variable_get(:@kind) == "UNKNOWN" }
+          base_class.define_method(:unknown?) { instance_variable_get(:@kind).equal?(unknown_kind) }
 
           Structs.safe_remove_method(base_class, :present?)
-          base_class.define_method(:present?) { instance_variable_get(:@kind) != "UNKNOWN" }
+          base_class.define_method(:present?) { !instance_variable_get(:@kind).equal?(unknown_kind) }
 
           Structs.safe_remove_method(base_class, :==)
           base_class.define_method(:==) do |other|
             return true if equal?(other)
             return false unless other.is_a?(base_class)
 
-            instance_variable_get(:@kind) == other.kind && instance_variable_get(:@value) == other.value
+            instance_variable_get(:@kind).equal?(other.kind) && instance_variable_get(:@value) == other.value
           end
 
           Structs.safe_remove_method(base_class, :eql?)
@@ -358,7 +403,27 @@ module Skir
           Structs.safe_remove_method(base_class, :hash)
           base_class.define_method(:hash) { [record_hash, instance_variable_get(:@kind), instance_variable_get(:@value)].hash }
 
-          Structs.safe_const_set(base_class, :Kind, String) unless base_class.const_defined?(:Kind, false)
+          Structs.safe_remove_method(base_class, :inspect)
+          Structs.safe_remove_method(base_class, :to_s)
+          base_class.define_method(:inspect) do
+            rwv = instance_variable_get(:@_rwv)
+            if rwv
+              val_repr = Repr.repr_impl(instance_variable_get(:@value))
+              body = val_repr.complex ? "\n  #{val_repr.indented}\n" : val_repr.repr
+              "#{qualname}.wrap_#{rwv.spec.name}(#{body})"
+            else
+              instance_variable_get(:@_inspect)
+            end
+          end
+          base_class.define_method(:to_s) { inspect }
+
+          Structs.safe_remove_method(base_class, :deconstruct)
+          base_class.define_method(:deconstruct) { [instance_variable_get(:@value)] }
+
+          Structs.safe_remove_method(base_class, :deconstruct_keys)
+          base_class.define_method(:deconstruct_keys) do |_keys|
+            { kind: instance_variable_get(:@kind), value: instance_variable_get(:@value) }
+          end
         end
 
         sig { void }
@@ -367,16 +432,6 @@ module Skir
           qualname = @spec.class_qualname
 
           all_constant_variants.each do |cv|
-            v_class_name = :"V_#{cv.name}"
-            v_class =
-              if base_class.const_defined?(v_class_name, false)
-                base_class.const_get(v_class_name, false)
-              else
-                c = Class.new(base_class)
-                base_class.const_set(v_class_name, c)
-                c
-              end
-
             encoded_bytes = +"".b
             Binary.encode_int64(cv.number, encoded_bytes)
             encoded_bytes.freeze
@@ -384,24 +439,15 @@ module Skir
             dj_num = cv.number
             attr_name = cv.attribute
 
-            Structs.safe_remove_method(v_class, :kind)
-            Structs.safe_remove_method(v_class, :value)
-            Structs.safe_remove_method(v_class, :_dj)
-            Structs.safe_remove_method(v_class, :_rj)
-            Structs.safe_remove_method(v_class, :inspect)
-            Structs.safe_remove_method(v_class, :to_s)
-            v_class.define_method(:_dj) do
-              instance_variable_defined?(:@_dj) ? instance_variable_get(:@_dj) : dj_num
-            end
-            v_class.define_method(:_rj) { rj_name }
-            v_class.define_method(:inspect) { "#{qualname}::#{attr_name}" }
-            v_class.define_method(:to_s) { inspect }
-
-            inst = v_class.allocate
-            inst.instance_variable_set(:@kind, cv.name)
+            inst = base_class.allocate
+            inst.instance_variable_set(:@kind, kind_for(cv.name))
             inst.instance_variable_set(:@value, nil)
             inst.instance_variable_set(:@_number, cv.number)
+            inst.instance_variable_set(:@_rwv, nil)
+            inst.instance_variable_set(:@_dj, dj_num)
+            inst.instance_variable_set(:@_rj, rj_name)
             inst.instance_variable_set(:@_bytes, encoded_bytes)
+            inst.instance_variable_set(:@_inspect, "#{qualname}::#{attr_name}".freeze)
             inst.freeze
 
             # Ensure const_set works even if attribute starts with lowercase (e.g. in dynamic tests)
@@ -420,53 +466,6 @@ module Skir
           @key_to_constant.freeze
         end
 
-        sig { params(base_class: T.untyped, wv: Spec::WrapperVariant, v_type: TypeAdapter).returns(T.untyped) }
-        def ensure_wrapper_variant_class(base_class, wv, v_type)
-          qualname = @spec.class_qualname
-          v_class_name = :"V_#{wv.name}"
-          v_class =
-            if base_class.const_defined?(v_class_name, false)
-              base_class.const_get(v_class_name, false)
-            else
-              c = Class.new(base_class)
-              base_class.const_set(v_class_name, c)
-              c
-            end
-
-          num = wv.number
-          vname = wv.name
-          prefix = +"".b
-          if num >= 1 && num <= 4
-            prefix << (250 + num)
-          else
-            prefix << 248
-            Binary.encode_int64(num, prefix)
-          end
-          prefix.freeze
-
-          Structs.safe_remove_method(v_class, :kind)
-          Structs.safe_remove_method(v_class, :value)
-          Structs.safe_remove_method(v_class, :_dj)
-          Structs.safe_remove_method(v_class, :_rj)
-          Structs.safe_remove_method(v_class, :_enc)
-          Structs.safe_remove_method(v_class, :inspect)
-          Structs.safe_remove_method(v_class, :to_s)
-
-          v_class.define_method(:_dj) { [num, v_type.to_json(instance_variable_get(:@value), false)] }
-          v_class.define_method(:_rj) { { "kind" => vname, "value" => v_type.to_json(instance_variable_get(:@value), true) } }
-          v_class.define_method(:_enc) do |buffer|
-            buffer << prefix
-            v_type.encode(instance_variable_get(:@value), buffer)
-          end
-          v_class.define_method(:inspect) do
-            val_repr = Repr.repr_impl(instance_variable_get(:@value))
-            body = val_repr.complex ? "\n  #{val_repr.indented}\n" : val_repr.repr
-            "#{qualname}.wrap_#{vname}(#{body})"
-          end
-          v_class.define_method(:to_s) { inspect }
-          v_class
-        end
-
         sig { params(resolve_type_fn: T.proc.params(arg0: T.untyped).returns(TypeAdapter)).void }
         def setup_wrapper_factories(resolve_type_fn)
           base_class = @gen_class
@@ -477,6 +476,23 @@ module Skir
             base_class.define_singleton_method(wrap_name) do |value|
               frozen_val = rwv.value_type.to_frozen(value)
               adapter.send(:instantiate_wrapper, rwv, frozen_val)
+            end
+
+            is_name = :"is_#{rwv.spec.name}?"
+            as_name = :"as_#{rwv.spec.name}"
+            expected_kind = kind_for(rwv.spec.name)
+            Structs.safe_remove_method(base_class, is_name)
+            base_class.define_method(is_name) do
+              instance_variable_get(:@kind).equal?(expected_kind)
+            end
+            Structs.safe_remove_method(base_class, as_name)
+            base_class.define_method(as_name) do
+              cur_kind = instance_variable_get(:@kind)
+              unless cur_kind.equal?(expected_kind)
+                raise TypeError, "Expected variant #{rwv.spec.name}, got #{cur_kind.serialize}"
+              end
+
+              instance_variable_get(:@value)
             end
 
             value_type = resolve_type_fn.call(rwv.spec.type)

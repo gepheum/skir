@@ -54,27 +54,26 @@ class GoldensTest < Minitest::Test
   end
 
   def verify_assertion(assertion)
-    u = assertion.union
-    case u.kind
-    when "bytes_equal"
-      actual = evaluate_bytes(u.value.actual).unpack1("H*")
-      expected = evaluate_bytes(u.value.expected).unpack1("H*")
+    case assertion.kind
+    when Assertion::Kind::BYTES_EQUAL
+      actual = evaluate_bytes(assertion.value.actual).unpack1("H*")
+      expected = evaluate_bytes(assertion.value.expected).unpack1("H*")
       if actual != expected
         raise GoldenAssertionError.new(actual: "hex:#{actual}", expected: "hex:#{expected}")
       end
-    when "bytes_in"
-      actual = evaluate_bytes(u.value.actual)
+    when Assertion::Kind::BYTES_IN
+      actual = evaluate_bytes(assertion.value.actual)
       actual_hex = actual.unpack1("H*")
-      found = u.value.expected.any? { |b| b.unpack1("H*") == actual_hex }
+      found = assertion.value.expected.any? { |b| b.unpack1("H*") == actual_hex }
       unless found
         raise GoldenAssertionError.new(
           actual: "hex:#{actual_hex}",
-          expected: u.value.expected.map { |b| "hex:#{b.unpack1('H*')}" }.join(" or ")
+          expected: assertion.value.expected.map { |b| "hex:#{b.unpack1('H*')}" }.join(" or ")
         )
       end
-    when "string_equal"
-      actual = evaluate_string(u.value.actual)
-      expected = evaluate_string(u.value.expected)
+    when Assertion::Kind::STRING_EQUAL
+      actual = evaluate_string(assertion.value.actual)
+      expected = evaluate_string(assertion.value.expected)
       if actual != expected
         raise GoldenAssertionError.new(
           actual: actual,
@@ -82,96 +81,96 @@ class GoldensTest < Minitest::Test
           message: "Actual: #{JSON.generate(actual)}, Expected: #{JSON.generate(expected)}"
         )
       end
-    when "string_in"
-      actual = evaluate_string(u.value.actual)
-      unless u.value.expected.include?(actual)
+    when Assertion::Kind::STRING_IN
+      actual = evaluate_string(assertion.value.actual)
+      unless assertion.value.expected.include?(actual)
         raise GoldenAssertionError.new(
           actual: actual,
-          expected: u.value.expected.join(" or ")
+          expected: assertion.value.expected.join(" or ")
         )
       end
-    when "reserialize_value"
-      reserialize_value_and_verify(u.value)
-    when "reserialize_large_string"
-      reserialize_large_string_and_verify(u.value)
-    when "reserialize_large_array"
-      reserialize_large_array_and_verify(u.value)
-    when "enum_a_from_json_is_constant"
-      json_code = evaluate_string(u.value.actual)
+    when Assertion::Kind::RESERIALIZE_VALUE
+      reserialize_value_and_verify(assertion.value)
+    when Assertion::Kind::RESERIALIZE_LARGE_STRING
+      reserialize_large_string_and_verify(assertion.value)
+    when Assertion::Kind::RESERIALIZE_LARGE_ARRAY
+      reserialize_large_array_and_verify(assertion.value)
+    when Assertion::Kind::ENUM_A_FROM_JSON_IS_CONSTANT
+      json_code = evaluate_string(assertion.value.actual)
       val =
-        if u.value.keep_unrecognized
+        if assertion.value.keep_unrecognized
           from_json_keep_unrecognized(EnumA.serializer, json_code)
         else
           from_json_drop_unrecognized(EnumA.serializer, json_code)
         end
-      if val.union.kind != "A"
+      if val.kind != EnumA::Kind::A
         raise GoldenAssertionError.new(
-          actual: val.union.kind,
-          expected: "A",
-          message: "Expected EnumA from JSON to be constant A, but got kind=#{val.union.kind}"
+          actual: val.kind,
+          expected: EnumA::Kind::A,
+          message: "Expected EnumA from JSON to be constant A, but got kind=#{val.kind}"
         )
       end
-    when "enum_a_from_bytes_is_constant"
-      data = evaluate_bytes(u.value.actual)
+    when Assertion::Kind::ENUM_A_FROM_BYTES_IS_CONSTANT
+      data = evaluate_bytes(assertion.value.actual)
       val =
-        if u.value.keep_unrecognized
+        if assertion.value.keep_unrecognized
           from_bytes_keep_unrecognized(EnumA.serializer, data)
         else
           from_bytes_drop_unrecognized(EnumA.serializer, data)
         end
-      if val.union.kind != "A"
+      if val.kind != EnumA::Kind::A
         raise GoldenAssertionError.new(
-          actual: val.union.kind,
-          expected: "A",
-          message: "Expected EnumA from bytes to be constant A, but got kind=#{val.union.kind}"
+          actual: val.kind,
+          expected: EnumA::Kind::A,
+          message: "Expected EnumA from bytes to be constant A, but got kind=#{val.kind}"
         )
       end
-    when "enum_b_from_json_is_wrapper_b"
-      json_code = evaluate_string(u.value.actual)
+    when Assertion::Kind::ENUM_B_FROM_JSON_IS_WRAPPER_B
+      json_code = evaluate_string(assertion.value.actual)
       val =
-        if u.value.keep_unrecognized
+        if assertion.value.keep_unrecognized
           from_json_keep_unrecognized(EnumB.serializer, json_code)
         else
           from_json_drop_unrecognized(EnumB.serializer, json_code)
         end
-      if val.union.kind != "b"
+      if val.kind != EnumB::Kind::B
         raise GoldenAssertionError.new(
-          actual: val.union.kind,
-          expected: "b",
-          message: "Expected EnumB from JSON to be wrapper b, but got kind=#{val.union.kind}"
+          actual: val.kind,
+          expected: EnumB::Kind::B,
+          message: "Expected EnumB from JSON to be wrapper b, but got kind=#{val.kind}"
         )
       end
-      if val.union.value != u.value.expected
+      if val.value != assertion.value.expected
         raise GoldenAssertionError.new(
-          actual: val.union.value,
-          expected: u.value.expected,
-          message: "Expected EnumB.b from JSON to wrap #{u.value.expected.inspect}, but got #{val.union.value.inspect}"
+          actual: val.value,
+          expected: assertion.value.expected,
+          message: "Expected EnumB.b from JSON to wrap #{assertion.value.expected.inspect}, but got #{val.value.inspect}"
         )
       end
-    when "enum_b_from_bytes_is_wrapper_b"
-      data = evaluate_bytes(u.value.actual)
+    when Assertion::Kind::ENUM_B_FROM_BYTES_IS_WRAPPER_B
+      data = evaluate_bytes(assertion.value.actual)
       val =
-        if u.value.keep_unrecognized
+        if assertion.value.keep_unrecognized
           from_bytes_keep_unrecognized(EnumB.serializer, data)
         else
           from_bytes_drop_unrecognized(EnumB.serializer, data)
         end
-      if val.union.kind != "b"
+      if val.kind != EnumB::Kind::B
         raise GoldenAssertionError.new(
-          actual: val.union.kind,
-          expected: "b",
-          message: "Expected EnumB from bytes to be wrapper b, but got kind=#{val.union.kind}"
+          actual: val.kind,
+          expected: EnumB::Kind::B,
+          message: "Expected EnumB from bytes to be wrapper b, but got kind=#{val.kind}"
         )
       end
-      if val.union.value != u.value.expected
+      if val.value != assertion.value.expected
         raise GoldenAssertionError.new(
-          actual: val.union.value,
-          expected: u.value.expected,
-          message: "Expected EnumB.b from bytes to wrap #{u.value.expected.inspect}, but got #{val.union.value.inspect}"
+          actual: val.value,
+          expected: assertion.value.expected,
+          message: "Expected EnumB.b from bytes to wrap #{assertion.value.expected.inspect}, but got #{val.value.inspect}"
         )
       end
     else
-      raise "Unhandled assertion kind: #{u.kind}"
+      raise "Unhandled assertion kind: #{assertion.kind}"
     end
   end
 
@@ -361,195 +360,192 @@ class GoldensTest < Minitest::Test
   end
 
   def evaluate_bytes(expr)
-    u = expr.union
-    case u.kind
-    when "literal"
-      u.value
-    when "to_bytes"
-      lit = evaluate_typed_value(u.value)
+    case expr.kind
+    when BytesExpression::Kind::LITERAL
+      expr.value
+    when BytesExpression::Kind::TO_BYTES
+      lit = evaluate_typed_value(expr.value)
       to_bytes(lit.serializer, lit.value)
     else
-      raise "Unexpected BytesExpression kind: #{u.kind}"
+      raise "Unexpected BytesExpression kind: #{expr.kind}"
     end
   end
 
   def evaluate_string(expr)
-    u = expr.union
-    case u.kind
-    when "literal"
-      u.value
-    when "to_dense_json"
-      lit = evaluate_typed_value(u.value)
+    case expr.kind
+    when StringExpression::Kind::LITERAL
+      expr.value
+    when StringExpression::Kind::TO_DENSE_JSON
+      lit = evaluate_typed_value(expr.value)
       to_dense_json(lit.serializer, lit.value)
-    when "to_readable_json"
-      lit = evaluate_typed_value(u.value)
+    when StringExpression::Kind::TO_READABLE_JSON
+      lit = evaluate_typed_value(expr.value)
       to_readable_json(lit.serializer, lit.value)
     else
-      raise "Unexpected StringExpression kind: #{u.kind}"
+      raise "Unexpected StringExpression kind: #{expr.kind}"
     end
   end
 
   def evaluate_typed_value(literal)
-    u = literal.union
-    case u.kind
-    when "bool"
-      TypedValueType.new(value: u.value, serializer: Skir.primitive_serializer("bool"))
-    when "int32"
-      TypedValueType.new(value: u.value, serializer: Skir.primitive_serializer("int32"))
-    when "int64"
-      TypedValueType.new(value: u.value, serializer: Skir.primitive_serializer("int64"))
-    when "hash64"
-      TypedValueType.new(value: u.value, serializer: Skir.primitive_serializer("hash64"))
-    when "float32"
-      TypedValueType.new(value: u.value, serializer: Skir.primitive_serializer("float32"))
-    when "float64"
-      TypedValueType.new(value: u.value, serializer: Skir.primitive_serializer("float64"))
-    when "timestamp"
-      TypedValueType.new(value: u.value, serializer: Skir.primitive_serializer("timestamp"))
-    when "string"
-      TypedValueType.new(value: u.value, serializer: Skir.primitive_serializer("string"))
-    when "bytes"
-      TypedValueType.new(value: u.value, serializer: Skir.primitive_serializer("bytes"))
-    when "bool_optional"
-      TypedValueType.new(value: u.value, serializer: Skir.optional_serializer(Skir.primitive_serializer("bool")))
-    when "ints"
-      TypedValueType.new(value: u.value, serializer: Skir.array_serializer(Skir.primitive_serializer("int32")))
-    when "point"
-      TypedValueType.new(value: u.value, serializer: Point.serializer)
-    when "color"
-      TypedValueType.new(value: u.value, serializer: Color.serializer)
-    when "my_enum"
-      TypedValueType.new(value: u.value, serializer: MyEnum.serializer)
-    when "keyed_arrays"
-      TypedValueType.new(value: u.value, serializer: KeyedArrays.serializer)
-    when "rec_struct"
-      TypedValueType.new(value: u.value, serializer: RecStruct.serializer)
-    when "rec_enum"
-      TypedValueType.new(value: u.value, serializer: RecEnum.serializer)
-    when "round_trip_dense_json"
-      other = evaluate_typed_value(u.value)
+    case literal.kind
+    when TypedValue::Kind::BOOL
+      TypedValueType.new(value: literal.value, serializer: Skir.primitive_serializer("bool"))
+    when TypedValue::Kind::INT32
+      TypedValueType.new(value: literal.value, serializer: Skir.primitive_serializer("int32"))
+    when TypedValue::Kind::INT64
+      TypedValueType.new(value: literal.value, serializer: Skir.primitive_serializer("int64"))
+    when TypedValue::Kind::HASH64
+      TypedValueType.new(value: literal.value, serializer: Skir.primitive_serializer("hash64"))
+    when TypedValue::Kind::FLOAT32
+      TypedValueType.new(value: literal.value, serializer: Skir.primitive_serializer("float32"))
+    when TypedValue::Kind::FLOAT64
+      TypedValueType.new(value: literal.value, serializer: Skir.primitive_serializer("float64"))
+    when TypedValue::Kind::TIMESTAMP
+      TypedValueType.new(value: literal.value, serializer: Skir.primitive_serializer("timestamp"))
+    when TypedValue::Kind::STRING
+      TypedValueType.new(value: literal.value, serializer: Skir.primitive_serializer("string"))
+    when TypedValue::Kind::BYTES
+      TypedValueType.new(value: literal.value, serializer: Skir.primitive_serializer("bytes"))
+    when TypedValue::Kind::BOOL_OPTIONAL
+      TypedValueType.new(value: literal.value, serializer: Skir.optional_serializer(Skir.primitive_serializer("bool")))
+    when TypedValue::Kind::INTS
+      TypedValueType.new(value: literal.value, serializer: Skir.array_serializer(Skir.primitive_serializer("int32")))
+    when TypedValue::Kind::POINT
+      TypedValueType.new(value: literal.value, serializer: Point.serializer)
+    when TypedValue::Kind::COLOR
+      TypedValueType.new(value: literal.value, serializer: Color.serializer)
+    when TypedValue::Kind::MY_ENUM
+      TypedValueType.new(value: literal.value, serializer: MyEnum.serializer)
+    when TypedValue::Kind::KEYED_ARRAYS
+      TypedValueType.new(value: literal.value, serializer: KeyedArrays.serializer)
+    when TypedValue::Kind::REC_STRUCT
+      TypedValueType.new(value: literal.value, serializer: RecStruct.serializer)
+    when TypedValue::Kind::REC_ENUM
+      TypedValueType.new(value: literal.value, serializer: RecEnum.serializer)
+    when TypedValue::Kind::ROUND_TRIP_DENSE_JSON
+      other = evaluate_typed_value(literal.value)
       TypedValueType.new(
         value: from_json_drop_unrecognized(other.serializer, to_dense_json(other.serializer, other.value)),
         serializer: other.serializer
       )
-    when "round_trip_readable_json"
-      other = evaluate_typed_value(u.value)
+    when TypedValue::Kind::ROUND_TRIP_READABLE_JSON
+      other = evaluate_typed_value(literal.value)
       TypedValueType.new(
         value: from_json_drop_unrecognized(other.serializer, to_readable_json(other.serializer, other.value)),
         serializer: other.serializer
       )
-    when "round_trip_bytes"
-      other = evaluate_typed_value(u.value)
+    when TypedValue::Kind::ROUND_TRIP_BYTES
+      other = evaluate_typed_value(literal.value)
       TypedValueType.new(
         value: from_bytes_drop_unrecognized(other.serializer, to_bytes(other.serializer, other.value)),
         serializer: other.serializer
       )
-    when "point_from_json_keep_unrecognized"
+    when TypedValue::Kind::POINT_FROM_JSON_KEEP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_json_keep_unrecognized(Point.serializer, evaluate_string(u.value)),
+        value: from_json_keep_unrecognized(Point.serializer, evaluate_string(literal.value)),
         serializer: Point.serializer
       )
-    when "point_from_json_drop_unrecognized"
+    when TypedValue::Kind::POINT_FROM_JSON_DROP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_json_drop_unrecognized(Point.serializer, evaluate_string(u.value)),
+        value: from_json_drop_unrecognized(Point.serializer, evaluate_string(literal.value)),
         serializer: Point.serializer
       )
-    when "point_from_bytes_keep_unrecognized"
+    when TypedValue::Kind::POINT_FROM_BYTES_KEEP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_bytes_keep_unrecognized(Point.serializer, evaluate_bytes(u.value)),
+        value: from_bytes_keep_unrecognized(Point.serializer, evaluate_bytes(literal.value)),
         serializer: Point.serializer
       )
-    when "point_from_bytes_drop_unrecognized"
+    when TypedValue::Kind::POINT_FROM_BYTES_DROP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_bytes_drop_unrecognized(Point.serializer, evaluate_bytes(u.value)),
+        value: from_bytes_drop_unrecognized(Point.serializer, evaluate_bytes(literal.value)),
         serializer: Point.serializer
       )
-    when "color_from_json_keep_unrecognized"
+    when TypedValue::Kind::COLOR_FROM_JSON_KEEP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_json_keep_unrecognized(Color.serializer, evaluate_string(u.value)),
+        value: from_json_keep_unrecognized(Color.serializer, evaluate_string(literal.value)),
         serializer: Color.serializer
       )
-    when "color_from_json_drop_unrecognized"
+    when TypedValue::Kind::COLOR_FROM_JSON_DROP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_json_drop_unrecognized(Color.serializer, evaluate_string(u.value)),
+        value: from_json_drop_unrecognized(Color.serializer, evaluate_string(literal.value)),
         serializer: Color.serializer
       )
-    when "color_from_bytes_keep_unrecognized"
+    when TypedValue::Kind::COLOR_FROM_BYTES_KEEP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_bytes_keep_unrecognized(Color.serializer, evaluate_bytes(u.value)),
+        value: from_bytes_keep_unrecognized(Color.serializer, evaluate_bytes(literal.value)),
         serializer: Color.serializer
       )
-    when "color_from_bytes_drop_unrecognized"
+    when TypedValue::Kind::COLOR_FROM_BYTES_DROP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_bytes_drop_unrecognized(Color.serializer, evaluate_bytes(u.value)),
+        value: from_bytes_drop_unrecognized(Color.serializer, evaluate_bytes(literal.value)),
         serializer: Color.serializer
       )
-    when "my_enum_from_json_keep_unrecognized"
+    when TypedValue::Kind::MY_ENUM_FROM_JSON_KEEP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_json_keep_unrecognized(MyEnum.serializer, evaluate_string(u.value)),
+        value: from_json_keep_unrecognized(MyEnum.serializer, evaluate_string(literal.value)),
         serializer: MyEnum.serializer
       )
-    when "my_enum_from_json_drop_unrecognized"
+    when TypedValue::Kind::MY_ENUM_FROM_JSON_DROP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_json_drop_unrecognized(MyEnum.serializer, evaluate_string(u.value)),
+        value: from_json_drop_unrecognized(MyEnum.serializer, evaluate_string(literal.value)),
         serializer: MyEnum.serializer
       )
-    when "my_enum_from_bytes_keep_unrecognized"
+    when TypedValue::Kind::MY_ENUM_FROM_BYTES_KEEP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_bytes_keep_unrecognized(MyEnum.serializer, evaluate_bytes(u.value)),
+        value: from_bytes_keep_unrecognized(MyEnum.serializer, evaluate_bytes(literal.value)),
         serializer: MyEnum.serializer
       )
-    when "my_enum_from_bytes_drop_unrecognized"
+    when TypedValue::Kind::MY_ENUM_FROM_BYTES_DROP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_bytes_drop_unrecognized(MyEnum.serializer, evaluate_bytes(u.value)),
+        value: from_bytes_drop_unrecognized(MyEnum.serializer, evaluate_bytes(literal.value)),
         serializer: MyEnum.serializer
       )
-    when "enum_a"
-      TypedValueType.new(value: u.value, serializer: EnumA.serializer)
-    when "enum_b"
-      TypedValueType.new(value: u.value, serializer: EnumB.serializer)
-    when "enum_a_from_json_keep_unrecognized"
+    when TypedValue::Kind::ENUM_A
+      TypedValueType.new(value: literal.value, serializer: EnumA.serializer)
+    when TypedValue::Kind::ENUM_B
+      TypedValueType.new(value: literal.value, serializer: EnumB.serializer)
+    when TypedValue::Kind::ENUM_A_FROM_JSON_KEEP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_json_keep_unrecognized(EnumA.serializer, evaluate_string(u.value)),
+        value: from_json_keep_unrecognized(EnumA.serializer, evaluate_string(literal.value)),
         serializer: EnumA.serializer
       )
-    when "enum_a_from_json_drop_unrecognized"
+    when TypedValue::Kind::ENUM_A_FROM_JSON_DROP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_json_drop_unrecognized(EnumA.serializer, evaluate_string(u.value)),
+        value: from_json_drop_unrecognized(EnumA.serializer, evaluate_string(literal.value)),
         serializer: EnumA.serializer
       )
-    when "enum_a_from_bytes_keep_unrecognized"
+    when TypedValue::Kind::ENUM_A_FROM_BYTES_KEEP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_bytes_keep_unrecognized(EnumA.serializer, evaluate_bytes(u.value)),
+        value: from_bytes_keep_unrecognized(EnumA.serializer, evaluate_bytes(literal.value)),
         serializer: EnumA.serializer
       )
-    when "enum_a_from_bytes_drop_unrecognized"
+    when TypedValue::Kind::ENUM_A_FROM_BYTES_DROP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_bytes_drop_unrecognized(EnumA.serializer, evaluate_bytes(u.value)),
+        value: from_bytes_drop_unrecognized(EnumA.serializer, evaluate_bytes(literal.value)),
         serializer: EnumA.serializer
       )
-    when "enum_b_from_json_keep_unrecognized"
+    when TypedValue::Kind::ENUM_B_FROM_JSON_KEEP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_json_keep_unrecognized(EnumB.serializer, evaluate_string(u.value)),
+        value: from_json_keep_unrecognized(EnumB.serializer, evaluate_string(literal.value)),
         serializer: EnumB.serializer
       )
-    when "enum_b_from_json_drop_unrecognized"
+    when TypedValue::Kind::ENUM_B_FROM_JSON_DROP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_json_drop_unrecognized(EnumB.serializer, evaluate_string(u.value)),
+        value: from_json_drop_unrecognized(EnumB.serializer, evaluate_string(literal.value)),
         serializer: EnumB.serializer
       )
-    when "enum_b_from_bytes_keep_unrecognized"
+    when TypedValue::Kind::ENUM_B_FROM_BYTES_KEEP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_bytes_keep_unrecognized(EnumB.serializer, evaluate_bytes(u.value)),
+        value: from_bytes_keep_unrecognized(EnumB.serializer, evaluate_bytes(literal.value)),
         serializer: EnumB.serializer
       )
-    when "enum_b_from_bytes_drop_unrecognized"
+    when TypedValue::Kind::ENUM_B_FROM_BYTES_DROP_UNRECOGNIZED
       TypedValueType.new(
-        value: from_bytes_drop_unrecognized(EnumB.serializer, evaluate_bytes(u.value)),
+        value: from_bytes_drop_unrecognized(EnumB.serializer, evaluate_bytes(literal.value)),
         serializer: EnumB.serializer
       )
     else
-      raise "Unexpected TypedValue kind: #{u.kind}"
+      raise "Unexpected TypedValue kind: #{literal.kind}"
     end
   end
 

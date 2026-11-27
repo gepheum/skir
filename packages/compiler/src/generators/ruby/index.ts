@@ -245,7 +245,7 @@ class RubyModuleCodeGenerator {
       this.pushLine(`def ${attribute}; T.unsafe(nil); end`);
     }
 
-    // to_frozen & to_mutable
+    // to_frozen & to_mutable & deconstruct_keys
     this.pushLine();
     this.pushLine(`sig { returns(${relativeQualifiedName}).checked(:never) }`);
     this.pushLine("def to_frozen; self; end");
@@ -254,6 +254,11 @@ class RubyModuleCodeGenerator {
       `sig { returns(${relativeQualifiedName}::Mutable).checked(:never) }`,
     );
     this.pushLine("def to_mutable; T.unsafe(nil); end");
+    this.pushLine();
+    this.pushLine(
+      "sig { params(keys: T.nilable(T::Array[Symbol])).returns(T::Hash[Symbol, T.untyped]).checked(:never) }",
+    );
+    this.pushLine("def deconstruct_keys(keys); T.unsafe(nil); end");
 
     // Mutable class
     this.pushLine();
@@ -311,6 +316,11 @@ class RubyModuleCodeGenerator {
     this.pushLine();
     this.pushLine(`sig { returns(${relativeQualifiedName}).checked(:never) }`);
     this.pushLine("def to_frozen; T.unsafe(nil); end");
+    this.pushLine();
+    this.pushLine(
+      "sig { params(keys: T.nilable(T::Array[Symbol])).returns(T::Hash[Symbol, T.untyped]).checked(:never) }",
+    );
+    this.pushLine("def deconstruct_keys(keys); T.unsafe(nil); end");
 
     this.dedent();
     this.pushLine("end");
@@ -367,27 +377,37 @@ class RubyModuleCodeGenerator {
     this.indent += INDENT_UNIT;
     this.pushLine("extend T::Sig");
     this.pushLine("extend T::Helpers");
-    this.pushLine("sealed!");
 
-    // Variant classes first so constants and Union can reference them
-    this.writeEnumVariantClass("UNKNOWN", RubyType.NIL);
+    // Kind < T::Enum
+    this.pushLine();
+    this.pushLine("class Kind < T::Enum");
+    this.indent += INDENT_UNIT;
+    this.pushLine("enums do");
+    this.indent += INDENT_UNIT;
+    this.pushLine('UNKNOWN = new("UNKNOWN")');
     for (const constantVariant of constantVariants) {
       const upperName = convertCase(
         constantVariant.name.text,
         "UPPER_UNDERSCORE",
       );
-      this.writeEnumVariantClass(upperName, RubyType.NIL);
+      const constName = enumKindConstantToAttr(upperName);
+      this.pushLine(`${constName} = new(${JSON.stringify(upperName)})`);
     }
     for (const wrapperVariant of wrapperVariants) {
       const vName = wrapperVariant.name.text;
-      const vType = typeSpeller.getRubyType(wrapperVariant.type!, "frozen");
-      this.writeEnumVariantClass(vName, vType);
+      const upperName = convertCase(vName, "UPPER_UNDERSCORE");
+      const constName = enumKindConstantToAttr(upperName);
+      this.pushLine(`${constName} = new(${JSON.stringify(vName)})`);
     }
+    this.dedent();
+    this.pushLine("end");
+    this.dedent();
+    this.pushLine("end");
 
     // Constants
     this.pushLine();
     this.pushLine(
-      `UNKNOWN = T.let(T.unsafe(nil), ${relativeQualifiedName}::V_UNKNOWN, checked: false)`,
+      `UNKNOWN = T.let(T.unsafe(nil), ${relativeQualifiedName}, checked: false)`,
     );
     for (const constantVariant of constantVariants) {
       const upperName = convertCase(
@@ -398,19 +418,20 @@ class RubyModuleCodeGenerator {
       this.pushLine();
       this.pushComment(constantVariant.doc);
       this.pushLine(
-        `${attribute} = T.let(T.unsafe(nil), ${relativeQualifiedName}::V_${upperName}, checked: false)`,
+        `${attribute} = T.let(T.unsafe(nil), ${relativeQualifiedName}, checked: false)`,
       );
     }
 
-    // Wrapper factory methods
+    // Wrapper factory methods & typed as_<variant> extractors
     for (const wrapperVariant of wrapperVariants) {
       const name = wrapperVariant.name.text;
       const type = wrapperVariant.type!;
       const rbType = typeSpeller.getRubyType(type, "initializer");
+      const frozenType = typeSpeller.getRubyType(type, "frozen");
       this.pushLine();
       this.pushComment(wrapperVariant.doc);
       this.pushLine(
-        `sig { params(value: ${rbType}).returns(${relativeQualifiedName}::V_${name}).checked(:never) }`,
+        `sig { params(value: ${rbType}).returns(${relativeQualifiedName}).checked(:never) }`,
       );
       this.pushLine(`def self.wrap_${name}(value); T.unsafe(nil); end`);
 
@@ -426,7 +447,7 @@ class RubyModuleCodeGenerator {
             this.writeStructFieldsSigParams(targetRecord, "initializer", false);
             this.dedent();
             this.pushLine(
-              `).returns(${relativeQualifiedName}::V_${name}).checked(:never)`,
+              `).returns(${relativeQualifiedName}).checked(:never)`,
             );
             this.dedent();
             this.pushLine("end");
@@ -438,37 +459,28 @@ class RubyModuleCodeGenerator {
             );
           } else {
             this.pushLine(
-              `sig { returns(${relativeQualifiedName}::V_${name}).checked(:never) }`,
+              `sig { returns(${relativeQualifiedName}).checked(:never) }`,
             );
             this.pushLine(`def self.create_${name}; T.unsafe(nil); end`);
           }
         }
       }
+
+      this.pushLine();
+      this.pushLine("sig { returns(T::Boolean).checked(:never) }");
+      this.pushLine(`def is_${name}?; T.unsafe(nil); end`);
+      this.pushLine();
+      this.pushLine(`sig { returns(${frozenType}).checked(:never) }`);
+      this.pushLine(`def as_${name}; T.unsafe(nil); end`);
     }
 
-    // Union & Kind & methods
-    const unionVariantNames = ["V_UNKNOWN"].concat(
-      variants.map((v) =>
-        v.type
-          ? `V_${v.name.text}`
-          : `V_${convertCase(v.name.text, "UPPER_UNDERSCORE")}`,
-      ),
-    );
-    const unionTypes = unionVariantNames.map((vn) =>
-      RubyType.of(`${relativeQualifiedName}::${vn}`),
-    );
+    // Kind & methods
     const valueUnionTypes = [RubyType.NIL].concat(
       wrapperVariants.map((wv) => typeSpeller.getRubyType(wv.type!, "frozen")),
     );
 
     this.pushLine();
-    this.pushLine("Kind = T.type_alias { String }");
-    this.pushLine(`Union = T.type_alias { ${RubyType.union(unionTypes)} }`);
-    this.pushLine();
-    this.pushLine("sig { returns(Union).checked(:never) }");
-    this.pushLine("def union; T.unsafe(self); end");
-    this.pushLine();
-    this.pushLine("sig { returns(String).checked(:never) }");
+    this.pushLine("sig { returns(Kind).checked(:never) }");
     this.pushLine("def kind; T.unsafe(nil); end");
     this.pushLine();
     this.pushLine(
@@ -483,26 +495,19 @@ class RubyModuleCodeGenerator {
     this.pushLine("def present?; T.unsafe(nil); end");
     this.pushLine();
     this.pushLine(
+      `sig { returns(T::Array[${RubyType.union(valueUnionTypes)}]).checked(:never) }`,
+    );
+    this.pushLine("def deconstruct; T.unsafe(nil); end");
+    this.pushLine();
+    this.pushLine(
+      "sig { params(keys: T.nilable(T::Array[Symbol])).returns(T::Hash[Symbol, T.untyped]).checked(:never) }",
+    );
+    this.pushLine("def deconstruct_keys(keys); T.unsafe(nil); end");
+    this.pushLine();
+    this.pushLine(
       `sig { returns(Skir::Serializer[${relativeQualifiedName}]).checked(:never) }`,
     );
     this.pushLine("def self.serializer; T.unsafe(nil); end");
-  }
-
-  private writeEnumVariantClass(
-    variantName: string,
-    valueType: RubyType,
-  ): void {
-    this.pushLine();
-    this.pushLine(`class V_${variantName} < self`);
-    this.indent += INDENT_UNIT;
-    this.pushLine("extend T::Sig");
-    this.pushLine("extend T::Helpers");
-    this.pushLine("sig { returns(String).checked(:never) }");
-    this.pushLine("def kind; T.unsafe(nil); end");
-    this.pushLine(`sig { returns(${valueType}).checked(:never) }`);
-    this.pushLine("def value; T.unsafe(nil); end");
-    this.dedent();
-    this.pushLine("end");
   }
 
   private writeMethod(method: Method): void {
@@ -797,10 +802,16 @@ function structFieldToAttr(fieldName: string): string {
 
 function enumConstantVariantToAttr(variantName: string): string {
   return ENUM_GEN_UPPER_SYMBOLS.has(variantName) ||
-    RUBY_UPPER_CAMEL_KEYWORDS.has(variantName) ||
-    variantName.startsWith("V_")
+    RUBY_UPPER_CAMEL_KEYWORDS.has(variantName)
     ? `${variantName}_`
     : variantName;
+}
+
+function enumKindConstantToAttr(upperName: string): string {
+  return ENUM_GEN_UPPER_SYMBOLS.has(upperName) ||
+    RUBY_UPPER_CAMEL_KEYWORDS.has(upperName)
+    ? `${upperName}_`
+    : upperName;
 }
 
 function getDocTextForComment(doc: Doc): string {
@@ -912,6 +923,8 @@ const RUBY_LOWER_CASE_KEYWORDS: ReadonlySet<string> = new Set<string>([
 
 /** Name of lower_case formatted symbols generated in the Ruby class for a struct. */
 const STRUCT_GEN_LOWER_SYMBOLS: ReadonlySet<string> = new Set<string>([
+  "deconstruct",
+  "deconstruct_keys",
   "partial",
   "replace",
   "serializer",

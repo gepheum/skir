@@ -94,9 +94,9 @@ class SkiroutTest < Minitest::Test
     )
     assert_equal(
       Item.partial(weekday: Weekday::TUESDAY, bool: true),
-      items.array_with_enum_key.find("TUESDAY")
+      items.array_with_enum_key.find(Weekday::Kind::TUESDAY)
     )
-    assert_nil items.array_with_enum_key.find("WEDNESDAY")
+    assert_nil items.array_with_enum_key.find(Weekday::Kind::WEDNESDAY)
   end
 
   sig { void }
@@ -132,24 +132,44 @@ class SkiroutTest < Minitest::Test
 
   sig { params(val: EnumWithStructField).returns(String) }
   def describe_enum_with_struct_field(val)
-    u = val.union
-    case u
-    when EnumWithStructField::V_UNKNOWN
+    k = val.kind
+    case k
+    when EnumWithStructField::Kind::UNKNOWN
       "unknown"
-    when EnumWithStructField::V_s
-      # Sorbet statically narrows u.value to EnumWithStructField::S
-      s_val = T.let(u.value, EnumWithStructField::S)
+    when EnumWithStructField::Kind::S
+      s_val = val.as_s
       "s:#{s_val.x},#{s_val.y}"
     else
-      T.absurd(u)
+      T.absurd(k)
     end
   end
 
   sig { void }
   def test_exhaustive_enum_pattern_matching
     assert_equal "unknown", describe_enum_with_struct_field(EnumWithStructField::UNKNOWN)
+    refute_predicate EnumWithStructField::UNKNOWN, :is_s?
     s_inst = EnumWithStructField.create_s(x: 1.5, y: 2.5)
+    assert_predicate s_inst, :is_s?
     assert_equal "s:1.5,2.5", describe_enum_with_struct_field(s_inst)
+
+    matched =
+      case s_inst
+      in EnumWithStructField(kind: EnumWithStructField::Kind::S, value: { x:, y: })
+        "in_s:#{x},#{y}"
+      else
+        "other"
+      end
+    assert_equal "in_s:1.5,2.5", matched
+
+    full_name = FullName.new(first_name: "Tyler", last_name: "Fibonacci")
+    matched_struct =
+      case full_name
+      in FullName(first_name: "Tyler", last_name:)
+        last_name
+      else
+        ""
+      end
+    assert_equal "Fibonacci", matched_struct
   end
 
   sig { void }

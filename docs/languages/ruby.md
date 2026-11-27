@@ -194,36 +194,50 @@ raise unless roni_status == SubscriptionStatus.create_trial(
 
 #### Pattern matching and type-safe exhaustiveness with Sorbet
 
-Every enum class is `sealed!` in Sorbet with final variant subclasses `V_UNKNOWN`, `V_<CONSTANT_VARIANT>`, and `V_<wrapper_variant>`, and exposes `status.union` (typed as `SubscriptionStatus::Union`):
+Every enum class defines a `Kind < T::Enum` with all variant kinds (`UNKNOWN`, `FREE`, `PREMIUM`, `TRIAL`), `.kind`, `.value`, and `is_<variant>?` / `as_<variant>` methods for wrapper variants:
 
 ```ruby
-# Use 'union.kind' to check which variant the enum value holds.
-raise unless john_status.union.kind == "FREE"
-raise unless joly_status.union.kind == "UNKNOWN"
-raise unless roni_status.union.kind == "trial"
+# For constant variants, compare directly with '==':
+raise unless john_status == SubscriptionStatus::FREE
+raise unless joly_status == SubscriptionStatus::UNKNOWN
 
-# If the enum holds a wrapper variant, you can access the wrapped value through 'union.value'.
-raise unless roni_status.union.value.is_a?(SubscriptionStatus::Trial)
+# For wrapper variants, use 'is_<variant>?' and 'as_<variant>':
+raise unless roni_status.is_trial?
+raise unless roni_status.as_trial.start_time == Time.at(1_744_974_198).utc
 
-# Exhaustive, statically type-checked branching with Sorbet:
+# Or inspect 'kind' (a Sorbet T::Enum):
+raise unless john_status.kind == SubscriptionStatus::Kind::FREE
+raise unless joly_status.kind == SubscriptionStatus::Kind::UNKNOWN
+raise unless roni_status.kind == SubscriptionStatus::Kind::TRIAL
+
+# Exhaustive, statically type-checked branching on 'status.kind' (a Sorbet T::Enum):
 sig { params(status: SubscriptionStatus).returns(String) }
 def get_subscription_info_text(status)
-  u = status.union
-  case u
-  when SubscriptionStatus::V_UNKNOWN
+  kind = status.kind
+  case kind
+  when SubscriptionStatus::Kind::UNKNOWN
     "Unknown subscription status"
-  when SubscriptionStatus::V_FREE
+  when SubscriptionStatus::Kind::FREE
     "Free user"
-  when SubscriptionStatus::V_PREMIUM
+  when SubscriptionStatus::Kind::PREMIUM
     "Premium user"
-  when SubscriptionStatus::V_trial
-    # Here Sorbet statically narrows u.value to SubscriptionStatus::Trial!
-    trial = u.value
+  when SubscriptionStatus::Kind::TRIAL
+    # 'as_trial' is statically typed as SubscriptionStatus::Trial
+    trial = status.as_trial
     "On trial since #{trial.start_time}"
   else
     # Sorbet will report a compile-time error if any variant is missing.
-    T.absurd(u)
+    T.absurd(kind)
   end
+end
+
+# Generated structs and enums also support Ruby 3 'case ... in' structural pattern matching
+# via deconstruct / deconstruct_keys:
+case roni_status
+in SubscriptionStatus(kind: SubscriptionStatus::Kind::TRIAL, value: { start_time: })
+  raise unless start_time == Time.at(1_744_974_198).utc
+else
+  raise
 end
 ```
 
