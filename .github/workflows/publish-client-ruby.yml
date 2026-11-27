@@ -20,8 +20,9 @@ jobs:
           ruby-version: "3.4"
           working-directory: client-libraries/ruby
           bundler-cache: true
-      - name: Run tests and Sorbet typecheck
+      - name: Install dependencies, run tests, and Sorbet typecheck
         run: |
+          bundle install
           bundle exec rake test
           bundle exec srb tc
       - name: Build and publish gem to RubyGems
