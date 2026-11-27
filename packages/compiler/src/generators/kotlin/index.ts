@@ -292,7 +292,7 @@ class KotlinSourceFileGenerator {
       const fieldName = namer.structFieldToKotlinName(field);
       const type = typeSpeller.getKotlinType(field.type!, "frozen");
       if (field.isRecursive === "hard") {
-        this.push(`private val __${fieldName}: ${type}?,\n`);
+        this.push(`_${fieldName}: ${type}?,\n`);
       } else {
         this.push(`override val ${fieldName}: ${type},\n`);
       }
@@ -307,6 +307,7 @@ class KotlinSourceFileGenerator {
         const fieldName = namer.structFieldToKotlinName(field);
         const defaultExpr = this.getDefaultExpression(field.type!);
         this.push(
+          `private val __${fieldName} = if (_${fieldName} == null || _${fieldName} == ${defaultExpr}) null else _${fieldName};\n`,
           `override val ${fieldName} get() = __${fieldName} ?: ${defaultExpr};\n`,
         );
       }
@@ -371,16 +372,23 @@ class KotlinSourceFileGenerator {
       "override fun equals(other: kotlin.Any?): kotlin.Boolean {\n",
       `return this === other || (other is ${qualifiedName}`,
       fields
-        .map(
-          (f) =>
-            ` && this.${namer.structFieldToKotlinName(f)} == other.${namer.structFieldToKotlinName(f)}`,
-        )
+        .map((f) => {
+          const name =
+            (f.isRecursive === "hard" ? "__" : "") +
+            namer.structFieldToKotlinName(f);
+          return ` && this.${name} == other.${name}`;
+        })
         .join(""),
       ");\n",
       "}\n\n",
       "override fun hashCode(): kotlin.Int {\n",
       "return kotlin.collections.listOf<kotlin.Any?>(",
-      fields.map((f) => `this.${namer.structFieldToKotlinName(f)}`).join(", "),
+      fields
+        .map(
+          (f) =>
+            `this.${(f.isRecursive === "hard" ? "__" : "") + namer.structFieldToKotlinName(f)}`,
+        )
+        .join(", "),
       ").hashCode();\n",
       "}\n\n",
       "override fun toString(): kotlin.String {\n",

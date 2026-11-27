@@ -302,6 +302,13 @@ class Tests {
         ),
       ),
     )
+    assertThat(rec.hashCode()).isEqualTo(
+      skirout.structs.RecA.partial(
+        a = skirout.structs.RecA.partial(
+          b = skirout.structs.RecB.partial(),
+        ),
+      ).hashCode(),
+    )
     assertThat(rec.toString).isEqualTo("{}")
   }
 

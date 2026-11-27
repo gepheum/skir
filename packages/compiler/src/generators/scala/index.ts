@@ -170,7 +170,7 @@ class ScalaSourceFileGenerator {
           `val ${serializerName}Impl: _root_.build.skir.internal.StructSerializer[\n${qualifiedName},\n${qualifiedName}.Mutable,\n] = new _root_.build.skir.internal.StructSerializer[\n${qualifiedName},\n${qualifiedName}.Mutable,\n](\n`,
           `"${getRecordId(record)}",\n`,
           `${toScalaStringLiteral(record.record.doc.text)},\n`,
-          `${qualifiedName}.partial(),\n`,
+          `${qualifiedName}.default,\n`,
           `(_it: ${qualifiedName}) => if (_it != null) _it.toMutable() else new ${qualifiedName}.Mutable(),\n`,
           `(_it: ${qualifiedName}.Mutable) => _it.toFrozen(),\n`,
           `(_it: ${qualifiedName}) => _it._unrecognizedFields,\n`,
@@ -308,7 +308,7 @@ class ScalaSourceFileGenerator {
       const fieldName = namer.structFieldToScalaName(field);
       const type = typeSpeller.getScalaType(field.type!, "frozen");
       if (field.isRecursive === "hard") {
-        this.push(`private val ${withColon("__" + fieldName)} ${type},\n`);
+        this.push(`${withColon("_" + fieldName)} ${type},\n`);
       } else {
         this.push(`override val ${withColon(fieldName)} ${type},\n`);
       }
@@ -323,6 +323,7 @@ class ScalaSourceFileGenerator {
         const type = typeSpeller.getScalaType(field.type!, "frozen");
         const defaultExpr = this.getDefaultExpression(field.type!);
         this.push(
+          `private val ${withColon("__" + fieldName)} ${type} =\nif (_${fieldName} == null || _${fieldName} == ${defaultExpr}) null else _${fieldName}\n`,
           `override def ${withColon(fieldName)} ${type} =\nif (this.__${fieldName} != null) this.__${fieldName} else ${defaultExpr}\n`,
         );
       }
@@ -380,10 +381,12 @@ class ScalaSourceFileGenerator {
         " && {\n",
         `val _that = _other.asInstanceOf[${qualifiedName}]\n`,
         fields
-          .map(
-            (f) =>
-              `this.${namer.structFieldToScalaName(f)} == _that.${namer.structFieldToScalaName(f)}`,
-          )
+          .map((f) => {
+            const name =
+              (f.isRecursive === "hard" ? "__" : "") +
+              namer.structFieldToScalaName(f);
+            return `this.${name} == _that.${name}`;
+          })
           .join(" && "),
         "\n}\n",
       );
@@ -395,10 +398,12 @@ class ScalaSourceFileGenerator {
       "override def hashCode(): _root_.scala.Int =\n",
       "_root_.java.util.Objects.hash(",
       fields
-        .map(
-          (f) =>
-            `(this.${namer.structFieldToScalaName(f)} : ${typeSpeller.getScalaType(f.type!, "boxed")})`,
-        )
+        .map((f) => {
+          const name =
+            (f.isRecursive === "hard" ? "__" : "") +
+            namer.structFieldToScalaName(f);
+          return `(this.${name} : ${typeSpeller.getScalaType(f.type!, "boxed")})`;
+        })
         .join(", "),
       ")\n\n",
       "override def toString(): _root_.java.lang.String =\n",

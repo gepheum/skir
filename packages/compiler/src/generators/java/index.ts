@@ -199,7 +199,14 @@ class JavaSourceFileGenerator {
     this.push(`${unrecognizedFieldsType} _u\n`, ") {\n");
     for (const field of fields) {
       const fieldName = namer.structFieldToJavaName(field);
-      this.push(`this.${fieldName} = ${fieldName};\n`);
+      if (field.isRecursive === "hard") {
+        const defaultExpr = this.getDefaultExpression(field.type!);
+        this.push(
+          `this.${fieldName} = (${fieldName} == null || ${fieldName}.equals(${defaultExpr})) ? null : ${fieldName};\n`,
+        );
+      } else {
+        this.push(`this.${fieldName} = ${fieldName};\n`);
+      }
     }
     this.push("this._u = _u;\n", "}\n\n");
 

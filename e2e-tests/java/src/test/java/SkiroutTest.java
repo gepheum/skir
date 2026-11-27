@@ -90,6 +90,10 @@ public class SkiroutTest {
                     .build())
             .build();
     Assertions.assertEquals(RecB.DEFAULT, recA.b());
+    Assertions.assertEquals(recA.hashCode(), recA.toBuilder().build().hashCode());
+    Assertions.assertEquals(RecA.DEFAULT, RecA.partialBuilder().build());
+    Assertions.assertEquals(RecA.DEFAULT.hashCode(), RecA.partialBuilder().build().hashCode());
+    Assertions.assertEquals(recA, RecA.SERIALIZER.fromJsonCode(RecA.SERIALIZER.toJsonCode(recA)));
     Assertions.assertEquals(
         "{\n  \"a\": {\n    \"b\": {\n      \"a\": {\n        \"bool\": true\n      }\n    }\n  }\n}",
         recA.toString());
