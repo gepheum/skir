@@ -1,0 +1,4 @@
+generators:
+  - mod: skir-ocaml-gen
+    outDir: ./skirout
+    config: {}

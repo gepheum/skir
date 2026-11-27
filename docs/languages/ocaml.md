@@ -263,6 +263,10 @@ let () =
 
 ### SkirRPC services
 
+**Starting a SkirRPC service on an HTTP server** - full example [here](https://github.com/gepheum/skir-ocaml-example/blob/main/src/start_service.ml).
+
+**Sending RPCs to a SkirRPC service** - full example [here](https://github.com/gepheum/skir-ocaml-example/blob/main/src/call_service.ml).
+
 #### Starting a SkirRPC service
 
 ```ocaml

@@ -1,0 +1,24 @@
+name: Skir OCaml Example CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install OCaml, Dune, and skir_client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ocaml-nox dune git
+          git clone https://github.com/gepheum/skir-ocaml-client.git /tmp/skir-ocaml-client
+          (cd /tmp/skir-ocaml-client && dune build && sudo dune install --prefix=/usr)
+      - run: npx skir format --ci
+      - run: npx skir gen
+      - run: dune build
+      - run: dune exec ./snippets.exe

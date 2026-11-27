@@ -1,0 +1,6 @@
+_build/
+*.install
+.merlin
+skirout/
+skir-external/
+.DS_Store

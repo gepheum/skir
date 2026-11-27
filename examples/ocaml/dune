@@ -1,0 +1,16 @@
+(include_subdirs unqualified)
+
+(executable
+ (name snippets)
+ (modules skirout_user snippets)
+ (libraries skir_client unix))
+
+(executable
+ (name start_service)
+ (modules skirout_user skirout_service start_service)
+ (libraries skir_client unix))
+
+(executable
+ (name call_service)
+ (modules skirout_user skirout_service call_service)
+ (libraries skir_client unix))

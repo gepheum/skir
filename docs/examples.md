@@ -23,6 +23,7 @@ Each starter focuses on the same core workflow, implemented in a different langu
 | **Java** | Spring Boot | Gradle build and run workflow. | [GitHub](https://github.com/gepheum/skir-java-example) |
 | **Kotlin** | Ktor | Gradle Kotlin DSL setup. | [GitHub](https://github.com/gepheum/skir-kotlin-example) |
 | **MoonBit** | moonbit/http | MoonBit package workflow with generated Skir RPC endpoints. | [GitHub](https://github.com/gepheum/skir-moonbit-example) |
+| **OCaml** | Unix sockets | Dune project with native records/ADTs and SkirRPC client/server. | [GitHub](https://github.com/gepheum/skir-ocaml-example) |
 | **Python** | Flask / FastAPI / Litestar | Multiple server frameworks included. | [GitHub](https://github.com/gepheum/skir-python-example) |
 | **Ruby** | WEBrick | Bundler project with Sorbet static type checking. | [GitHub](https://github.com/gepheum/skir-ruby-example) |
 | **Rust** | Axum | Cargo workspace, async Axum server. | [GitHub](https://github.com/gepheum/skir-rust-example) |
